@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>خدمات الشاطر الطلابية</title>
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <style>
+        :root { --main-blue: #1e3a8a; --bg-gray: #f8fafc; --success: #059669; --text-dark: #1e293b; --error: #be123c; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: var(--bg-gray); padding: 15px; direction: rtl; margin: 0; color: var(--text-dark); }
+        .header { text-align: center; padding: 20px 0; }
+        .logo-circle { width: 100px; height: 100px; background: white url('logo.png') no-repeat center; background-size: contain; border-radius: 50%; margin: 0 auto 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); border: 4px solid var(--main-blue); }
+        .card { background: white; border-radius: 20px; padding: 25px; margin-bottom: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; }
+        .upload-area { border: 2px dashed var(--main-blue); padding: 30px; text-align: center; color: var(--main-blue); cursor: pointer; border-radius: 20px; transition: all 0.3s; background: #f0f9ff; }
+        .upload-area:hover { background: #e0f2fe; }
+        .btn-group { display: flex; gap: 12px; margin-top: 15px; }
+        .opt-btn { flex: 1; padding: 14px; border: 1px solid #cbd5e1; border-radius: 12px; cursor: pointer; font-weight: bold; font-size: 1rem; transition: 0.2s; }
+        .opt-btn.active { background: var(--main-blue) !important; color: white !important; border-color: var(--main-blue); box-shadow: 0 4px 10px rgba(30, 58, 138, 0.3); }
+        .opt-btn.inactive { background: white !important; color: var(--text-dark) !important; }
+        input[type="text"], input[type="tel"] { width: 100%; padding: 16px; border: 2px solid #e2e8f0; border-radius: 14px; box-sizing: border-box; font-size: 1rem; margin-bottom: 15px; background: #fff; outline: none; transition: 0.3s; }
+        input[type="text"]:focus, input[type="tel"]:focus { border-color: var(--main-blue); box-shadow: 0 0 0 4px rgba(30, 58, 138, 0.1); }
+        .invoice { background: #1e293b; color: white; border-radius: 20px; padding: 25px; margin-top: 20px; }
+        .inv-line { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; opacity: 0.9; }
+        .total-price { font-size: 1.6rem; color: #4ade80; text-align: center; margin-top: 20px; border-top: 1px dashed #475569; padding-top: 20px; font-weight: bold; }
+        .btn-main { width: 100%; padding: 18px; border: none; border-radius: 15px; font-weight: bold; font-size: 1.1rem; cursor: pointer; transition: 0.3s; }
+        .progress-container { width: 100%; background: #e2e8f0; height: 10px; border-radius: 5px; margin: 20px 0; display: none; overflow: hidden; }
+        .progress-bar { width: 0%; height: 100%; background: var(--success); transition: 0.3s; }
+        #welcome-modal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.9); display: flex; align-items: center; justify-content: center; z-index: 1000; backdrop-filter: blur(5px); }
+        .modal-content { background: white; padding: 40px; border-radius: 25px; text-align: center; width: 85%; max-width: 450px; }
+        .file-item { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+        .btn-count { background: #f1f5f9; border: 1px solid #cbd5e1; width: 36px; height: 36px; border-radius: 10px; cursor: pointer; font-weight: bold; font-size: 1.2rem; }
+        .image-note { color: #0369a1; font-size: 0.9rem; font-weight: bold; margin: 15px 0; display: none; border: 1px solid #bae6fd; padding: 12px; border-radius: 12px; background: #f0f9ff; text-align: center; }
+        .ios-hint-box { background: #fffbeb; border: 2px solid #fde68a; border-radius: 15px; padding: 20px; margin-top: 15px; text-align: right; }
+        .error-msg { background: #fff1f2; color: var(--error); padding: 12px; border-radius: 10px; font-size: 0.9rem; font-weight: bold; margin-bottom: 15px; text-align: center; display: none; border: 1px solid #fecdd3; }
+    </style>
+</head>
+<body>
+
+    <div id="welcome-modal">
+        <div class="modal-content">
+            <div class="logo-circle"></div>
+            <h2 style="color:var(--main-blue)">خدمات الشاطر الطلابية</h2>
+            <p>حلول طباعة احترافية بمتناول يدك. ارفع ملفاتك الآن وسنقوم بتوصيلها لباب بيتك.</p>
+            <p style="font-size: 0.95rem; color: var(--success); font-weight: bold; background: #ecfdf5; padding: 10px; border-radius: 10px;">🎁 توصيل مجاني للطلبات 10,000 د.ع فأكثر!</p>
+            <button class="btn-main" style="background: var(--main-blue); color:white; margin-top: 20px;" onclick="closeWelcome()">ابدأ طلبك الآن</button>
+        </div>
+    </div>
+
+    <div id="main-ui">
+        <div class="header">
+            <div class="logo-circle"></div>
+            <h1 style="margin:0; color:var(--main-blue); font-size: 1.8rem;">خدمات الشاطر الطلابية</h1>
+        </div>
+
+        <div class="card">
+            <div class="upload-area" onclick="document.getElementById('fileInp').click()">
+                <span style="font-size: 1.3rem; display: block; margin-bottom: 5px;">📁 اضغط هنا لإضافة الملفات</span>
+                <p style="font-size: 0.85rem; margin: 0; opacity: 0.8;">يدعم PDF, Word, PowerPoint والصور</p>
+            </div>
+
+            <div class="ios-hint-box">
+                <span style="color: #92400e; font-weight: bold; font-size: 1.1rem; display: block; margin-bottom: 10px;">⚠️ مستخدمي الآيفون (iPhone)</span>
+                <div style="color: #92400e; font-size: 0.9rem; line-height: 1.6;">
+                    قم بحفظ الملف في تطبيق <b style="color: #b45309;">"Files"</b> أولاً، ثم اختر <b style="color: #b45309;">"تصفح" (Browse)</b> عند الإضافة.
+                </div>
+            </div>
+            <input type="file" id="fileInp" multiple style="display:none">
+        </div>
+
+        <div id="list" class="card" style="display:none;"></div>
+
+        <div id="opts" style="display:none;">
+            <div class="card">
+                <p style="font-weight: bold; margin-bottom: 10px;">نوع الطباعة:</p>
+                <div class="btn-group">
+                    <button id="c-btn" class="opt-btn active" onclick="setConf('color','c')">🌈 ملون</button>
+                    <button id="n-btn" class="opt-btn inactive" onclick="setConf('color','n')">⚪ أسود</button>
+                </div>
+                
+                <div id="img-alert" class="image-note">⚠️ ملاحظة: الصور تُطبع وجه واحد فقط.</div>
+
+                <div id="side-selection-container">
+                    <p style="font-weight: bold; margin-top:25px; margin-bottom: 10px;">طريقة الطباعة:</p>
+                    <div class="btn-group">
+                        <button id="s1-btn" class="opt-btn active" onclick="setConf('side','1')">📄 وجه واحد</button>
+                        <button id="s2-btn" class="opt-btn inactive" onclick="setConf('side','2')">📖 وجهين</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="invoice">
+                <div id="inv-details"></div>
+                <div class="total-price" id="total">المجموع النهائي: 0 د.ع</div>
+            </div>
+
+            <div class="card" style="margin-top:20px;">
+                <div id="validation-error" class="error-msg"></div>
+                
+                <p style="font-weight: bold; margin-bottom: 15px; color: var(--main-blue);">معلومات التوصيل:</p>
+                <input type="text" id="uName" placeholder="✍️ اسم الزبون الكامل (أحرف فقط)">
+                <input type="tel" id="uPhone" placeholder="📞 رقم الهاتف (11 رقم)" maxlength="11">
+                <input type="text" id="uRegion" placeholder="🏠 اسم المنطقة السكنية">
+                
+                <button id="locBtn" class="btn-main" style="background:#64748b; color:white; font-size:1rem; margin-bottom: 10px;" onclick="askLoc()">📍 تحديد موقعي الحالي (إلزامي)</button>
+                
+                <div class="progress-container" id="p-cont"><div class="progress-bar" id="p-bar"></div></div>
+                <button id="sendBtn" class="btn-main" style="background:var(--success); color:white; margin-top:10px; box-shadow: 0 4px 15px rgba(5, 150, 105, 0.3);" onclick="sendOrder()">تأكيد وإرسال الطلب ✅</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const tg = window.Telegram.WebApp; tg.ready();
+        let files = []; let conf = { color: 'c', side: '1' };
+        let locUrl = "غير محدد";
+        
+        // التوكن الجديد المحدث
+        const botToken = '8446310296:AAE3S3faplYwmvM4jYQgeAYPenq2bDUYTrQ';
+        const myChatId = '7618746133';
+
+        function closeWelcome() { document.getElementById('welcome-modal').style.display = 'none'; }
+
+        document.getElementById('fileInp').onchange = async (e) => {
+            const allowed = ['.pdf', '.docx', '.doc', '.xlsx', '.xls', '.pptx', '.ppt', '.jpg', '.jpeg', '.png', '.webp'];
+            for (let f of e.target.files) {
+                const name = f.name.toLowerCase();
+                const ext = name.substring(name.lastIndexOf('.'));
+                if (!allowed.includes(ext) && !f.type.startsWith('image/')) continue;
+
+                let obj = { file: f, name: f.name, p: 1, c: 1, isImg: f.type.startsWith('image/'), type: 'ملف' };
+                try {
+                    const buffer = await f.arrayBuffer();
+                    if (name.endsWith('.pdf')) {
+                        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+                        const pdf = await pdfjsLib.getDocument({data: buffer}).promise;
+                        obj.p = pdf.numPages; obj.type = 'PDF'; obj.isImg = false;
+                    } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                        const res = await mammoth.extractRawText({arrayBuffer: buffer});
+                        const words = res.value.trim().split(/\s+/).length;
+                        obj.p = Math.max(1, Math.ceil(words / 300));
+                        obj.type = 'Word'; obj.isImg = false;
+                    } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
+                        const zip = await JSZip.loadAsync(buffer);
+                        const xml = await zip.file("docProps/app.xml").async("string");
+                        const m = xml.match(/<Slides>(\d+)<\/Slides>/);
+                        obj.p = m ? parseInt(m[1]) : 1; obj.type = 'PowerPoint'; obj.isImg = false;
+                    } else if (obj.isImg) {
+                        obj.type = 'صورة';
+                    }
+                } catch (err) { obj.p = 1; }
+                files.push(obj);
+            }
+            ui();
+        };
+
+        function setConf(k, v) {
+            conf[k] = v;
+            document.getElementById('c-btn').className = conf.color === 'c' ? 'opt-btn active' : 'opt-btn inactive';
+            document.getElementById('n-btn').className = conf.color === 'n' ? 'opt-btn active' : 'opt-btn inactive';
+            document.getElementById('s1-btn').className = conf.side === '1' ? 'opt-btn active' : 'opt-btn inactive';
+            document.getElementById('s2-btn').className = conf.side === '2' ? 'opt-btn active' : 'opt-btn inactive';
+            ui();
+        }
+
+        function askLoc() {
+            navigator.geolocation.getCurrentPosition(p => {
+                locUrl = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
+                document.getElementById('locBtn').innerText = "✅ تم حفظ الموقع بنجاح";
+                document.getElementById('locBtn').style.background = "#059669";
+                document.getElementById('validation-error').style.display = 'none';
+            }, () => {
+                const errBox = document.getElementById('validation-error');
+                errBox.innerText = "❌ يرجى السماح بالوصول للموقع لتحديد جهة التوصيل";
+                errBox.style.display = 'block';
+            });
+        }
+
+        function ui() {
+            const list = document.getElementById('list'); list.innerHTML = '';
+            let sheets = 0, imgs = 0, docsPages = 0;
+            let hasDocs = false, hasImgs = false;
+
+            files.forEach((f, i) => {
+                if (!f.isImg) hasDocs = true; else hasImgs = true;
+                list.innerHTML += `<div class="file-item">
+                    <span style="font-size:0.9rem; font-weight:bold; color: #334155;">${f.name.substring(0,25)} (${f.p} ص)</span>
+                    <div>
+                        <button class="btn-count" onclick="cnt(${i},-1)">-</button>
+                        <span style="padding:0 10px; font-weight:bold; font-size: 1.1rem;">${f.c}</span>
+                        <button class="btn-count" onclick="cnt(${i},1)">+</button>
+                        <span onclick="del(${i})" style="color:red; margin-right:15px; cursor:pointer; font-size:0.9rem; font-weight: bold;">حذف</span>
+                    </div>
+                </div>`;
+                let unit = f.p;
+                if (f.type === 'PowerPoint') unit = Math.ceil(f.p / 2);
+                if (f.isImg) imgs += f.c;
+                else {
+                    docsPages += (f.p * f.c);
+                    sheets += (conf.side === '2' ? Math.ceil(unit / 2) : unit) * f.c;
+                }
+            });
+
+            document.getElementById('side-selection-container').style.display = hasDocs ? 'block' : 'none';
+            document.getElementById('img-alert').style.display = hasImgs ? 'block' : 'none';
+            
+            let printPrice = 0;
+            let totalUnits = sheets + imgs;
+
+            if (totalUnits > 0 && totalUnits <= 5) {
+                printPrice = 1000;
+            } else if (totalUnits > 5) {
+                if (conf.color === 'c') {
+                    if (totalUnits >= 6 && totalUnits <= 25) printPrice = totalUnits * 150;
+                    else if (totalUnits >= 26 && totalUnits <= 40) printPrice = totalUnits * 130;
+                    else if (totalUnits > 40 && totalUnits <= 70) printPrice = totalUnits * 120;
+                    else if (totalUnits > 70) printPrice = totalUnits * 100;
+                } else {
+                    let pricePerSheetBlack = (conf.side === '1' ? 90 : 75);
+                    printPrice = totalUnits * pricePerSheetBlack;
+                }
+            }
+
+            let deliveryFee = 0;
+            if (files.length > 0) {
+                deliveryFee = (printPrice >= 10000) ? 0 : 2000;
+            }
+
+            let total = printPrice + deliveryFee;
+            
+            document.getElementById('inv-details').innerHTML = `
+                <div class="inv-line"><span>عدد الوحدات (أوراق/صور):</span><span>${totalUnits}</span></div>
+                <div class="inv-line" style="border-top:1px solid #475569; padding-top:10px;"><span>سعر الطباعة:</span><span>${printPrice.toLocaleString()} د.ع</span></div>
+                <div class="inv-line"><span>أجور التوصيل:</span><span>${deliveryFee === 0 && printPrice >= 10000 ? '<b style="color:#4ade80;">مجاني ✨</b>' : deliveryFee.toLocaleString() + ' د.ع'}</span></div>`;
+            
+            document.getElementById('total').innerText = `المجموع النهائي: ${total.toLocaleString()} د.ع`;
+            document.getElementById('list').style.display = files.length ? 'block' : 'none';
+            document.getElementById('opts').style.display = files.length ? 'block' : 'none';
+            window.finalTotal = total;
+        }
+
+        window.cnt = (i, d) => { files[i].c = Math.max(1, files[i].c + d); ui(); };
+        window.del = (i) => { files.splice(i, 1); ui(); };
+
+        async function sendOrder() {
+            const name = document.getElementById('uName').value.trim();
+            const phone = document.getElementById('uPhone').value.trim();
+            const region = document.getElementById('uRegion').value.trim();
+            const errBox = document.getElementById('validation-error');
+            
+            const nameRegex = /^[\u0600-\u06FF\sA-Za-z]+$/;
+            if (!name || !nameRegex.test(name)) {
+                errBox.innerText = "❌ يرجى كتابة الاسم الكامل (أحرف فقط وبدون أرقام)";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            if (phone.length !== 11 || isNaN(phone)) {
+                errBox.innerText = "❌ يرجى إدخال رقم هاتف صحيح مكون من 11 رقم";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            if (!region) {
+                errBox.innerText = "❌ يرجى كتابة اسم المنطقة السكنية";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            if (locUrl === "غير محدد") {
+                errBox.innerText = "❌ تحديد الموقع الجغرافي إلزامي لتوصيل الطلب";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            if (!files.length) {
+                errBox.innerText = "❌ يرجى رفع ملف واحد على الأقل";
+                errBox.style.display = 'block';
+                return;
+            }
+
+            errBox.style.display = 'none';
+            const btn = document.getElementById('sendBtn');
+            btn.disabled = true; btn.innerText = "جاري المعالجة... ⏳";
+            document.getElementById('p-cont').style.display = 'block';
+            
+            try {
+                const zip = new JSZip();
+                let summary = "";
+                files.forEach(f => {
+                    zip.file(f.name, f.file);
+                    summary += `\n📄 ${f.name} (${f.c} نسخة)`;
+                });
+                
+                const blob = await zip.generateAsync({type:"blob"}, p => {
+                    document.getElementById('p-bar').style.width = p.percent + "%";
+                });
+                
+                const orderId = "SH-" + Math.floor(1000 + Math.random() * 9000);
+                const fd = new FormData();
+                fd.append('chat_id', myChatId); 
+                fd.append('document', blob, `Order_${orderId}.zip`);
+                fd.append('caption', `🆕 طلب جديد من خدمات الشاطر #${orderId}\n👤 الزبون: ${name}\n📞 الهاتف: ${phone}\n🏠 المنطقة: ${region}\n💰 السعر: ${window.finalTotal.toLocaleString()} د.ع\n🎨 النوع: ${conf.color==='c'?'ملون':'أسود'}\n📖 الطباعة: ${conf.side==='1'?'وجه واحد':'وجهين'}\n📍 الموقع: ${locUrl}\n\n📋 الملفات:${summary}`);
+                
+                await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {method:'POST', body:fd});
+                
+                const userId = tg.initDataUnsafe?.user?.id;
+                if(userId) {
+                    await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+                        method: 'POST', headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({
+                            chat_id: userId, 
+                            text: `✅ خدمات الشاطر الطلابية\nتم استلام طلبك #${orderId} بنجاح!\n💰 المجموع الكلي: ${window.finalTotal.toLocaleString()} د.ع\n📍 سيتم التجهيز والتوصيل للمنطقة: ${region}.\nشكراً لاختياركم خدماتنا.`
+                        })
+                    });
+                }
+                document.getElementById('main-ui').innerHTML = `<div style='text-align:center; padding:80px 20px;'><h2 style='color:var(--main-blue)'>تم إرسال طلبك بنجاح! ✅</h2><p>رقم الطلب: <b>#${orderId}</b></p><button onclick='tg.close()' class='btn-main' style='background:var(--main-blue); color:white; margin-top:20px;'>إغلاق التطبيق</button></div>`;
+            } catch (e) { 
+                errBox.innerText = "❌ حدث خطأ في الاتصال، حاول مرة أخرى";
+                errBox.style.display = 'block';
+                btn.disabled = false; 
+            }
+        }
+    </script>
+</body>
+</html>
