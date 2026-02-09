@@ -140,35 +140,45 @@
                         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
                         const pdf = await pdfjsLib.getDocument({data: buffer}).promise;
                         obj.p = pdf.numPages; obj.type = 'PDF'; obj.isImg = false;
-                    } else if (name.endsWith('.docx') || name.endsWith('.doc')) {
+                    } else if (name.endsWith('.docx')) {
+                        try {
+                            const zip = await JSZip.loadAsync(buffer);
+                            const xmlText = await zip.file("docProps/app.xml").async("string");
+                            const parser = new DOMParser();
+                            const xmlDoc = parser.parseFromString(xmlText, "text/xml");
+                            const pagesTag = xmlDoc.getElementsByTagName("Pages")[0];
+                            let pagesCount = pagesTag ? parseInt(pagesTag.childNodes[0].nodeValue) : 1;
+                            obj.p = pagesCount;
+                            obj.type = 'Word'; 
+                            obj.isImg = false;
+                        } catch (err) {
+                            const res = await mammoth.extractRawText({arrayBuffer: buffer});
+                            const words = res.value.trim().split(/\s+/).length;
+                            obj.p = Math.max(1, Math.ceil(words / 300));
+                            obj.type = 'Word (تقديري)';
+                        }
+                    } else if (name.endsWith('.doc')) {
                         const res = await mammoth.extractRawText({arrayBuffer: buffer});
                         const words = res.value.trim().split(/\s+/).length;
                         obj.p = Math.max(1, Math.ceil(words / 300));
-                        obj.type = 'Word'; obj.isImg = false;
+                        obj.type = 'Word قديم';
                     } else if (name.endsWith('.pptx') || name.endsWith('.ppt')) {
                         const zip = await JSZip.loadAsync(buffer);
                         const xml = await zip.file("docProps/app.xml").async("string");
                         const m = xml.match(/<Slides>(\d+)<\/Slides>/);
                         obj.p = m ? parseInt(m[1]) : 1; obj.type = 'PowerPoint'; obj.isImg = false;
                     } else if (name.endsWith('.xlsx') || name.endsWith('.xls')) {
-                        // حساب صفحات الإكسل بدقة بناءً على البيانات
                         const workbook = XLSX.read(buffer, {type: 'array'});
                         let totalExcelPages = 0;
-                        
                         workbook.SheetNames.forEach(sheetName => {
                             const sheet = workbook.Sheets[sheetName];
                             const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1:A1');
-                            
-                            const rows = range.e.r - range.s.r + 1; // عدد الصفوف المستخدمة
-                            const cols = range.e.c - range.s.c + 1; // عدد الأعمدة المستخدمة
-                            
-                            // افتراض: الصفحة A4 تستوعب 45 صف و 8 أعمدة
+                            const rows = range.e.r - range.s.r + 1;
+                            const cols = range.e.c - range.s.c + 1;
                             const pagesTall = Math.ceil(rows / 45);
                             const pagesWide = Math.ceil(cols / 8);
-                            
                             totalExcelPages += (pagesTall * pagesWide);
                         });
-                        
                         obj.p = Math.max(1, totalExcelPages);
                         obj.type = 'Excel'; obj.isImg = false;
                     } else if (obj.isImg) {
@@ -354,4 +364,3 @@
     </script>
 </body>
 </html>
-
