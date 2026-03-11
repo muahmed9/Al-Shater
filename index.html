@@ -35,6 +35,7 @@
         .image-note { color: var(--main-blue); font-size: 0.85rem; font-weight: bold; margin: 12px 0; display: none; border: 1px solid #b3d7ff; padding: 10px; border-radius: 10px; background: #e7f3ff; text-align: center; }
         .ios-hint-box { background: #fffbef; border: 2px solid #fbd38d; border-radius: 12px; padding: 18px; margin-top: 15px; text-align: right; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
         .error-msg { background: #fff1f2; color: var(--error); padding: 10px; border-radius: 10px; font-size: 0.85rem; font-weight: bold; margin-bottom: 15px; text-align: center; display: none; border: 1px solid #fecdd3; }
+        .promo-badge { background: #eab308; color: #1e293b; padding: 4px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: bold; }
     </style>
 </head>
 <body>
@@ -44,7 +45,8 @@
             <div class="logo-circle"></div>
             <h2 style="color:var(--main-blue)">خدمات الشاطر الطلابية</h2>
             <p>أهلاً بك! ارفع مستنداتك وسنتولى طباعتها وتوصيلها إليك بجودة عالية.</p>
-            <p style="font-size: 0.9rem; color: #28a745; font-weight: bold;">🎁 توصيل مجاني للطلبات 10,000 د.ع فأكثر!</p>
+            <p id="first-order-gift" style="font-size: 0.9rem; color: #28a745; font-weight: bold; display: none;">🎁 هدية الشاطر: توصيل مجاني لأول طلب لك!</p>
+            <p id="free-delivery-gift" style="font-size: 0.9rem; color: #28a745; font-weight: bold;">🎁 توصيل مجاني للطلبات 10,000 د.ع فأكثر!</p>
             <button class="btn-main" style="background: var(--main-blue); color:white;" onclick="closeWelcome()">ابدأ طلبك الآن</button>
         </div>
     </div>
@@ -123,6 +125,13 @@
         
         const botToken = '8507186698:AAEsoTIakrgnvR19Uc-hl3YsXYOVuhgSZWU';
         const myChatId = '7618746133';
+
+        // فحص ما إذا كان المستخدم يطلب لأول مرة
+        const hasOrderedBefore = localStorage.getItem('shater_order_completed') === 'true';
+        if (!hasOrderedBefore) {
+            document.getElementById('first-order-gift').style.display = 'block';
+            document.getElementById('free-delivery-gift').style.display = 'none';
+        }
 
         function closeWelcome() { document.getElementById('welcome-modal').style.display = 'none'; }
 
@@ -265,18 +274,30 @@
                 deliveryFee = (printPrice >= 10000) ? 0 : 1000;
             }
 
-            let total = printPrice + deliveryFee;
+            // المنطق الجديد: التوصيل مجاني فقط للطلب الأول
+            let finalDeliveryFee = deliveryFee;
+            let deliveryText = "";
+
+            if (!hasOrderedBefore && files.length > 0) {
+                finalDeliveryFee = 0;
+                deliveryText = '<b style="color:#4eff4e;">مجاني (هدية أول طلب) 🎁</b>';
+            } else {
+                deliveryText = (deliveryFee === 0 && printPrice >= 10000) ? '<b style="color:#4eff4e;">مجاني ✨</b>' : deliveryFee.toLocaleString() + ' د.ع';
+            }
+
+            let total = printPrice + finalDeliveryFee;
             
             document.getElementById('inv-details').innerHTML = `
                 <div class="inv-line"><span>عدد صفحات الملفات:</span><span>${docsPages}</span></div>
                 <div class="inv-line"><span>عدد الصور المرفوعة:</span><span>${imgs}</span></div>
                 <div class="inv-line" style="border-top:1px solid #5d6d7e; padding-top:5px;"><span>سعر الطباعة:</span><span>${printPrice.toLocaleString()} د.ع</span></div>
-                <div class="inv-line"><span>أجور التوصيل:</span><span>${deliveryFee === 0 && printPrice >= 10000 ? '<b style="color:#4eff4e;">مجاني ✨</b>' : deliveryFee.toLocaleString() + ' د.ع'}</span></div>`;
+                <div class="inv-line"><span>أجور التوصيل:</span><span>${deliveryText}</span></div>`;
             
             document.getElementById('total').innerText = `المجموع النهائي: ${total.toLocaleString()} د.ع`;
             document.getElementById('list').style.display = files.length ? 'block' : 'none';
             document.getElementById('opts').style.display = files.length ? 'block' : 'none';
             window.finalTotal = total;
+            window.deliveryInfo = !hasOrderedBefore ? "مجاني (هدية أول طلب)" : deliveryFee.toLocaleString();
         }
 
         window.cnt = (i, d) => { files[i].c = Math.max(1, files[i].c + d); ui(); };
@@ -289,35 +310,11 @@
             const errBox = document.getElementById('validation-error');
             
             const nameRegex = /^[\u0600-\u06FF\sA-Za-z]+$/;
-            if (!name || !nameRegex.test(name)) {
-                errBox.innerText = "❌ يرجى كتابة الاسم (أحرف فقط)";
-                errBox.style.display = 'block';
-                return;
-            }
-
-            if (phone.length !== 11 || isNaN(phone)) {
-                errBox.innerText = "❌ يرجى إدخال رقم هاتف صحيح مكون من 11 رقم";
-                errBox.style.display = 'block';
-                return;
-            }
-
-            if (!region) {
-                errBox.innerText = "❌ يرجى ادخل اسم المنطقة";
-                errBox.style.display = 'block';
-                return;
-            }
-
-            if (locUrl === "غير محدد") {
-                errBox.innerText = "❌ يرجى تحديد الموقع لإتمام الطلب";
-                errBox.style.display = 'block';
-                return;
-            }
-
-            if (!files.length) {
-                errBox.innerText = "❌ يرجى رفع ملف واحد على الأقل";
-                errBox.style.display = 'block';
-                return;
-            }
+            if (!name || !nameRegex.test(name)) { errBox.innerText = "❌ يرجى كتابة الاسم (أحرف فقط)"; errBox.style.display = 'block'; return; }
+            if (phone.length !== 11 || isNaN(phone)) { errBox.innerText = "❌ يرجى إدخال رقم هاتف صحيح مكون من 11 رقم"; errBox.style.display = 'block'; return; }
+            if (!region) { errBox.innerText = "❌ يرجى ادخل اسم المنطقة"; errBox.style.display = 'block'; return; }
+            if (locUrl === "غير محدد") { errBox.innerText = "❌ يرجى تحديد الموقع لإتمام الطلب"; errBox.style.display = 'block'; return; }
+            if (!files.length) { errBox.innerText = "❌ يرجى رفع ملف واحد على الأقل"; errBox.style.display = 'block'; return; }
 
             errBox.style.display = 'none';
             const btn = document.getElementById('sendBtn');
@@ -337,20 +334,25 @@
                 });
                 
                 const orderId = "SH-" + Math.floor(1000 + Math.random() * 9000);
+                const isPromo = !hasOrderedBefore ? "🚚 (توصيل مجاني - عرض أول طلب)" : "";
+                
                 const fd = new FormData();
                 fd.append('chat_id', myChatId); 
                 fd.append('document', blob, `Order_${orderId}.zip`);
-                fd.append('caption', `🆕 طلب جديد من خدمات الشاطر #${orderId}\n👤 الزبون: ${name}\n📞 الهاتف: ${phone}\n🏠 المنطقة: ${region}\n💰 السعر: ${window.finalTotal.toLocaleString()} د.ع\n🎨 النوع: ${conf.color==='c'?'ملون':'أسود'}\n📖 الطباعة: ${conf.side==='1'?'وجه واحد':'وجهين'}\n📍 الموقع: ${locUrl}\n\n📋 الملفات:${summary}`);
+                fd.append('caption', `🆕 طلب جديد #${orderId}\n${isPromo}\n👤 الزبون: ${name}\n📞 الهاتف: ${phone}\n🏠 المنطقة: ${region}\n💰 السعر الكلي: ${window.finalTotal.toLocaleString()} د.ع\n🚚 التوصيل: ${window.deliveryInfo}\n🎨 النوع: ${conf.color==='c'?'ملون':'أسود'}\n📖 الطباعة: ${conf.side==='1'?'وجه واحد':'وجهين'}\n📍 الموقع: ${locUrl}\n\n📋 الملفات:${summary}`);
                 
                 await fetch(`https://api.telegram.org/bot${botToken}/sendDocument`, {method:'POST', body:fd});
                 
+                // حفظ حالة إتمام الطلب الأول
+                localStorage.setItem('shater_order_completed', 'true');
+
                 const userId = tg.initDataUnsafe?.user?.id;
                 if(userId) {
                     await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
                         method: 'POST', headers: {'Content-Type': 'application/json'},
                         body: JSON.stringify({
                             chat_id: userId, 
-                            text: `✅ \nتم استلام طلبك #${orderId} بنجاح!\n💰 المجموع الكلي: ${window.finalTotal.toLocaleString()} د.ع\n⚡️ سيتم تجهيز طلبك وايصاله لك بأسرع وقت.`
+                            text: `✅ \nتم استلام طلبك #${orderId} بنجاح!\n💰 المجموع الكلي: ${window.finalTotal.toLocaleString()} د.ع\n${!hasOrderedBefore ? '🎁 استمتع بهديتك، التوصيل كان مجانياً.' : ''}\n⚡️ سيتم تجهيز طلبك وايصاله لك بأسرع وقت.`
                         })
                     });
                 }
