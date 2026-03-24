@@ -738,8 +738,18 @@ async function showDet(oid) {
   });
   tl += '</div>';
 
+  let cancelBox = '';
+  if (['received', 'printing', 'delivering'].includes(o.status)) {
+    cancelBox = `
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:16px; padding:15px; margin-bottom:20px; text-align:center;">
+      <b style="color:#991b1b; font-size:0.95rem; display:block; margin-bottom:8px;">هل ترغب في تعديل أو إلغاء الطلب؟</b>
+      <a href="tel:07752564099" style="display:inline-block; background:#ef4444; color:#fff; text-decoration:none; padding:10px 20px; border-radius:12px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(239, 68, 68, 0.3);">📞 اتصل بنا للإلغاء (07752564099)</a>
+    </div>`;
+  }
+
   document.getElementById('det-body').innerHTML = `
     ${tl}
+    ${cancelBox}
     <div style="background:var(--light-teal); border: 1px solid rgba(90, 179, 196, 0.2); border-radius:16px; padding:18px; margin-bottom:20px;">
       <div class="il" style="color:var(--navy);"><span style="font-weight:500;">إعدادات الطباعة:</span><b style="background:#fff;padding:4px 12px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه واحد':'وجهين'}</b></div>
       <div class="il" style="color:var(--navy);margin-top:15px;"><span style="font-weight:500;">المبلغ الإجمالي:</span><b style="font-size:1.2rem;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</b></div>
