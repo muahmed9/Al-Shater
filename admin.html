@@ -281,8 +281,8 @@ function renderOrders() {
     let act = '';
     
     if(o.status==='received')   act=`<button class="abtn aprint" onclick="${sp};chStatus('${o.id}','printing','${o.telegram_id}','${o.id}')">🖨️ طباعة</button><button class="abtn acanc" onclick="${sp};chStatus('${o.id}','cancelled','${o.telegram_id}','${o.id}')">❌ إلغاء</button>`;
-    if(o.status==='printing')   act=`<button class="abtn adeliv" onclick="${sp};chStatus('${o.id}','delivering','${o.telegram_id}','${o.id}')">🛵 توصيل</button>`;
-    if(o.status==='delivering') act=`<button class="abtn adone"  onclick="${sp};chStatus('${o.id}','delivered','${o.telegram_id}','${o.id}')">✅ تم التسليم</button>`;
+    if(o.status==='printing')   act=`<button class="abtn adeliv" onclick="${sp};chStatus('${o.id}','delivering','${o.telegram_id}','${o.id}')">🛵 توصيل</button><button class="abtn acanc" onclick="${sp};chStatus('${o.id}','cancelled','${o.telegram_id}','${o.id}')">❌ إلغاء</button>`;
+    if(o.status==='delivering') act=`<button class="abtn adone"  onclick="${sp};chStatus('${o.id}','delivered','${o.telegram_id}','${o.id}')">✅ تم التسليم</button><button class="abtn acanc" onclick="${sp};chStatus('${o.id}','cancelled','${o.telegram_id}','${o.id}')">❌ إلغاء</button>`;
     
     return `<div class="ocard ${isNew?'isnew':''}" onclick="openDet('${o.id}')">
       <div class="ohdr">
