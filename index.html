@@ -700,6 +700,12 @@ async function loadOrders() {
     const s = SM[o.status]||SM.received;
     if (['received','printing','delivering'].includes(o.status)) ac++;
     const dt = new Date(o.created_at).toLocaleDateString('ar-IQ');
+    
+    // حالة ديناميكية للنقاط
+    let ptsStatus = 'قيد الانتظار ⏳';
+    if (o.status === 'delivered') ptsStatus = '<span style="color:var(--green);">تمت الإضافة ✅</span>';
+    else if (o.status === 'cancelled') ptsStatus = '<span style="color:var(--red);">ملغاة ❌</span>';
+
     return `<div class="ocard" onclick="showDet('${o.id}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
         <b style="color:var(--navy);font-size:1.1rem;">#${o.id}</b>
@@ -711,7 +717,7 @@ async function loadOrders() {
         <b style="color:var(--navy);">${(o.total||0).toLocaleString()} د.ع</b>
       </div>
       <div style="font-size:0.85rem; color:var(--orange); margin-top:10px; font-weight:700; display:flex; align-items:center; gap:5px;">
-        <span>💎</span> +${o.loyalty_points_earned||0} نقطة ولاء (قيد الانتظار)
+        <span>💎</span> +${o.loyalty_points_earned||0} نقطة ولاء (${ptsStatus})
       </div>
     </div>`;
   }).join('');
@@ -743,7 +749,13 @@ async function showDet(oid) {
     cancelBox = `
     <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:16px; padding:15px; margin-bottom:20px; text-align:center;">
       <b style="color:#991b1b; font-size:0.95rem; display:block; margin-bottom:8px;">هل ترغب في تعديل أو إلغاء الطلب؟</b>
-      <a href="tel:07752564099" style="display:inline-block; background:#ef4444; color:#fff; text-decoration:none; padding:10px 20px; border-radius:12px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(239, 68, 68, 0.3);">📞 اتصل بنا للإلغاء (07752564099)</a>
+      <div style="display:flex; flex-direction:column; gap:8px;">
+        <a href="tel:07752564099" style="display:block; background:#ef4444; color:#fff; text-decoration:none; padding:10px; border-radius:12px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(239, 68, 68, 0.3);">📞 اتصل بنا للإلغاء (07752564099)</a>
+        <div style="display:flex; gap:8px;">
+          <a href="https://wa.me/9647752564099" target="_blank" style="flex:1; background:#25D366; color:#fff; text-decoration:none; padding:10px; border-radius:12px; font-weight:bold; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:5px;"><span style="font-size:1.1rem;">💬</span> واتساب</a>
+          <a href="https://t.me/+9647752564099" target="_blank" style="flex:1; background:#0088cc; color:#fff; text-decoration:none; padding:10px; border-radius:12px; font-weight:bold; font-size:0.9rem; display:flex; align-items:center; justify-content:center; gap:5px;"><span style="font-size:1.1rem;">✈️</span> تيليجرام</a>
+        </div>
+      </div>
     </div>`;
   }
 
@@ -799,3 +811,4 @@ init();
 </script>
 </body>
 </html>
+
