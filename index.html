@@ -755,7 +755,7 @@ async function showDet(oid) {
       <div class="il" style="color:var(--navy);margin-top:15px;"><span style="font-weight:500;">المبلغ الإجمالي:</span><b style="font-size:1.2rem;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</b></div>
       <div class="il" style="color:var(--green);margin-top:15px;"><span style="font-weight:500;">💎 نقاط ستكسبها:</span><b style="background:#dcfce7;padding:4px 12px;border-radius:8px;">+${o.loyalty_points_earned||0} نقطة</b></div>
     </div>
-    <h4 style="margin:0 0 12px; color:var(--navy); font-weight:800; display:flex; align-items:center; gap:8px;"><span style="font-size:1.2rem;">📁</span> الملفات המرفقة (${o.files?.length||0})</h4>
+    <h4 style="margin:0 0 12px; color:var(--navy); font-weight:800; display:flex; align-items:center; gap:8px;"><span style="font-size:1.2rem;">📁</span> الملفات المرفقة (${o.files?.length||0})</h4>
     <div style="background:#fff; border-radius:16px; padding:8px 15px; border:1px solid #f1f5f9; box-shadow:0 2px 10px rgba(0,0,0,0.02);">
       ${o.files?.map(f=>`<div style="padding:12px 0; border-bottom:1px solid #f1f5f9; font-size:0.9rem; color:var(--text-main); display:flex; justify-content:space-between; align-items:center;"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65%; font-weight:500;">📄 ${f.name}</span><span style="color:var(--text-muted); font-size:0.85rem; background:#f8fafc; padding:4px 8px; border-radius:6px;">${f.pages}ص × <b style="color:var(--navy);">${f.copies}</b>ن</span></div>`).join('')||''}
     </div>`;
