@@ -1,0 +1,801 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>خدمات الشاطر الطلابية</title>
+<script src="https://telegram.org/js/telegram-web-app.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+
+:root {
+  /* ألوان الهوية البصرية لخدمات الشاطر */
+  --navy: #0d3b66;     /* أزرق داكن */
+  --teal: #5ab3c4;     /* تركوازي */
+  --orange: #e86b24;   /* برتقالي */
+  --light-teal: #eef9fa;
+  
+  --bg: #f4f7f9;
+  --card: #ffffff;
+  --text-main: #1e293b;
+  --text-muted: #64748b;
+  --green: #10b981;
+  --red: #ef4444;
+  --gold: #f59e0b;
+  
+  /* للتوافق مع الكود القديم */
+  --blue: var(--navy); 
+}
+
+* { box-sizing: border-box; font-family: 'Tajawal', sans-serif; -webkit-tap-highlight-color: transparent; }
+body { background: var(--bg); direction: rtl; margin: 0; padding: 0 0 85px; color: var(--text-main); }
+
+/* حركات انسيابية */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(15px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pulseGlow {
+  0% { box-shadow: 0 0 0 0 rgba(232, 107, 36, 0.4); }
+  70% { box-shadow: 0 0 0 10px rgba(232, 107, 36, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(232, 107, 36, 0); }
+}
+
+/* الشعار */
+.app-logo {
+  width: 90px; height: 90px;
+  border-radius: 50%;
+  border: 3px solid var(--teal);
+  padding: 4px;
+  background: #fff;
+  box-shadow: 0 6px 20px rgba(90, 179, 196, 0.2);
+  margin: 0 auto 12px;
+  display: block;
+  object-fit: contain;
+}
+
+/* التنقل السفلي */
+.bnav {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(10px);
+  border-top: 1px solid rgba(0,0,0,0.05);
+  display: flex; z-index: 200;
+  box-shadow: 0 -5px 25px rgba(13, 59, 102, 0.05);
+  padding: 5px 10px 15px;
+}
+.nbtn {
+  flex: 1; padding: 10px 5px; border: none; background: none; cursor: pointer;
+  font-size: 0.8rem; font-weight: 700; color: var(--text-muted);
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  transition: all 0.3s ease;
+}
+.nbtn .ni { font-size: 1.5rem; transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+.nbtn.active { color: var(--teal); }
+.nbtn.active .ni { transform: translateY(-4px) scale(1.1); color: var(--navy); }
+
+/* البطاقات والواجهة */
+.tab { display: none; padding: 15px; }
+.tab.active { display: block; animation: fadeInUp 0.4s ease forwards; }
+.card { background: var(--card); border-radius: 20px; padding: 22px; margin-bottom: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.03); border: 1px solid rgba(0,0,0,0.02); }
+.hdr { text-align: center; padding: 10px 0 15px; }
+
+/* منطقة الرفع */
+.upload {
+  border: 2px dashed var(--teal);
+  background: var(--light-teal);
+  padding: 30px 20px; text-align: center;
+  color: var(--navy); cursor: pointer;
+  border-radius: 20px;
+  transition: all 0.2s ease;
+}
+.upload:active { transform: scale(0.98); background: #dff2f5; }
+.upload-icon { font-size: 2.5rem; margin-bottom: 8px; display: block; }
+
+/* الأزرار */
+.bgrp { display: flex; gap: 10px; margin-top: 10px; }
+.obtn {
+  flex: 1; padding: 14px; border: 1.5px solid #e2e8f0; border-radius: 14px;
+  cursor: pointer; font-weight: 700; font-size: 0.95rem; transition: all 0.2s ease;
+  background: #fff; color: var(--text-muted);
+}
+.obtn.on { background: var(--navy) !important; color: #fff !important; border-color: var(--navy); box-shadow: 0 4px 12px rgba(13, 59, 102, 0.15); }
+.obtn:active { transform: scale(0.96); }
+
+.bmain {
+  width: 100%; padding: 16px; border: none; border-radius: 16px;
+  font-weight: 800; font-size: 1.1rem; cursor: pointer; transition: all 0.3s ease;
+}
+.bmain:active { transform: scale(0.97); }
+.bmain:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+.btn-action { background: var(--orange); color: #fff; box-shadow: 0 6px 15px rgba(232, 107, 36, 0.25); }
+
+/* المدخلات */
+input[type=text], input[type=tel] {
+  width: 100%; padding: 16px; border: 1.5px solid #e2e8f0; border-radius: 14px;
+  font-size: 1rem; margin-bottom: 12px; background: #f8fafc; outline: none;
+  transition: border-color 0.2s, background 0.2s; font-family: 'Tajawal', sans-serif;
+}
+input:focus { border-color: var(--teal); background: #fff; box-shadow: 0 0 0 4px rgba(90, 179, 196, 0.1); }
+
+/* مفتاح التبديل Toggle */
+.togw { position: relative; display: inline-block; width: 52px; height: 28px; flex-shrink: 0; }
+.togw input { opacity: 0; width: 0; height: 0; }
+.togs { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: #cbd5e1; border-radius: 28px; transition: .4s; }
+.togs:before { content: ''; position: absolute; width: 22px; height: 22px; right: 3px; bottom: 3px; background: #fff; border-radius: 50%; transition: .4s; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+input:checked + .togs { background: var(--teal); }
+input:checked + .togs:before { transform: translateX(-24px); }
+
+/* الفاتورة */
+.inv { background: var(--navy); color: #fff; border-radius: 18px; padding: 22px; margin-top: 15px; box-shadow: 0 8px 20px rgba(13, 59, 102, 0.15); }
+.il { display: flex; justify-content: space-between; margin-bottom: 10px; font-size: 0.95rem; opacity: 0.9; }
+.tot { font-size: 1.5rem; color: #4eff4e; text-align: center; margin-top: 15px; border-top: 1px dashed rgba(255,255,255,0.2); padding-top: 15px; font-weight: 800; }
+
+/* شريط التقدم */
+.pcon { width: 100%; background: #e2e8f0; height: 10px; border-radius: 5px; margin: 15px 0; display: none; overflow: hidden; }
+.pbar { width: 0; height: 100%; background: var(--orange); transition: width 0.3s ease; border-radius: 5px; }
+
+/* عناصر الملفات */
+.fi { padding: 12px 0; border-bottom: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; }
+.bcnt { background: #f1f5f9; border: none; width: 34px; height: 34px; border-radius: 10px; cursor: pointer; font-weight: 800; font-size: 1.1rem; color: var(--navy); transition: background 0.2s; }
+.bcnt:active { background: #e2e8f0; }
+
+/* التنبيهات */
+.inote { color: var(--orange); font-size: 0.85rem; font-weight: 700; margin: 12px 0; display: none; border: 1px solid rgba(232,107,36,0.3); padding: 12px; border-radius: 12px; background: rgba(232,107,36,0.05); text-align: center; }
+.errmsg { background: #fef2f2; color: var(--red); padding: 12px; border-radius: 12px; font-size: 0.9rem; font-weight: 700; margin-bottom: 12px; text-align: center; display: none; border: 1px solid #fecaca; }
+.iosbox { background: #fffbeb; border: 1.5px solid #fde68a; border-radius: 14px; padding: 15px; margin-top: 15px; }
+
+/* بطاقات الطلبات */
+.ocard { background: #fff; border-radius: 16px; padding: 18px; margin-bottom: 12px; box-shadow: 0 3px 10px rgba(0,0,0,0.04); border: 1px solid #f1f5f9; cursor: pointer; transition: transform 0.2s; }
+.ocard:active { transform: scale(0.98); }
+.sbadge { display: inline-block; padding: 6px 14px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; }
+.s-r { background: #e0f2fe; color: #1e40af; }
+.s-p { background: #fef3c7; color: #b45309; }
+.s-d { background: #ffedd5; color: var(--orange); }
+.s-v { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+.s-c { background: #fee2e2; color: #991b1b; }
+
+/* التايم لاين */
+.tlstep { display: flex; align-items: flex-start; gap: 15px; margin-bottom: 5px; }
+.tlc { width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1rem; flex-shrink: 0; font-weight: bold; transition: all 0.3s; }
+.tld { background: var(--green); color: #fff; box-shadow: 0 0 10px rgba(16,185,129,0.3); }
+.tlcur { background: var(--orange); color: #fff; box-shadow: 0 0 15px rgba(232,107,36,0.4); animation: pulseGlow 2s infinite; }
+.tlpen { background: #f1f5f9; color: #94a3b8; }
+.tlcon { width: 2px; height: 26px; background: #f1f5f9; margin: 2px 0 2px 17px; border-radius: 2px; }
+.tlcon.done { background: var(--green); }
+
+/* قسم النقاط */
+.ptshero { background: linear-gradient(135deg, var(--navy), var(--teal)); color: #fff; border-radius: 24px; padding: 30px 25px; margin-bottom: 15px; text-align: center; box-shadow: 0 8px 20px rgba(13, 59, 102, 0.2); }
+.ptsnum { font-size: 3.5rem; font-weight: 800; line-height: 1.1; margin: 5px 0; text-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+.tierbadge { display: inline-block; padding: 6px 20px; border-radius: 20px; font-weight: 800; margin: 10px 0 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+.tgold { background: linear-gradient(135deg, #fcd34d, #f59e0b); color: #78350f; }
+.tsilv { background: linear-gradient(135deg, #e2e8f0, #94a3b8); color: #1e293b; }
+.tbron { background: linear-gradient(135deg, #fed7aa, #d97706); color: #78350f; }
+.ptspw { width: 100%; height: 10px; background: rgba(255,255,255,0.2); border-radius: 5px; overflow: hidden; margin: 12px 0; }
+.ptspf { height: 100%; background: #4eff4e; border-radius: 5px; transition: width 0.8s cubic-bezier(0.4, 0, 0.2, 1); }
+
+.rcard { background: #fff; border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; border: 1px solid #f1f5f9; }
+.rbtn { background: var(--teal); color: #fff; padding: 10px 20px; border-radius: 12px; font-size: 0.9rem; cursor: pointer; font-weight: 700; border: none; transition: background 0.2s; }
+.rbtn:active { background: #469ba9; }
+.rbtn:disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+
+/* النوافذ المنبثقة */
+.shov { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); backdrop-filter: blur(4px); display: none; align-items: flex-end; justify-content: center; z-index: 300; }
+.shov.open { display: flex; animation: fadeIn 0.3s; }
+.sheet { background: var(--bg); border-radius: 28px 28px 0 0; padding: 25px 20px; width: 100%; max-height: 90vh; overflow-y: auto; animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.1); box-shadow: 0 -10px 30px rgba(0,0,0,0.1); }
+@keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+.handle { width: 50px; height: 5px; background: #cbd5e1; border-radius: 3px; margin: 0 auto 20px; }
+
+#wmodal { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.85); backdrop-filter: blur(5px); display: flex; align-items: center; justify-content: center; z-index: 400; }
+.mbox { background: #fff; padding: 35px 25px; border-radius: 28px; text-align: center; width: 90%; max-width: 400px; box-shadow: 0 20px 40px rgba(0,0,0,0.2); animation: zoomIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.2); }
+@keyframes zoomIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+#toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%); background: var(--navy); color: #fff; padding: 14px 24px; border-radius: 16px; font-size: 0.95rem; font-weight: 700; z-index: 999; display: none; box-shadow: 0 10px 25px rgba(13, 59, 102, 0.3); max-width: 90%; text-align: center; }
+</style>
+</head>
+<body>
+
+<div id="wmodal">
+  <div class="mbox">
+    <img src="Logo.jpg" alt="خدمات الشاطر" class="app-logo" onerror="this.outerHTML=`<div class='app-logo' style='display:flex;align-items:center;justify-content:center;font-size:2.5rem;'>🖨️</div>`">
+    <h2 style="color: var(--navy); margin: 0 0 8px; font-weight: 800;">خدمات الشاطر الطلابية</h2>
+    <p style="color: var(--text-muted); margin: 0 0 15px; font-weight: 500;">ارفع مستنداتك وسنطبعها ونوصلها إليك</p>
+    
+    <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 14px; padding: 12px; margin-bottom: 15px;">
+      <p id="fo-gift" style="font-size: 0.9rem; color: var(--green); font-weight: 800; margin: 0 0 5px; display: none;">🎁 توصيل مجاني لأول طلب!</p>
+      <p style="font-size: 0.88rem; color: var(--green); font-weight: 700; margin: 0;">🎁 توصيل مجاني للطلبات +10,000 د.ع</p>
+    </div>
+    
+    <p style="font-size: 0.85rem; color: var(--orange); font-weight: 700;">🏆 اكسب نقاط ولاء مع كل طلب!</p>
+    <button class="bmain btn-action" style="margin-top: 15px;" onclick="document.getElementById('wmodal').style.display='none'">ابدأ الآن ✨</button>
+  </div>
+</div>
+
+<div class="shov" id="det-ov">
+  <div class="sheet">
+    <div class="handle"></div>
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
+      <h3 style="margin:0; color:var(--navy); font-weight: 800;" id="det-title">تفاصيل الطلب</h3>
+      <button onclick="closeDet()" style="border:none; background:#f1f5f9; width:38px; height:38px; border-radius:50%; cursor:pointer; font-size:1.2rem; color: var(--text-muted); transition: background 0.2s;">✕</button>
+    </div>
+    <div id="det-body"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<!-- TAB 1: الطلب -->
+<div class="tab active" id="tab-order">
+  <div class="hdr">
+    <img src="Logo.jpg" alt="Logo" class="app-logo" style="width: 75px; height: 75px;" onerror="this.style.display='none'">
+    <h1 style="margin:0; color:var(--navy); font-size:1.4rem; font-weight: 800;">خدمات الشاطر الطلابية</h1>
+  </div>
+  
+  <div class="card" style="margin-top:5px;">
+    <div class="upload" onclick="document.getElementById('fileinp').click()">
+      <span class="upload-icon">📁</span>
+      <span style="font-size:1.2rem; font-weight: 700;">اضغط هنا لإضافة الملفات</span>
+      <p style="font-size:0.85rem; margin:8px 0 0; color: var(--teal); font-weight: 500;">PDF, Word, Excel, PowerPoint, صور</p>
+    </div>
+    <div class="iosbox">
+      <b style="color:#b45309;">⚠️ تنبيه لمستخدمي الآيفون</b>
+      <ol style="color:#78350f; font-size:0.85rem; line-height:1.8; margin:8px 0 0; padding-right:20px; font-weight: 500;">
+        <li>افتح الملف في واتساب أو تيليجرام</li>
+        <li>اضغط <b>"مشاركة"</b> ← <b>"حفظ في الملفات"</b></li>
+        <li>عد للتطبيق واختر <b>"تصفح (Browse)"</b></li>
+      </ol>
+    </div>
+    <input type="file" id="fileinp" multiple style="display:none">
+  </div>
+
+  <div id="flist" class="card" style="display:none;"></div>
+  
+  <div id="opts" style="display:none;">
+    <div class="card">
+      <p style="margin:0 0 10px; color: var(--navy); font-weight: 700;">نوع الطباعة:</p>
+      <div class="bgrp">
+        <button id="cbtn" class="obtn on" onclick="setC('c')">🌈 ملون</button>
+        <button id="nbtn" class="obtn off" onclick="setC('n')">⚪ أسود</button>
+      </div>
+      <div class="inote" id="inote">⚠️ ملاحظة: الصور تُطبع وجه واحد دائماً للحفاظ على جودتها</div>
+      <div id="sidebox">
+        <p style="margin:20px 0 10px; color: var(--navy); font-weight: 700;">طريقة الطباعة:</p>
+        <div class="bgrp">
+          <button id="s1btn" class="obtn on" onclick="setS('1')">📄 وجه واحد</button>
+          <button id="s2btn" class="obtn off" onclick="setS('2')">📖 وجهين</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="ptscard" style="display:none; border: 2px solid var(--teal); background: var(--light-teal);">
+      <div style="display:flex; justify-content:space-between; align-items:center;">
+        <div>
+          <b style="color: var(--navy); font-size: 1.05rem;">💎 استخدام نقاط الولاء</b>
+          <p style="margin:4px 0 0; font-size:0.85rem; color:var(--teal); font-weight: 700;" id="ptslbl"></p>
+        </div>
+        <label class="togw"><input type="checkbox" id="ptstog" onchange="calcUI()"><span class="togs"></span></label>
+      </div>
+      <p id="ptssavelbl" style="margin:10px 0 0; color:var(--green); font-size:0.9rem; font-weight: 800; display:none; background: #dcfce7; padding: 8px; border-radius: 8px; text-align: center;"></p>
+    </div>
+
+    <div class="inv">
+      <div id="invdet"></div>
+      <div class="tot" id="totlbl">المجموع النهائي: 0 د.ع</div>
+    </div>
+
+    <div class="card" style="margin-top:15px;">
+      <div id="errbox" class="errmsg"></div>
+      <input type="text" id="uName"   placeholder="✍️ الاسم الكامل">
+      <input type="tel"  id="uPhone"  placeholder="📞 رقم الهاتف (11 رقم)" maxlength="11">
+      <input type="text" id="uRegion" placeholder="🏠 المنطقة / الحي">
+      <button id="locbtn" class="bmain" style="background:#64748b; color:#fff; margin-bottom:15px; box-shadow: 0 4px 10px rgba(100,116,139,0.2);" onclick="getLoc()">📍 تحديد موقعي على الخريطة</button>
+      
+      <div class="pcon" id="pcon"><div class="pbar" id="pbar"></div></div>
+      <p id="statustxt" style="text-align:center; font-size:0.85rem; color:var(--navy); font-weight: 700; display:none; margin:8px 0;"></p>
+      
+      <button id="sendbtn" class="bmain btn-action" onclick="sendOrder()">🚀 تأكيد وإرسال الطلب</button>
+    </div>
+  </div>
+</div>
+
+<!-- TAB 2: طلباتي -->
+<div class="tab" id="tab-orders">
+  <h2 style="color:var(--navy); margin:0 0 20px; font-weight: 800;">📋 طلباتي</h2>
+  <div id="ordersbox"><div style="text-align:center; padding:60px 20px; color:#94a3b8;"><div style="font-size:4rem; margin-bottom: 10px; opacity: 0.5;">📦</div><p style="font-weight: 500;">لا توجد طلبات بعد</p></div></div>
+</div>
+
+<!-- TAB 3: النقاط -->
+<div class="tab" id="tab-points">
+  <h2 style="color:var(--navy); margin:0 0 20px; font-weight: 800;">🏆 نقاط الولاء</h2>
+  <div class="ptshero">
+    <p style="margin:0 0 5px; opacity:0.9; font-size:0.95rem; font-weight: 500;">رصيد نقاطك الحالي</p>
+    <div class="ptsnum" id="ptsnum">0</div>
+    <div id="tierdisp"></div>
+    <div class="ptspw"><div class="ptspf" id="ptsbar" style="width:0%"></div></div>
+    <p style="margin:0; font-size:0.85rem; opacity:0.85; font-weight: 500;" id="ptsnext"></p>
+  </div>
+  
+  <div class="card">
+    <h3 style="margin:0 0 15px; color: var(--navy); font-weight: 800;">🎁 استبدال النقاط بخصم</h3>
+    <div class="rcard">
+      <div><b style="font-size: 1.05rem; color: var(--navy);">خصم 500 د.ع</b><p style="margin:4px 0 0; font-size:0.85rem; color:var(--teal); font-weight: 700;">بـ 100 نقطة</p></div>
+      <button class="rbtn" id="rb100" onclick="redeemPts(100,500)">استبدال</button>
+    </div>
+    <div class="rcard">
+      <div><b style="font-size: 1.05rem; color: var(--navy);">خصم 1,500 د.ع</b><p style="margin:4px 0 0; font-size:0.85rem; color:var(--teal); font-weight: 700;">بـ 300 نقطة</p></div>
+      <button class="rbtn" id="rb300" onclick="redeemPts(300,1500)">استبدال</button>
+    </div>
+    <div class="rcard">
+      <div><b style="font-size: 1.05rem; color: var(--navy);">خصم 3,500 د.ع</b><p style="margin:4px 0 0; font-size:0.85rem; color:var(--teal); font-weight: 700;">بـ 700 نقطة</p></div>
+      <button class="rbtn" id="rb700" onclick="redeemPts(700,3500)">استبدال</button>
+    </div>
+    <div id="redeembanner" style="display:none; background:#f0fdf4; border:1px solid #86efac; border-radius:12px; padding:12px; margin-top:15px; font-size:0.9rem; font-weight: 700; color:#166534; text-align:center;"></div>
+  </div>
+  
+  <div class="card">
+    <h3 style="margin:0 0 15px; color: var(--navy); font-weight: 800;">📊 كيف تكسب النقاط؟</h3>
+    <div style="line-height:2.4; color:var(--text-muted); font-size:0.95rem; font-weight: 500;">
+      <div style="background: #f8fafc; padding: 10px 15px; border-radius: 12px; margin-bottom: 10px;">💳 كل <b>1,000 د.ع</b> تنفقها = <b style="color:var(--orange);">10 نقاط</b></div>
+      <div>🥉 <b style="color: #d97706;">برونز</b> (0–199): مستوى أساسي</div>
+      <div>🥈 <b style="color: #64748b;">فضي</b> (200–499): أولوية في التجهيز</div>
+      <div>🥇 <b style="color: #d97706;">ذهبي</b> (500+): <b style="color:var(--orange); background: #fff7ed; padding: 2px 8px; border-radius: 6px;">خصم 5% تلقائي</b> على كل طلباتي</div>
+    </div>
+  </div>
+  
+  <div class="card">
+    <h3 style="margin:0 0 15px; color: var(--navy); font-weight: 800;">📜 سجل النقاط</h3>
+    <div id="ptshist"><p style="color:#94a3b8; font-size:0.9rem; text-align: center; padding: 10px;">لا يوجد سجل بعد</p></div>
+  </div>
+</div>
+
+<!-- التنقل السفلي -->
+<nav class="bnav">
+  <button class="nbtn active" id="nav-order"  onclick="goTab('order')"><span class="ni">🖨️</span><span>الرئيسية</span></button>
+  <button class="nbtn"        id="nav-orders" onclick="goTab('orders')" style="position:relative;"><span class="ni">📋</span><span>طلباتي</span><span id="ordbadge" style="display:none; background:var(--orange); color:#fff; border-radius:10px; font-size:0.65rem; font-weight: bold; padding:2px 6px; position:absolute; top:4px; margin-right:-15px; box-shadow: 0 2px 5px rgba(232,107,36,0.4);"></span></button>
+  <button class="nbtn"        id="nav-points" onclick="goTab('points')"><span class="ni">🏆</span><span>المكافآت</span></button>
+</nav>
+
+<script>
+const SB_URL = 'https://zrumnqtgdscrwgcguseq.supabase.co';
+const SB_KEY = 'sb_publishable_xEqE6S21QUMCkDxSMvTskg_9g3pi-vZ';
+const BOT    = '8507186698:AAHXCtsLn8j88A2QgiXSmNFbnEfpn1nCYew';
+const ADMIN  = '7618746133';
+
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+const tg = window.Telegram?.WebApp; tg?.ready();
+const tgU = tg?.initDataUnsafe?.user;
+const userId = tgU?.id ? String(tgU.id) : 'guest_' + Date.now();
+
+let files=[], color='c', side='1', locUrl='', pendingR=null;
+let uDoc={loyalty_points:0,first_order_done:false,total_orders:0,total_spent:0};
+
+async function init() {
+  try {
+    const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
+    if (data) {
+      uDoc = data;
+    } else {
+      uDoc = {id:userId, name:tgU?.first_name||'', username:tgU?.username||'',
+        loyalty_points:0, total_orders:0, total_spent:0, first_order_done:false};
+      await sb.from('users').insert(uDoc);
+    }
+  } catch(e) {}
+  if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
+  refreshPtsUI();
+  startRT();
+}
+
+function startRT() {
+  try {
+    sb.channel('public-orders')
+      .on('postgres_changes', {event:'UPDATE', schema:'public', table:'orders'},
+        p => {
+          if (p.new.user_id !== userId && p.new.telegram_id !== userId) return;
+          const m = {received:'📥 تم الاستلام',printing:'🖨️ قيد الطباعة',delivering:'🛵 جاري التوصيل',delivered:'✅ تم التسليم',cancelled:'❌ ملغى'};
+          showToast('🔔 تحديث طلبك: ' + (m[p.new.status] || p.new.status));
+          
+          if (document.getElementById('tab-orders').classList.contains('active')) {
+             loadOrders();
+          }
+          const detTitle = document.getElementById('det-title').innerText;
+          if (document.getElementById('det-ov').classList.contains('open') && detTitle.includes(p.new.id)) {
+             showDet(p.new.id);
+          }
+          if (p.new.status === 'delivered') init(); 
+        })
+      .subscribe();
+  } catch(e) {}
+}
+
+function goTab(t) {
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.nbtn').forEach(x=>x.classList.remove('active'));
+  document.getElementById('tab-'+t).classList.add('active');
+  document.getElementById('nav-'+t).classList.add('active');
+  if (t==='orders') loadOrders();
+  if (t==='points') loadPtsTab();
+}
+
+document.getElementById('fileinp').onchange = async e => {
+  const ok=['.pdf','.docx','.doc','.xlsx','.xls','.pptx','.ppt','.jpg','.jpeg','.png','.webp'];
+  for (const f of e.target.files) {
+    const nm = f.name.toLowerCase(), ext = nm.substring(nm.lastIndexOf('.'));
+    if (!ok.includes(ext) && !f.type.startsWith('image/')) continue;
+    const obj = {file:f, name:f.name, p:1, c:1, isImg:f.type.startsWith('image/'), type:'ملف'};
+    try {
+      const buf = await f.arrayBuffer();
+      if (nm.endsWith('.pdf')) {
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        obj.p = (await pdfjsLib.getDocument({data:buf}).promise).numPages;
+        obj.type = 'PDF'; obj.isImg = false;
+      } else if (nm.endsWith('.docx') || nm.endsWith('.doc')) {
+        try {
+          const z = await JSZip.loadAsync(buf), xf = z.file('docProps/app.xml');
+          if (xf) { const m = (await xf.async('string')).match(/<Pages>(\d+)<\/Pages>/); if(m) obj.p = +m[1]; }
+        } catch {
+          const r = await mammoth.extractRawText({arrayBuffer:buf});
+          obj.p = Math.max(1, Math.ceil(r.value.trim().split(/\s+/).length / 300));
+        }
+        obj.type = 'Word'; obj.isImg = false;
+      } else if (nm.endsWith('.pptx') || nm.endsWith('.ppt')) {
+        const z = await JSZip.loadAsync(buf), xf = z.file('docProps/app.xml');
+        if (xf) { const m = (await xf.async('string')).match(/<Slides>(\d+)<\/Slides>/); if(m) obj.p = +m[1]; }
+        obj.type = 'PowerPoint'; obj.isImg = false;
+      } else if (nm.endsWith('.xlsx') || nm.endsWith('.xls')) {
+        const wb = XLSX.read(buf,{type:'array'}); let tot = 0;
+        wb.SheetNames.forEach(s => { const sh=wb.Sheets[s], r=XLSX.utils.decode_range(sh['!ref']||'A1:A1'); tot+=Math.ceil((r.e.r-r.s.r+1)/45)*Math.ceil((r.e.c-r.s.c+1)/8); });
+        obj.p = Math.max(1,tot); obj.type = 'Excel'; obj.isImg = false;
+      } else if (obj.isImg) obj.type = 'صورة';
+    } catch { obj.p = 1; }
+    files.push(obj);
+  }
+  calcUI(); e.target.value = '';
+};
+
+function setC(v) { color=v; document.getElementById('cbtn').className=v==='c'?'obtn on':'obtn off'; document.getElementById('nbtn').className=v==='n'?'obtn on':'obtn off'; calcUI(); }
+function setS(v) { side=v; document.getElementById('s1btn').className=v==='1'?'obtn on':'obtn off'; document.getElementById('s2btn').className=v==='2'?'obtn on':'obtn off'; calcUI(); }
+
+function getLoc() {
+  navigator.geolocation.getCurrentPosition(
+    p => { locUrl=`https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; const b=document.getElementById('locbtn'); b.innerText='✅ تم حفظ الموقع الجغرافي بنجاح'; b.style.background='var(--green)'; hideErr(); },
+    () => showErr('❌ يرجى تفعيل GPS والسماح بالوصول للموقع')
+  );
+}
+
+function calcPrice(sh, im) {
+  const t=sh+im; if(!t) return 0; if(t<=5) return 1000;
+  if(color==='c') { if(t<=25) return t*150; if(t<=40) return t*130; if(t<=70) return t*120; return t*100; }
+  return t*(side==='1'?90:75);
+}
+
+function calcUI() {
+  let sh=0, im=0, dp=0, hasD=false, hasI=false;
+  const fl = document.getElementById('flist'); fl.innerHTML = '';
+  files.forEach((f,i) => {
+    if(f.isImg) { hasI=true; im+=f.c; }
+    else { hasD=true; dp+=f.p*f.c; const u=f.type==='PowerPoint'?Math.ceil(f.p/2):f.p; sh+=(side==='2'?Math.ceil(u/2):u)*f.c; }
+    fl.innerHTML += `<div class="fi"><span style="font-size:0.9rem;font-weight:700;color:var(--navy);max-width:55%; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">📄 ${f.name} <span style="color:var(--teal); font-size:0.8rem;">(${f.p}ص)</span></span><div style="display:flex;align-items:center;gap:4px;"><button class="bcnt" onclick="adjC(${i},-1)">−</button><span style="padding:0 10px;font-weight:800;font-size:1.1rem;color:var(--orange);">${f.c}</span><button class="bcnt" onclick="adjC(${i},1)">+</button><span onclick="rmF(${i})" style="color:var(--red);margin-right:12px;cursor:pointer;font-size:0.85rem;font-weight:700;background:#fef2f2;padding:6px 10px;border-radius:8px;">حذف</span></div></div>`;
+  });
+  document.getElementById('sidebox').style.display = hasD ? 'block' : 'none';
+  document.getElementById('inote').style.display   = hasI ? 'block' : 'none';
+  document.getElementById('flist').style.display   = files.length ? 'block' : 'none';
+  document.getElementById('opts').style.display    = files.length ? 'block' : 'none';
+
+  const pp = calcPrice(sh, im);
+  const isFO = !uDoc.first_order_done;
+  const df = files.length===0 ? 0 : (pp>=10000||isFO ? 0 : 1000);
+  const isG = (uDoc.loyalty_points||0) >= 500;
+  const td = isG ? Math.round(pp*.05) : 0;
+  const useP = document.getElementById('ptstog')?.checked && pendingR;
+  const pd = useP ? pendingR.disc : 0;
+
+  const pc = document.getElementById('ptscard');
+  if (pendingR && files.length) {
+    pc.style.display = 'block';
+    document.getElementById('ptslbl').innerText = `رصيدك ${uDoc.loyalty_points||0} نقطة — خصم متاح: ${pendingR.disc.toLocaleString()} د.ع`;
+    const sl = document.getElementById('ptssavelbl'); sl.style.display=useP?'block':'none'; sl.innerText=`✨ تم تفعيل الخصم: -${pendingR.disc.toLocaleString()} د.ع`;
+  } else pc.style.display = 'none';
+
+  const tot = Math.max(0, pp-td-pd+df);
+  const pe  = Math.floor(tot/1000)*10;
+  const dtxt = isFO ? '<b style="color:#4eff4e;">مجاني 🎁</b>' : df===0 ? '<b style="color:#4eff4e;">مجاني ✨</b>' : df.toLocaleString()+' د.ع';
+
+  document.getElementById('invdet').innerHTML = `
+    <div class="il"><span>إجمالي الصفحات:</span><span style="font-weight:bold;">${dp}</span></div>
+    <div class="il"><span>الصور:</span><span style="font-weight:bold;">${im}</span></div>
+    <div class="il" style="border-top:1px solid rgba(255,255,255,0.2);padding-top:10px;margin-top:5px;"><span>سعر الطباعة الأساسي:</span><span style="font-weight:bold;">${pp.toLocaleString()} د.ع</span></div>
+    ${td>0?`<div class="il"><span>🥇 خصم العضوية الذهبية (5%):</span><span style="color:#4eff4e;font-weight:bold;">−${td.toLocaleString()} د.ع</span></div>`:''}
+    ${pd>0&&useP?`<div class="il"><span>💎 خصم استبدال النقاط:</span><span style="color:#4eff4e;font-weight:bold;">−${pd.toLocaleString()} د.ع</span></div>`:''}
+    <div class="il"><span>أجور التوصيل:</span><span style="font-weight:bold;">${dtxt}</span></div>
+    <div class="il" style="background:rgba(0,0,0,0.2);padding:10px;border-radius:10px;margin-top:10px;"><span>💎 نقاط ستكسبها (بعد الاستلام):</span><span style="color:var(--gold);font-weight:bold;font-size:1.1rem;">+${pe}</span></div>`;
+  document.getElementById('totlbl').innerText = `المجموع النهائي: ${tot.toLocaleString()} د.ع`;
+  window._ord = {pp,df,td,pd,tot,pe,isFO};
+}
+
+window.adjC = (i,d) => { files[i].c=Math.max(1,files[i].c+d); calcUI(); };
+window.rmF  = i => { files.splice(i,1); calcUI(); };
+
+function redeemPts(pts, disc) {
+  if ((uDoc.loyalty_points||0) < pts) { alert('عذراً، نقاطك غير كافية لهذا الخصم!'); return; }
+  pendingR = {pts, disc};
+  const b = document.getElementById('redeembanner');
+  b.style.display = 'block';
+  b.innerHTML = `✅ خصم بقيمة <b style="font-size:1.1rem;">${disc.toLocaleString()} د.ع</b> جاهز! قم بتفعيل الخيار في صفحة الطلب للاستفادة منه.`;
+  goTab('order'); calcUI();
+}
+
+async function sendOrder() {
+  const name   = document.getElementById('uName').value.trim();
+  const phone  = document.getElementById('uPhone').value.trim();
+  const region = document.getElementById('uRegion').value.trim();
+
+  if (!name)                                   return showErr('❌ يرجى كتابة الاسم');
+  if (phone.length!==11 || isNaN(+phone))      return showErr('❌ رقم الهاتف يجب أن يكون 11 رقمًا');
+  if (!region)                                  return showErr('❌ يرجى إدخال اسم المنطقة');
+  if (!locUrl)                                  return showErr('❌ يرجى تحديد موقعك على الخريطة');
+  if (!files.length)                            return showErr('❌ يرجى رفع ملف واحد على الأقل');
+  hideErr();
+
+  const btn = document.getElementById('sendbtn');
+  btn.disabled = true; btn.innerText = 'جاري الإرسال... 🚀';
+  document.getElementById('pcon').style.display = 'block';
+  const stxt = document.getElementById('statustxt'); stxt.style.display = 'block';
+
+  try {
+    const oid = 'SH-' + Math.floor(1000+Math.random()*9000);
+    const {pp,df,td,pd,tot,pe,isFO} = window._ord || {};
+    const useP = document.getElementById('ptstog')?.checked && pendingR;
+    const pu   = useP ? pendingR.pts : 0;
+
+    stxt.innerText = 'جاري تجهيز وضغط الملفات...';
+    document.getElementById('pbar').style.width = '20%';
+    const zip = new JSZip();
+    const folder = zip.folder('طلب-' + oid);
+    const meta = [];
+    
+    for (const f of files) {
+      const buf = await f.file.arrayBuffer();
+      for (let c=1; c<=f.c; c++) {
+        const fileName = f.c > 1 ? `(${c}) ${f.name}` : f.name;
+        folder.file(fileName, buf);
+      }
+      meta.push({name:f.name, pages:f.p, copies:f.c, type:f.type});
+    }
+
+    const zipBlob = await zip.generateAsync({
+        type: 'blob',
+        compression: 'DEFLATE',
+        compressionOptions: { level: 6 }
+    }, m => {
+        document.getElementById('pbar').style.width = (20 + m.percent * 0.4) + '%';
+    });
+
+    stxt.innerText = 'جاري رفع الملفات إلى السيرفر...';
+    const zpath = `orders/${oid}/files_${oid}.zip`;
+    
+    const { data: uploadData, error: uploadError } = await sb.storage
+      .from('order-files')
+      .upload(zpath, zipBlob, {
+        cacheControl: '3600',
+        upsert: true
+      });
+
+    if (uploadError) {
+        console.error("Upload Error:", uploadError);
+        throw new Error('فشل الرفع: تأكد من إعدادات الـ Storage في Supabase (Public Bucket)');
+    }
+
+    const { data: urlData } = sb.storage.from('order-files').getPublicUrl(zpath);
+    const zipUrl = urlData?.publicUrl || '';
+    
+    document.getElementById('pbar').style.width = '80%';
+
+    stxt.innerText = 'جاري تسجيل الطلب...';
+    const order = {
+      id: oid, 
+      user_id: userId, 
+      telegram_id: userId,
+      name, phone, region, loc_url: locUrl,
+      files: meta, 
+      zip_url: zipUrl,
+      color, side,
+      print_price: pp || 0, 
+      delivery_fee: df || 0,
+      tier_discount: td || 0, 
+      pts_discount: pd || 0,
+      pts_used: pu, 
+      total: tot || 0,
+      loyalty_points_earned: pe || 0,
+      is_first_order: !!isFO,
+      status: 'received',
+      status_history: [{status: 'received', time: new Date().toISOString()}]
+    };
+
+    const { error: dbError } = await sb.from('orders').insert(order);
+    if (dbError) throw dbError;
+
+    const np = Math.max(0, (uDoc.loyalty_points || 0) + (pe || 0) - pu);
+    await sb.from('users').update({
+      loyalty_points: np, 
+      total_orders: (uDoc.total_orders || 0) + 1,
+      total_spent: (uDoc.total_spent || 0) + (tot || 0),
+      first_order_done: true, 
+      name, phone
+    }).eq('id', userId);
+
+    uDoc.loyalty_points = np; 
+    uDoc.first_order_done = true;
+    document.getElementById('pbar').style.width = '100%';
+
+    const flist = meta.map(f => `📄 ${f.name} (${f.pages}ص × ${f.copies}ن)`).join('\n');
+    const adminMsg = `🆕 طلب جديد #${oid}\n` +
+                     `👤 ${name}\n📞 ${phone}\n🏠 ${region}\n` +
+                     `🎨 ${color === 'c' ? 'ملون' : 'أسود'} - ${side === '1' ? 'وجه واحد' : 'وجهين'}\n` +
+                     `💰 ${tot.toLocaleString()} د.ع\n` +
+                     `📍 الموقع: ${locUrl}\n\n` +
+                     `📋 الملفات:\n${flist}\n\n` +
+                     `📦 رابط التحميل:\n${zipUrl}`;
+
+    await tgMsg(ADMIN, adminMsg);
+    if (tgU?.id) await tgMsg(String(tgU.id), `✅ تم استلام طلبك #${oid} بنجاح!`);
+
+    showSuccessUI(oid, pe);
+
+  } catch (e) {
+    console.error(e);
+    showErr('❌ حدث خطأ أثناء الإرسال: ' + e.message);
+    btn.disabled = false; 
+    btn.innerText = 'تأكيد وإرسال الطلب ✅';
+    stxt.style.display = 'none';
+  }
+}
+
+function showSuccessUI(oid, pe) {
+    document.getElementById('tab-order').innerHTML = `
+      <div style="text-align:center;padding:60px 20px;animation:fadeInUp 0.5s ease;">
+        <div style="font-size:4rem;margin-bottom:10px;">✅</div>
+        <h2 style="color:var(--blue);">تم إرسال طلبك بنجاح!</h2>
+        <p>رقم الطلب: <b>#${oid}</b></p>
+        <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:14px;padding:15px;margin:15px 0;">
+          <b style="color:#166634;">💎 كسبت ${pe} نقطة جديدة!</b>
+        </div>
+        <button onclick="location.reload()" class="bmain" style="background:var(--blue);color:#fff;margin-top:15px;">طلب جديد</button>
+        <button onclick="goTab('orders')" class="bmain" style="background:#64748b;color:#fff;margin-top:10px;">📋 تتبع طلباتي</button>
+      </div>`;
+}
+
+async function tgMsg(cid, txt) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({chat_id: cid, text: txt, disable_web_page_preview: true})
+    });
+    return (await res.json()).ok;
+  } catch(e) { return false; }
+}
+
+async function loadOrders() {
+  const box = document.getElementById('ordersbox');
+  box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--teal);"><div class="upload-icon" style="animation: pulseGlow 1.5s infinite; border-radius:50%; width:50px; height:50px; margin:0 auto 10px; display:flex; align-items:center; justify-content:center;">⏳</div><b style="font-size:1.1rem;">جاري تحميل طلباتك...</b></div>';
+  const SM = {
+    received:  {l:'تم الاستلام',  c:'s-r',i:'📥'},
+    printing:  {l:'قيد الطباعة', c:'s-p',i:'🖨️'},
+    delivering:{l:'جاري التوصيل',c:'s-d',i:'🛵'},
+    delivered: {l:'تم التسليم',  c:'s-v',i:'✅'},
+    cancelled: {l:'ملغى',        c:'s-c',i:'❌'}
+  };
+  const {data, error} = await sb.from('orders').select('*').eq('user_id', userId).order('created_at',{ascending:false}).limit(30);
+  if (error || !data?.length) {
+    box.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:4.5rem;margin-bottom:15px;opacity:0.3;">📦</div><h3 style="color:var(--navy);margin:0 0 10px;">لا توجد طلبات بعد</h3><p style="font-size:0.9rem;margin:0 0 20px;">ابدأ بإرسال ملفاتك وسنقوم بطباعتها لك.</p><button onclick="goTab(\'order\')" class="bmain btn-action" style="max-width:200px;margin:0 auto;">أنشئ أول طلب ✨</button></div>';
+    return;
+  }
+  let ac = 0;
+  box.innerHTML = data.map(o => {
+    const s = SM[o.status]||SM.received;
+    if (['received','printing','delivering'].includes(o.status)) ac++;
+    const dt = new Date(o.created_at).toLocaleDateString('ar-IQ');
+    return `<div class="ocard" onclick="showDet('${o.id}')">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
+        <b style="color:var(--navy);font-size:1.1rem;">#${o.id}</b>
+        <span class="sbadge ${s.c}">${s.i} ${s.l}</span>
+      </div>
+      <div style="background:#f8fafc; padding:10px; border-radius:10px; display:flex; justify-content:space-between; font-size:0.85rem; color:var(--text-muted); font-weight:500;">
+        <span>📅 ${dt}</span>
+        <span>📋 ${o.files?.length||0} ملف</span>
+        <b style="color:var(--navy);">${(o.total||0).toLocaleString()} د.ع</b>
+      </div>
+      <div style="font-size:0.85rem; color:var(--orange); margin-top:10px; font-weight:700; display:flex; align-items:center; gap:5px;">
+        <span>💎</span> +${o.loyalty_points_earned||0} نقطة ولاء (قيد الانتظار)
+      </div>
+    </div>`;
+  }).join('');
+  
+  const b=document.getElementById('ordbadge');
+  if (ac>0) { b.innerText=ac; b.style.display='inline'; } else { b.style.display='none'; }
+}
+
+async function showDet(oid) {
+  document.getElementById('det-ov').classList.add('open');
+  document.getElementById('det-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--teal);"><b style="font-size:1.1rem;">جاري جلب التفاصيل...</b></div>';
+  const steps = [{k:'received',l:'استلام الطلب',i:'📥'},{k:'printing',l:'جاري الطباعة',i:'🖨️'},{k:'delivering',l:'في الطريق إليك',i:'🛵'},{k:'delivered',l:'تم التسليم',i:'✅'}];
+  const {data:o} = await sb.from('orders').select('*').eq('id', oid).maybeSingle();
+  if (!o) { document.getElementById('det-body').innerHTML='<p style="color:var(--red);text-align:center;font-weight:bold;padding:20px;">⚠️ عذراً، لم يتم العثور على الطلب</p>'; return; }
+  
+  document.getElementById('det-title').innerText = 'طلب #' + o.id;
+  const ci = steps.findIndex(s=>s.k===o.status);
+  let tl = '<div style="background:#fff; padding:15px 10px; border-radius:18px; margin-bottom:20px; box-shadow:0 4px 15px rgba(0,0,0,0.03); border:1px solid #f1f5f9;">';
+  steps.forEach((s,i) => {
+    const done=i<ci, cur=i===ci, cl=done?'tld':cur?'tlcur':'tlpen';
+    const h = o.status_history?.find(x=>x.status===s.k);
+    const ts = h ? new Date(h.time).toLocaleString('ar-IQ', {hour: '2-digit', minute:'2-digit', month:'short', day:'numeric'}) : '';
+    tl += `<div class="tlstep"><div style="display:flex;flex-direction:column;align-items:center;"><div class="tlc ${cl}">${done?'✓':s.i}</div>${i<steps.length-1?`<div class="tlcon ${done?'done':''}"></div>`:''}</div><div style="padding-top:6px;"><b style="color:${cur?'var(--navy)':'var(--text-muted)'};font-size:${cur?'1.05rem':'0.95rem'}">${s.l}</b>${ts?`<div style="font-size:0.8rem;color:#94a3b8;margin-top:2px;">${ts}</div>`:''}</div></div>`;
+  });
+  tl += '</div>';
+
+  let cancelBox = '';
+  if (['received', 'printing', 'delivering'].includes(o.status)) {
+    cancelBox = `
+    <div style="background:#fef2f2; border:1px solid #fecaca; border-radius:16px; padding:15px; margin-bottom:20px; text-align:center;">
+      <b style="color:#991b1b; font-size:0.95rem; display:block; margin-bottom:8px;">هل ترغب في تعديل أو إلغاء الطلب؟</b>
+      <a href="tel:07752564099" style="display:inline-block; background:#ef4444; color:#fff; text-decoration:none; padding:10px 20px; border-radius:12px; font-weight:bold; font-size:0.9rem; box-shadow:0 4px 10px rgba(239, 68, 68, 0.3);">📞 اتصل بنا للإلغاء (07752564099)</a>
+    </div>`;
+  }
+
+  document.getElementById('det-body').innerHTML = `
+    ${tl}
+    ${cancelBox}
+    <div style="background:var(--light-teal); border: 1px solid rgba(90, 179, 196, 0.2); border-radius:16px; padding:18px; margin-bottom:20px;">
+      <div class="il" style="color:var(--navy);"><span style="font-weight:500;">إعدادات الطباعة:</span><b style="background:#fff;padding:4px 12px;border-radius:8px;box-shadow:0 2px 5px rgba(0,0,0,0.05);">${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه واحد':'وجهين'}</b></div>
+      <div class="il" style="color:var(--navy);margin-top:15px;"><span style="font-weight:500;">المبلغ الإجمالي:</span><b style="font-size:1.2rem;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</b></div>
+      <div class="il" style="color:var(--green);margin-top:15px;"><span style="font-weight:500;">💎 نقاط ستكسبها:</span><b style="background:#dcfce7;padding:4px 12px;border-radius:8px;">+${o.loyalty_points_earned||0} نقطة</b></div>
+    </div>
+    <h4 style="margin:0 0 12px; color:var(--navy); font-weight:800; display:flex; align-items:center; gap:8px;"><span style="font-size:1.2rem;">📁</span> الملفات المرفقة (${o.files?.length||0})</h4>
+    <div style="background:#fff; border-radius:16px; padding:8px 15px; border:1px solid #f1f5f9; box-shadow:0 2px 10px rgba(0,0,0,0.02);">
+      ${o.files?.map(f=>`<div style="padding:12px 0; border-bottom:1px solid #f1f5f9; font-size:0.9rem; color:var(--text-main); display:flex; justify-content:space-between; align-items:center;"><span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:65%; font-weight:500;">📄 ${f.name}</span><span style="color:var(--text-muted); font-size:0.85rem; background:#f8fafc; padding:4px 8px; border-radius:6px;">${f.pages}ص × <b style="color:var(--navy);">${f.copies}</b>ن</span></div>`).join('')||''}
+    </div>`;
+}
+function closeDet() { document.getElementById('det-ov').classList.remove('open'); }
+
+function refreshPtsUI() {
+  const p = uDoc?.loyalty_points||0;
+  document.getElementById('ptsnum').innerText = p.toLocaleString();
+  let tier,cls,next,pct;
+  if(p>=500){tier='🥇 المستوى الذهبي';cls='tgold';next='أنت في أعلى مستوى! استمتع بخصم 5% دائم 🎉';pct=100;}
+  else if(p>=200){tier='🥈 المستوى الفضي';cls='tsilv';next=`اجمع ${500-p} نقطة للوصول للذهبي!`;pct=((p-200)/300)*100;}
+  else{tier='🥉 المستوى البرونزي';cls='tbron';next=`اجمع ${200-p} نقطة للوصول للفضي!`;pct=(p/200)*100;}
+  document.getElementById('tierdisp').innerHTML = `<div class="tierbadge ${cls}">${tier}</div>`;
+  document.getElementById('ptsnext').innerText  = next;
+  document.getElementById('ptsbar').style.width = pct+'%';
+  [['rb100',100],['rb300',300],['rb700',700]].forEach(([id,c])=>{const b=document.getElementById(id);if(b)b.disabled=p<c;});
+}
+
+async function loadPtsTab() {
+  refreshPtsUI();
+  try {
+    const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
+    if (data) { uDoc=data; refreshPtsUI(); }
+    const {data:ords} = await sb.from('orders').select('id,loyalty_points_earned,pts_used,created_at').eq('user_id',userId).order('created_at',{ascending:false}).limit(20);
+    let h='';
+    (ords||[]).forEach(o=>{
+      const d=new Date(o.created_at).toLocaleDateString('ar-IQ');
+      if(o.loyalty_points_earned>0) h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;"><div><b style="font-size:0.95rem;color:var(--navy);">طلب #${o.id}</b><div style="font-size:0.8rem;color:var(--text-muted);margin-top:3px;">${d}</div></div><span style="background:#dcfce7;color:#166534;font-weight:800;padding:5px 12px;border-radius:10px;font-size:0.9rem;">+${o.loyalty_points_earned} نقطة</span></div>`;
+      if(o.pts_used>0) h+=`<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid #f1f5f9;"><div><b style="font-size:0.95rem;color:var(--navy);">استبدال مكافأة</b><div style="font-size:0.8rem;color:var(--text-muted);margin-top:3px;">طلب #${o.id} • ${d}</div></div><span style="background:#fee2e2;color:#991b1b;font-weight:800;padding:5px 12px;border-radius:10px;font-size:0.9rem;">−${o.pts_used} نقطة</span></div>`;
+    });
+    document.getElementById('ptshist').innerHTML = h||'<p style="color:#94a3b8;font-size:0.9rem;text-align:center;padding:10px;">لا يوجد سجل بعد. اكمل أول طلب لتبدأ بجمع النقاط!</p>';
+  } catch{}
+}
+
+function showErr(m){const e=document.getElementById('errbox');e.innerText=m;e.style.display='block';}
+function hideErr(){document.getElementById('errbox').style.display='none';}
+function showToast(m){const t=document.getElementById('toast');t.innerText=m;t.style.display='block';clearTimeout(t._t);t._t=setTimeout(()=>t.style.display='none',4000);}
+
+init();
+</script>
+</body>
+</html>
