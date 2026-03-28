@@ -1,0 +1,1230 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة تحكم الشاطر</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
+:root {
+  --navy:#0d3b66; --teal:#5ab3c4; --orange:#e86b24;
+  --bg:#f4f7f9; --card:#fff; --text-main:#1e293b; --text-muted:#64748b;
+  --green:#10b981; --red:#ef4444; --light-teal:#eef9fa; --border:rgba(0,0,0,.04);
+}
+* { box-sizing:border-box; margin:0; padding:0; font-family:'Tajawal',sans-serif; }
+body { background:var(--bg); color:var(--text-main); min-height:100vh; }
+
+/* ── LOGIN ── */
+.loginwrap { display:flex; align-items:center; justify-content:center; min-height:100vh; padding:20px; background:linear-gradient(135deg,var(--light-teal),var(--bg)); }
+.logincard  { background:var(--card); border-radius:24px; padding:44px 32px; width:100%; max-width:400px; box-shadow:0 10px 40px rgba(13,59,102,.09); text-align:center; }
+.role-tabs  { display:flex; gap:8px; margin-bottom:22px; }
+.rtab { flex:1; padding:10px 6px; border:1.5px solid #e2e8f0; border-radius:12px; cursor:pointer; font-size:.82rem; font-weight:700; color:var(--text-muted); transition:all .2s; background:#f8fafc; }
+.rtab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+
+/* ── DASHBOARD ── */
+.dash { display:none; }
+.topbar { background:var(--navy); color:#fff; padding:14px 22px; display:flex; justify-content:space-between; align-items:center; position:sticky; top:0; z-index:50; box-shadow:0 4px 20px rgba(13,59,102,.15); }
+.main { padding:22px; max-width:1200px; margin:0 auto; }
+
+/* ── ADMIN TABS ── */
+.admin-tabs { display:flex; gap:10px; margin-bottom:22px; overflow-x:auto; padding-bottom:4px; }
+.admin-tabs::-webkit-scrollbar { display:none; }
+.atab { padding:10px 20px; border-radius:22px; border:1.5px solid #e2e8f0; background:var(--card); cursor:pointer; font-size:.88rem; white-space:nowrap; font-weight:700; color:var(--text-muted); }
+.atab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+.admin-page { display:none; }
+.admin-page.active { display:block; }
+
+/* ── STATS ── */
+.sgrid { display:grid; grid-template-columns:repeat(2,1fr); gap:14px; margin-bottom:22px; }
+@media(min-width:600px) { .sgrid { grid-template-columns:repeat(4,1fr); } }
+.scard { background:var(--card); border-radius:18px; padding:18px; box-shadow:0 4px 12px rgba(0,0,0,.03); text-align:center; position:relative; overflow:hidden; }
+.scard::before { content:''; position:absolute; top:0; right:0; width:100%; height:4px; }
+.scard:nth-child(1)::before { background:var(--navy); }
+.scard:nth-child(2)::before { background:var(--orange); }
+.scard:nth-child(3)::before { background:var(--green); }
+.scard:nth-child(4)::before { background:var(--teal); }
+.snum { font-size:2.1rem; font-weight:800; line-height:1.2; }
+.slbl { font-size:.78rem; color:var(--text-muted); margin-top:4px; }
+
+/* ── FILTER BAR ── */
+.fbar { display:flex; gap:8px; margin-bottom:18px; overflow-x:auto; padding-bottom:4px; }
+.fbar::-webkit-scrollbar { display:none; }
+.ftab { padding:8px 16px; border-radius:22px; border:1.5px solid #e2e8f0; background:var(--card); cursor:pointer; font-size:.83rem; white-space:nowrap; font-weight:700; color:var(--text-muted); }
+.ftab.active { background:var(--navy); color:#fff; border-color:var(--navy); }
+
+/* ── ORDER CARDS ── */
+.ocard { background:var(--card); border-radius:16px; padding:15px; margin-bottom:12px; box-shadow:0 3px 10px rgba(0,0,0,.04); border:1px solid #edf0f4; cursor:pointer; transition:transform .15s; }
+.ocard:hover { transform:translateY(-2px); }
+.ocard.isnew { border-right:4px solid var(--orange); }
+.ohdr { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+.infogrid { display:grid; grid-template-columns:1fr 1fr; gap:5px; margin-bottom:10px; }
+.ii { font-size:.83rem; color:var(--text-muted); padding:5px 8px; background:#f8fafc; border-radius:8px; }
+.sbdg { padding:5px 12px; border-radius:20px; font-size:.78rem; font-weight:700; display:inline-block; }
+.sr{background:#dbeafe;color:#1e40af;} .sp{background:#fef9c3;color:#854d0e;}
+.sd{background:#dcfce7;color:#166534;} .sv{background:#f0fdf4;color:#15803d;border:1px solid #86efac;}
+.sc{background:#fee2e2;color:#991b1b;}
+.newbdg { background:var(--orange); color:#fff; border-radius:8px; font-size:.65rem; padding:2px 7px; font-weight:800; vertical-align:middle; margin-right:5px; }
+.arow { display:flex; gap:7px; margin-top:10px; flex-wrap:wrap; }
+.abtn { flex:1; min-width:80px; padding:9px; border:none; border-radius:10px; cursor:pointer; font-size:.82rem; font-weight:700; font-family:'Tajawal',sans-serif; }
+.abtn:active { opacity:.75; }
+.aprint{background:#fef9c3;color:#854d0e;} .adeliv{background:#dcfce7;color:#166534;}
+.adone{background:#f0fdf4;color:#15803d;border:1px solid #86efac;} .acanc{background:#fee2e2;color:#991b1b;}
+
+/* ── INPUTS ── */
+input[type=text],input[type=password],textarea,select {
+  width:100%; padding:13px; border:1.5px solid #e2e8f0; border-radius:13px;
+  font-size:.95rem; margin-bottom:13px; outline:none; background:#f8fafc;
+  font-family:'Tajawal',sans-serif; color:var(--text-main);
+}
+input:focus,textarea:focus,select:focus { border-color:var(--teal); }
+.bmain { width:100%; padding:14px; border:none; border-radius:13px; font-weight:800; font-size:1rem; cursor:pointer; font-family:'Tajawal',sans-serif; }
+.errbox { background:#fef2f2; color:var(--red); padding:10px; border-radius:10px; font-size:.88rem; margin-bottom:12px; display:none; font-weight:700; border:1px solid #fecaca; }
+
+/* ── DETAIL PANEL ── */
+.detov { position:fixed; inset:0; background:rgba(13,59,102,.5); display:none; z-index:100; opacity:0; transition:opacity .3s; }
+.detov.open { opacity:1; }
+.detpan { position:fixed; right:-100%; top:0; width:100%; max-width:480px; height:100%; background:var(--card); overflow-y:auto; padding:22px; z-index:101; transition:right .32s cubic-bezier(.4,0,.2,1); box-shadow:-6px 0 30px rgba(0,0,0,.1); }
+.detpan.open { right:0; }
+.irow { display:flex; justify-content:space-between; align-items:center; padding:10px 0; border-bottom:1px solid #f1f5f9; font-size:.9rem; }
+.irow:last-child { border-bottom:none; }
+.contact-row { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.cbtn { flex:1; min-width:80px; padding:10px 8px; border:none; border-radius:10px; cursor:pointer; font-size:.82rem; font-weight:700; text-decoration:none; display:flex; align-items:center; justify-content:center; gap:5px; font-family:'Tajawal',sans-serif; }
+.cbtn-call{background:#dcfce7;color:#166534;} .cbtn-wa{background:#d1fae5;color:#065f46;} .cbtn-tg{background:#dbeafe;color:#1e40af;}
+
+/* ── CANCEL MODAL ── */
+#cancel-modal { position:fixed; inset:0; background:rgba(0,0,0,.6); display:none; align-items:center; justify-content:center; z-index:400; backdrop-filter:blur(4px); }
+#cancel-modal.open { display:flex; }
+.cancel-box { background:var(--card); border-radius:22px; padding:28px 24px; width:92%; max-width:420px; box-shadow:0 20px 40px rgba(0,0,0,.2); }
+.reason-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:14px; }
+.rbtn-reason { padding:11px 8px; border:1.5px solid #e2e8f0; border-radius:12px; cursor:pointer; font-size:.82rem; font-weight:700; color:var(--text-muted); background:#f8fafc; text-align:center; }
+.rbtn-reason.active { border-color:var(--red); background:#fef2f2; color:var(--red); }
+
+/* ── STAFF MANAGEMENT ── */
+.staff-card { background:var(--card); border-radius:16px; padding:18px; margin-bottom:14px; border:1px solid #edf0f4; box-shadow:0 3px 10px rgba(0,0,0,.03); }
+.role-badge { display:inline-block; padding:4px 12px; border-radius:20px; font-size:.78rem; font-weight:800; }
+.rb-admin  { background:#dbeafe; color:#1e40af; }
+.rb-oper   { background:#dcfce7; color:#166534; }
+.rb-driver { background:#ffedd5; color:var(--orange); }
+
+/* ── LIVE DOT ── */
+.ldot { width:9px; height:9px; background:#4eff4e; border-radius:50%; display:inline-block; margin-left:6px; animation:pulse 1.5s infinite; }
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1);}50%{opacity:.5;transform:scale(1.3);} }
+
+/* ── TOAST ── */
+#toast { position:fixed; bottom:28px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:13px 22px; border-radius:14px; font-size:.92rem; font-weight:700; z-index:999; display:none; box-shadow:0 6px 18px rgba(0,0,0,.2); min-width:200px; text-align:center; }
+</style>
+</head>
+<body>
+
+<!-- ════════════════════════════
+     CANCEL REASON MODAL
+════════════════════════════ -->
+<div id="cancel-modal">
+  <div class="cancel-box">
+    <h3 style="color:var(--navy);font-weight:800;margin:0 0 18px;">❌ سبب إلغاء الطلب</h3>
+    <p style="font-size:.88rem;color:var(--text-muted);margin:0 0 14px;">اختر سبباً أو اكتب سبباً مخصصاً:</p>
+    <div class="reason-grid">
+      <button class="rbtn-reason" onclick="pickReason(this,'طلب الزبون الإلغاء')">طلب الزبون الإلغاء</button>
+      <button class="rbtn-reason" onclick="pickReason(this,'عدم الرد على الهاتف')">عدم الرد على الهاتف</button>
+      <button class="rbtn-reason" onclick="pickReason(this,'عنوان التوصيل خاطئ')">عنوان خاطئ</button>
+      <button class="rbtn-reason" onclick="pickReason(this,'خارج منطقة التوصيل')">خارج المنطقة</button>
+      <button class="rbtn-reason" onclick="pickReason(this,'ملف تالف أو غير قابل للطباعة')">ملف تالف</button>
+      <button class="rbtn-reason" onclick="pickReason(this,'الزبون لا يستجيب للتأكيد')">لا يستجيب</button>
+    </div>
+    <textarea id="custom-reason" placeholder="أو اكتب سبباً آخر..." rows="3" style="resize:none;"></textarea>
+    <div style="display:flex;gap:10px;margin-top:4px;">
+      <button class="bmain" style="background:var(--red);color:#fff;flex:2;" onclick="confirmCancel()">تأكيد الإلغاء</button>
+      <button class="bmain" style="background:#f1f5f9;color:var(--text-muted);flex:1;" onclick="closeCancelModal()">رجوع</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     LOGIN
+════════════════════════════ -->
+<div class="loginwrap" id="login-screen">
+  <div class="logincard">
+    <div style="font-size:3rem;margin-bottom:10px;">🖨️</div>
+    <h2 style="color:var(--navy);margin-bottom:6px;font-weight:800;">لوحة التحكم</h2>
+    <p style="color:var(--text-muted);margin-bottom:24px;font-size:.92rem;">خدمات الشاطر الطلابية</p>
+
+    <!-- Role selection -->
+    <div class="role-tabs" id="role-tabs">
+      <button class="rtab active" onclick="selectRole('admin',this)">🏢 مدير</button>
+      <button class="rtab" onclick="selectRole('operator',this)">🖨️ موظف استنساخ</button>
+      <button class="rtab" onclick="selectRole('driver',this)">🛵 مندوب توصيل</button>
+    </div>
+
+    <div class="errbox" id="loginerr"></div>
+    <input type="password" id="adm-pass" placeholder="🔑 كلمة المرور">
+    <button class="bmain" style="background:var(--navy);color:#fff;" onclick="doLogin()">تسجيل الدخول</button>
+  </div>
+</div>
+
+<!-- ════════════════════════════
+     DASHBOARD
+════════════════════════════ -->
+<div class="dash" id="dashboard">
+  <div class="topbar">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="font-size:1.7rem;">🖨️</div>
+      <div>
+        <div style="font-weight:800;font-size:1.05rem;">لوحة الشاطر</div>
+        <div style="font-size:.75rem;opacity:.75;" id="role-badge-top"></div>
+      </div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;">
+      <div style="background:rgba(255,255,255,.15);padding:6px 14px;border-radius:20px;font-size:.82rem;">
+        <span class="ldot"></span><span id="pcnt">0</span> معلق
+      </div>
+      <button onclick="doLogout()" style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);color:#fff;padding:8px 14px;border-radius:10px;cursor:pointer;font-size:.82rem;font-weight:700;font-family:'Tajawal',sans-serif;">خروج</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <!-- Admin navigation tabs -->
+    <div class="admin-tabs" id="admin-tabs">
+      <button class="atab active" onclick="switchPage('orders',this)">📋 الطلبات</button>
+      <button class="atab" onclick="switchPage('stats',this)">📊 الإحصائيات</button>
+      <button class="atab" id="tab-staff-btn" onclick="switchPage('staff',this)"  style="display:none;">👥 الموظفون</button>
+      <button class="atab" id="tab-dash-btn"  onclick="switchPage('dash',this)"   style="display:none;">🏆 داشبورد</button>
+      <button class="atab" id="tab-reports-btn" onclick="switchPage('reports',this)" style="display:none;">📥 تقارير Excel</button>
+    </div>
+
+    <!-- Page: Orders -->
+    <div class="admin-page active" id="page-orders">
+      <div class="fbar" id="filter-bar">
+        <button class="ftab active" onclick="setFilter('all',this)">الكل</button>
+        <button class="ftab" onclick="setFilter('received',this)">📥 مستلم</button>
+        <button class="ftab" onclick="setFilter('printing',this)">🖨️ طباعة</button>
+        <button class="ftab" onclick="setFilter('delivering',this)">🛵 توصيل</button>
+        <button class="ftab" onclick="setFilter('delivered',this)">✅ مسلَّم</button>
+        <button class="ftab" onclick="setFilter('cancelled',this)">❌ ملغى</button>
+      </div>
+      <div id="olist"><div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div></div>
+    </div>
+
+    <!-- Page: Stats -->
+    <div class="admin-page" id="page-stats">
+      <div class="sgrid">
+        <div class="scard"><div class="snum" id="s-today"   style="color:var(--navy);">—</div><div class="slbl">طلبات اليوم</div></div>
+        <div class="scard"><div class="snum" id="s-pending" style="color:var(--orange);">—</div><div class="slbl">قيد التنفيذ</div></div>
+        <div class="scard"><div class="snum" id="s-revenue" style="color:var(--green);">—</div><div class="slbl">إيرادات اليوم</div></div>
+        <div class="scard"><div class="snum" id="s-total"   style="color:var(--teal);">—</div><div class="slbl">إجمالي الطلبات</div></div>
+      </div>
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);">
+        <h3 style="margin:0 0 16px;color:var(--navy);font-weight:800;">📈 ملخص الطلبات</h3>
+        <div id="stats-detail">جاري الحساب...</div>
+      </div>
+    </div>
+
+    <!-- Page: Staff Management (manager only) -->
+    <div class="admin-page" id="page-staff">
+      <h3 style="margin:0 0 18px;color:var(--navy);font-weight:800;">👥 إدارة الموظفين</h3>
+      <div id="staff-list"></div>
+
+      <!-- Change built-in passwords -->
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);margin-bottom:18px;">
+        <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">🔑 تغيير كلمة مرور</h4>
+        <select id="change-role-sel" style="margin-bottom:12px;">
+          <option value="operator">موظف استنساخ</option>
+          <option value="driver">مندوب توصيل</option>
+          <option value="admin">المدير (أنت)</option>
+        </select>
+        <input type="password" id="new-pass" placeholder="كلمة المرور الجديدة">
+        <button class="bmain" style="background:var(--teal);color:#fff;" onclick="changePass()">حفظ كلمة المرور</button>
+      </div>
+
+      <!-- Create custom account -->
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);">
+        <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">➕ إضافة حساب موظف جديد</h4>
+        <input type="text"     id="new-staff-name"  placeholder="✍️ اسم الموظف" style="margin-bottom:10px;">
+        <input type="password" id="new-staff-pass"  placeholder="🔑 كلمة المرور">
+        <p style="margin:0 0 8px;font-size:.88rem;color:var(--text-muted);font-weight:700;">صلاحياته:</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+          <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;padding:8px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <input type="checkbox" id="perm-rp" value="received→printing"> تأكيد استلام وبدء طباعة
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;padding:8px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <input type="checkbox" id="perm-pd" value="printing→delivering"> إرسال للتوصيل
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;padding:8px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <input type="checkbox" id="perm-dd" value="delivering→delivered"> تأكيد التسليم
+          </label>
+          <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;padding:8px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;">
+            <input type="checkbox" id="perm-canc" value="any→cancelled"> إلغاء الطلبات
+          </label>
+        </div>
+        <select id="new-staff-emoji" style="margin-bottom:12px;">
+          <option value="👤">👤 موظف عام</option>
+          <option value="🖨️">🖨️ موظف استنساخ</option>
+          <option value="🛵">🛵 مندوب توصيل</option>
+          <option value="📦">📦 مخزن</option>
+          <option value="☎️">☎️ خدمة عملاء</option>
+        </select>
+        <button class="bmain" style="background:var(--navy);color:#fff;margin-bottom:10px;" onclick="createCustomAccount()">✅ إنشاء الحساب</button>
+        <div id="custom-accounts-list"></div>
+      </div>
+    </div>
+
+    <!-- Page: Employee Dashboard (manager only) -->
+    <div class="admin-page" id="page-dash">
+      <h3 style="margin:0 0 18px;color:var(--navy);font-weight:800;">📊 داشبورد الموظفين</h3>
+      <div id="emp-dash">جاري التحميل...</div>
+    </div>
+
+    <!-- Page: Excel Reports (manager only) -->
+    <div class="admin-page" id="page-reports">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px;">
+        <h3 style="margin:0;color:var(--navy);font-weight:800;">📥 تقارير Excel</h3>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <button onclick="exportOrdersExcel()" style="background:var(--green);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:800;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.88rem;">⬇️ تصدير كل الطلبات</button>
+          <button onclick="exportAnalysisExcel()" style="background:var(--orange);color:#fff;border:none;padding:10px 16px;border-radius:12px;font-weight:800;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.88rem;">📊 تصدير التحليل الشامل</button>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div class="sgrid" style="margin-bottom:18px;">
+        <div class="scard"><div class="snum" id="rp-total"     style="color:var(--navy);">—</div><div class="slbl">إجمالي الطلبات</div></div>
+        <div class="scard"><div class="snum" id="rp-done"      style="color:var(--green);">—</div><div class="slbl">مكتملة</div></div>
+        <div class="scard"><div class="snum" id="rp-pending"   style="color:var(--orange);">—</div><div class="slbl">قيد التنفيذ</div></div>
+        <div class="scard"><div class="snum" id="rp-cancelled" style="color:var(--red);">—</div><div class="slbl">ملغاة</div></div>
+      </div>
+
+      <!-- All Orders Table -->
+      <div style="background:var(--card);border-radius:18px;padding:18px;margin-bottom:18px;box-shadow:0 4px 12px rgba(0,0,0,.04);overflow-x:auto;">
+        <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">📋 جدول جميع الطلبات</h4>
+        <table id="rp-orders-table" style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:750px;">
+          <thead>
+            <tr style="background:var(--navy);color:#fff;text-align:right;">
+              <th style="padding:11px 10px;border-radius:0 8px 0 0;">رقم الطلب</th>
+              <th style="padding:11px 10px;">الاسم</th>
+              <th style="padding:11px 10px;">الهاتف</th>
+              <th style="padding:11px 10px;">المنطقة</th>
+              <th style="padding:11px 10px;">الحالة</th>
+              <th style="padding:11px 10px;">الطباعة</th>
+              <th style="padding:11px 10px;">عدد الملفات</th>
+              <th style="padding:11px 10px;">المجموع</th>
+              <th style="padding:11px 10px;border-radius:8px 0 0 0;">التاريخ</th>
+            </tr>
+          </thead>
+          <tbody id="rp-orders-body">
+            <tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">جاري التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Staff Analysis Table -->
+      <div style="background:var(--card);border-radius:18px;padding:18px;margin-bottom:18px;box-shadow:0 4px 12px rgba(0,0,0,.04);overflow-x:auto;">
+        <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">👥 تحليل أداء الموظفين</h4>
+        <table id="rp-staff-table" style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:500px;">
+          <thead>
+            <tr style="background:var(--teal);color:#fff;text-align:right;">
+              <th style="padding:11px 10px;">الموظف</th>
+              <th style="padding:11px 10px;">الدور</th>
+              <th style="padding:11px 10px;">طلبات أنجزها</th>
+              <th style="padding:11px 10px;">متوسط الوقت (د)</th>
+              <th style="padding:11px 10px;">آخر نشاط</th>
+            </tr>
+          </thead>
+          <tbody id="rp-staff-body">
+            <tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-muted);">جاري التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Order Types Analysis -->
+      <div style="background:var(--card);border-radius:18px;padding:18px;box-shadow:0 4px 12px rgba(0,0,0,.04);overflow-x:auto;">
+        <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">🎨 تحليل أنواع الطلبات</h4>
+        <table style="width:100%;border-collapse:collapse;font-size:.82rem;min-width:420px;">
+          <thead>
+            <tr style="background:var(--orange);color:#fff;text-align:right;">
+              <th style="padding:11px 10px;">النوع</th>
+              <th style="padding:11px 10px;">عدد الطلبات</th>
+              <th style="padding:11px 10px;">الإيرادات</th>
+              <th style="padding:11px 10px;">النسبة</th>
+            </tr>
+          </thead>
+          <tbody id="rp-type-body">
+            <tr><td colspan="4" style="text-align:center;padding:30px;color:var(--text-muted);">جاري التحميل...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Panel -->
+<div class="detov" id="detov" onclick="closeDet()"></div>
+<div class="detpan" id="detpan">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid #f1f5f9;padding-bottom:15px;">
+    <h3 style="color:var(--navy);font-weight:800;font-size:1.2rem;" id="dettitle">تفاصيل الطلب</h3>
+    <button onclick="closeDet()" style="border:none;background:#f1f5f9;width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.2rem;color:var(--text-muted);">✕</button>
+  </div>
+  <div id="detbody"></div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════
+//  CONFIG
+// ══════════════════════════════════
+const SB_URL    = 'https://zrumnqtgdscrwgcguseq.supabase.co';
+const SB_KEY    = 'sb_publishable_xEqE6S21QUMCkDxSMvTskg_9g3pi-vZ';
+const BOT_TOKEN = '8507186698:AAHXCtsLn8j88A2QgiXSmNFbnEfpn1nCYew';
+const ADMIN_ID  = '7618746133';
+
+const sb = window.supabase.createClient(SB_URL, SB_KEY);
+let allOrders = [], curFilter = 'all', rtCh = null, currentRole = '';
+
+// ══════════════════════════════════
+//  STAFF ROLES CONFIG
+// ══════════════════════════════════
+const ROLES = {
+  admin: {
+    label:'مدير', badge:'rb-admin', defaultPass:'shater2024', emoji:'🏢', mgr:true,
+    can:  ['received→printing','printing→delivering','delivering→delivered','any→cancelled'],
+    sees: null   // null = all statuses
+  },
+  operator: {
+    label:'موظف استنساخ', badge:'rb-oper', defaultPass:'copy2024', emoji:'🖨️', mgr:false,
+    // operator can also cancel (طلبات فيها مشكلة بالملفات مثلاً)
+    can:  ['received→printing','printing→delivering','received→cancelled','printing→cancelled'],
+    sees: ['received','printing','delivering','cancelled']  // active + completed by him
+  },
+  driver: {
+    label:'مندوب توصيل', badge:'rb-driver', defaultPass:'driver2024', emoji:'🛵', mgr:false,
+    can:  ['delivering→delivered'],
+    sees: ['printing','delivering','delivered','cancelled']  // pickup-ready + his work
+  }
+};
+
+// Also support dynamic custom accounts stored in localStorage
+function getCustomAccounts() {
+  try { return JSON.parse(localStorage.getItem('custom-accounts') || '[]'); } catch { return []; }
+}
+function saveCustomAccounts(arr) { localStorage.setItem('custom-accounts', JSON.stringify(arr)); }
+
+function getPass(role) { return localStorage.getItem('sp-' + role) || ROLES[role]?.defaultPass || ''; }
+
+// Custom account login check
+function tryCustomLogin(pass) {
+  return getCustomAccounts().find(a => a.pass === pass);
+}
+function canDo(from, to) {
+  // Check built-in role
+  const allowed = ROLES[currentRole]?.can || [];
+  if (allowed.includes(`${from}→${to}`)) return true;
+  if (to === 'cancelled' && allowed.includes('any→cancelled')) return true;
+  // Check if logged in as custom account
+  if (currentRole === '__custom__' && currentCustomCan) {
+    return currentCustomCan.includes(`${from}→${to}`) || (to==='cancelled' && currentCustomCan.includes('any→cancelled'));
+  }
+  return false;
+}
+// For custom accounts
+let currentCustomCan = null;
+let currentCustomLabel = '';
+
+// Status map
+const SM = {
+  received:   {l:'مستلم',       c:'sr',i:'📥'},
+  printing:   {l:'قيد الطباعة', c:'sp',i:'🖨️'},
+  delivering: {l:'في الطريق',   c:'sd',i:'🛵'},
+  delivered:  {l:'تم التسليم',  c:'sv',i:'✅'},
+  cancelled:  {l:'ملغى',        c:'sc',i:'❌'}
+};
+
+// Customer notification messages
+function custMsg(id, status, reason='') {
+  const msgs = {
+    printing:   `🖨️ طلبك #${id} قيد الطباعة الآن!\nسنُخطرك عند الإرسال للتوصيل.`,
+    delivering: `🛵 طلبك #${id} في الطريق إليك!\nالمندوب متجه نحوك الآن 🏃`,
+    delivered:  `✅ تم تسليم طلبك #${id} بنجاح!\nشكراً لتعاملك مع الشاطر 🌟\nتمت إضافة نقاط الولاء لرصيدك 💎`
+  };
+  if (status === 'cancelled') {
+    return `❌ نعتذر منك، تم إلغاء طلبك #${id}.\n\nالسبب: ${reason}\n\nللاستفسار تواصل معنا.`;
+  }
+  return msgs[status] || '';
+}
+
+// ══════════════════════════════════
+//  AUTH
+// ══════════════════════════════════
+let selectedRole = 'admin';
+function selectRole(role, el) {
+  selectedRole = role;
+  document.querySelectorAll('.rtab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+}
+
+function doLogin() {
+  const pass = document.getElementById('adm-pass').value;
+  const err  = document.getElementById('loginerr');
+  err.style.display = 'none';
+
+  // 1. Try built-in roles
+  if (ROLES[selectedRole] && pass === getPass(selectedRole)) {
+    currentRole = selectedRole;
+    sessionStorage.setItem('adm-role', currentRole);
+    sessionStorage.removeItem('adm-custom');
+    enterDashboard();
+    return;
+  }
+  // 2. Try custom accounts (any tab selected — search by password)
+  const cust = tryCustomLogin(pass);
+  if (cust) {
+    currentRole = '__custom__';
+    currentCustomCan = cust.can;
+    currentCustomLabel = `${cust.emoji||'👤'} ${cust.name}`;
+    sessionStorage.setItem('adm-role', '__custom__');
+    sessionStorage.setItem('adm-custom', JSON.stringify(cust));
+    enterDashboard();
+    return;
+  }
+  err.innerText = '❌ كلمة المرور غير صحيحة';
+  err.style.display = 'block';
+}
+
+function enterDashboard() {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('dashboard').style.display = 'block';
+  if (currentRole === '__custom__') {
+    document.getElementById('role-badge-top').innerText = currentCustomLabel;
+  } else {
+    const r = ROLES[currentRole];
+    document.getElementById('role-badge-top').innerText = `${r.emoji} ${r.label}`;
+    if (r.mgr) {
+      document.getElementById('tab-staff-btn').style.display = '';
+      document.getElementById('tab-dash-btn').style.display  = '';
+      document.getElementById('tab-reports-btn').style.display = '';
+    }
+  }
+  renderStaffList();
+  startListening();
+}
+function doLogout() {
+  sessionStorage.removeItem('adm-role');
+  if (rtCh) sb.removeChannel(rtCh);
+  location.reload();
+}
+
+// Auto-login if session exists
+(function () {
+  const saved = sessionStorage.getItem('adm-role');
+  if (!saved) return;
+  if (saved === '__custom__') {
+    try {
+      const cust = JSON.parse(sessionStorage.getItem('adm-custom') || '{}');
+      if (cust.name) {
+        currentRole = '__custom__';
+        currentCustomCan = cust.can;
+        currentCustomLabel = `${cust.emoji||'👤'} ${cust.name}`;
+        document.getElementById('login-screen').style.display = 'none';
+        document.getElementById('dashboard').style.display = 'block';
+        document.getElementById('role-badge-top').innerText = currentCustomLabel;
+        renderStaffList();
+        setTimeout(startListening, 80);
+      }
+    } catch {}
+    return;
+  }
+  if (ROLES[saved]) {
+    currentRole = saved;
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('dashboard').style.display = 'block';
+    const r = ROLES[currentRole];
+    document.getElementById('role-badge-top').innerText = `${r.emoji} ${r.label}`;
+    if (r.mgr) {
+      document.getElementById('tab-staff-btn').style.display = '';
+      document.getElementById('tab-dash-btn').style.display = '';
+      document.getElementById('tab-reports-btn').style.display = '';
+    }
+    renderStaffList();
+    setTimeout(startListening, 80);
+  }
+})();
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') doLogin();
+});
+
+// ══════════════════════════════════
+//  STAFF MANAGEMENT
+// ══════════════════════════════════
+function renderStaffList() {
+  const list = document.getElementById('staff-list');
+  if (!list) return;
+
+  // Built-in roles
+  list.innerHTML = '<h4 style="margin:0 0 12px;color:var(--navy);font-weight:800;font-size:.95rem;">🏷️ الحسابات الأساسية</h4>' +
+    Object.entries(ROLES).map(([key, r]) => `
+      <div class="staff-card">
+        <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+          <div><b style="color:var(--navy);">${r.emoji} ${r.label}</b>
+            <span class="role-badge ${r.badge}" style="margin-right:6px;font-size:.72rem;">${key}</span>
+          </div>
+          <span style="font-size:.8rem;color:var(--text-muted);">🔑 <b>${getPass(key)}</b></span>
+        </div>
+        <div style="margin-top:8px;font-size:.8rem;color:var(--text-muted);">
+          <b>الصلاحيات:</b> ${r.can.map(c=>c.replace('→',' ← ')).join(' | ')}
+        </div>
+      </div>`).join('');
+
+  // Custom accounts
+  const customs = getCustomAccounts();
+  const custEl = document.getElementById('custom-accounts-list');
+  if (custEl) {
+    if (!customs.length) { custEl.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:10px;">لا يوجد حسابات مخصصة بعد</p>'; return; }
+    custEl.innerHTML = '<h4 style="margin:14px 0 10px;color:var(--navy);font-weight:800;font-size:.92rem;">👤 حسابات مخصصة</h4>' +
+      customs.map((a, i) => `
+        <div class="staff-card" style="border-right:3px solid var(--teal);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
+            <b style="color:var(--navy);">${a.emoji||'👤'} ${a.name}</b>
+            <span style="font-size:.8rem;color:var(--text-muted);">🔑 ${a.pass}</span>
+          </div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">
+            ${a.can.map(p=>p.replace('→',' ← ')).join(' | ')}
+          </div>
+          <button onclick="deleteCustomAccount(${i})" style="margin-top:8px;border:none;background:#fef2f2;color:var(--red);padding:5px 12px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:700;">حذف</button>
+        </div>`).join('');
+  }
+}
+
+function createCustomAccount() {
+  const name = document.getElementById('new-staff-name').value.trim();
+  const pass = document.getElementById('new-staff-pass').value;
+  const emoji = document.getElementById('new-staff-emoji').value;
+  if (!name || !pass || pass.length < 4) { alert('يرجى إدخال الاسم وكلمة مرور (4 أحرف+)'); return; }
+  const perms = ['perm-rp','perm-pd','perm-dd','perm-canc']
+    .map(id => document.getElementById(id))
+    .filter(el => el?.checked)
+    .map(el => el.value);
+  if (!perms.length) { alert('يرجى اختيار صلاحية واحدة على الأقل'); return; }
+  const accounts = getCustomAccounts();
+  accounts.push({name, pass, emoji, can: perms, createdAt: new Date().toISOString()});
+  saveCustomAccounts(accounts);
+  document.getElementById('new-staff-name').value = '';
+  document.getElementById('new-staff-pass').value = '';
+  ['perm-rp','perm-pd','perm-dd','perm-canc'].forEach(id => { const el=document.getElementById(id); if(el) el.checked=false; });
+  renderStaffList();
+  showToast('✅ تم إنشاء حساب ' + name);
+}
+
+function deleteCustomAccount(idx) {
+  if (!confirm('حذف هذا الحساب؟')) return;
+  const accounts = getCustomAccounts();
+  accounts.splice(idx, 1);
+  saveCustomAccounts(accounts);
+  renderStaffList();
+  showToast('🗑️ تم حذف الحساب');
+}
+
+function changePass() {
+  const role    = document.getElementById('change-role-sel').value;
+  const newpass = document.getElementById('new-pass').value.trim();
+  if (!newpass || newpass.length < 4) { alert('كلمة المرور يجب أن تكون 4 أحرف على الأقل'); return; }
+  localStorage.setItem('sp-' + role, newpass);
+  document.getElementById('new-pass').value = '';
+  renderStaffList();
+  showToast('✅ تم تغيير كلمة مرور ' + (ROLES[role]?.label || role));
+}
+
+// ── Employee performance dashboard ──
+function renderStaffDashboard() {
+  const box = document.getElementById('emp-dash');
+  if (!box) return;
+  // Gather all actors from status_history
+  const actorMap = {}; // actorLabel → {done:[], timings:[]}
+  allOrders.forEach(o => {
+    const hist = o.status_history || [];
+    hist.forEach((h, i) => {
+      if (!h.by) return;
+      if (!actorMap[h.by]) actorMap[h.by] = {done:[], timings:[]};
+      actorMap[h.by].done.push({orderId:o.id, status:h.status, time:h.time});
+      // Duration from previous step
+      if (i > 0 && hist[i-1].time) {
+        const dur = (new Date(h.time) - new Date(hist[i-1].time)) / 60000;
+        if (dur > 0 && dur < 1440) actorMap[h.by].timings.push(dur);
+      }
+    });
+  });
+
+  const todayStart = new Date(); todayStart.setHours(0,0,0,0);
+
+  if (!Object.keys(actorMap).length) {
+    box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">لا توجد بيانات بعد — تحتاج لتسجيل أعمال من لوحة الطلبات</div>';
+    return;
+  }
+
+  box.innerHTML = Object.entries(actorMap).map(([actor, data]) => {
+    const todayTasks = data.done.filter(d => new Date(d.time) >= todayStart).length;
+    const totalTasks = data.done.length;
+    const avgMin = data.timings.length
+      ? Math.round(data.timings.reduce((a,b)=>a+b,0) / data.timings.length)
+      : null;
+    const avgStr = avgMin ? (avgMin >= 60 ? `${Math.floor(avgMin/60)}س ${avgMin%60}د` : `${avgMin}د`) : '—';
+    return `
+      <div style="background:var(--card);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:0 3px 10px rgba(0,0,0,.04);border:1px solid #edf0f4;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+          <div>
+            <b style="color:var(--navy);font-size:1rem;">${actor}</b>
+          </div>
+          <span style="background:#dbeafe;color:#1e40af;padding:4px 12px;border-radius:20px;font-size:.78rem;font-weight:700;">${todayTasks} طلب اليوم</span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+          <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--navy);">${totalTasks}</div>
+            <div style="font-size:.73rem;color:var(--text-muted);">إجمالي المهام</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--green);">${todayTasks}</div>
+            <div style="font-size:.73rem;color:var(--text-muted);">اليوم</div>
+          </div>
+          <div style="background:#f8fafc;border-radius:12px;padding:12px;">
+            <div style="font-size:1.6rem;font-weight:800;color:var(--orange);">${avgStr}</div>
+            <div style="font-size:.73rem;color:var(--text-muted);">متوسط الوقت</div>
+          </div>
+        </div>
+        <div style="margin-top:12px;font-size:.8rem;color:var(--text-muted);">
+          <b>آخر 5 إجراءات:</b>
+          ${data.done.slice(-5).reverse().map(d=>`<span style="display:inline-block;background:#f1f5f9;padding:3px 8px;border-radius:7px;margin:3px 2px;">${SM[d.status]?.i||'?'} #${d.orderId}</span>`).join('')}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════
+//  PAGE NAVIGATION
+// ══════════════════════════════════
+function switchPage(name, el) {
+  document.querySelectorAll('.admin-page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + name).classList.add('active');
+  el.classList.add('active');
+  if (name === 'stats') calcStats();
+  if (name === 'dash') renderStaffDashboard();
+  if (name === 'staff') renderStaffList();
+  if (name === 'reports') renderReports();
+}
+
+// ══════════════════════════════════
+//  REPORTS & EXCEL EXPORT
+// ══════════════════════════════════
+const STATUS_AR = {
+  received:'مستلم', printing:'قيد الطباعة', delivering:'في الطريق',
+  delivered:'تم التسليم', cancelled:'ملغى'
+};
+
+function renderReports() {
+  const orders = allOrders;
+  // Summary
+  const done      = orders.filter(o => o.status === 'delivered').length;
+  const pending   = orders.filter(o => ['received','printing','delivering'].includes(o.status)).length;
+  const cancelled = orders.filter(o => o.status === 'cancelled').length;
+  document.getElementById('rp-total').innerText     = orders.length;
+  document.getElementById('rp-done').innerText      = done;
+  document.getElementById('rp-pending').innerText   = pending;
+  document.getElementById('rp-cancelled').innerText = cancelled;
+
+  // Orders table
+  const obody = document.getElementById('rp-orders-body');
+  if (!orders.length) {
+    obody.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-muted);">لا توجد بيانات</td></tr>`;
+  } else {
+    const rowStyle = (i) => i % 2 === 0 ? 'background:#f8fafc;' : '';
+    obody.innerHTML = orders.map((o, i) => {
+      const dt = new Date(o.created_at).toLocaleDateString('ar-IQ');
+      const statusColor = {
+        received:'#1e40af', printing:'#854d0e', delivering:'#e86b24',
+        delivered:'#166534', cancelled:'#991b1b'
+      }[o.status] || '#64748b';
+      return `<tr style="${rowStyle(i)}">
+        <td style="padding:9px 10px;font-weight:800;color:var(--navy);">${o.id}</td>
+        <td style="padding:9px 10px;">${o.name||''}</td>
+        <td style="padding:9px 10px;direction:ltr;text-align:right;">${o.phone||''}</td>
+        <td style="padding:9px 10px;">${o.region||''}</td>
+        <td style="padding:9px 10px;">
+          <span style="background:${statusColor}22;color:${statusColor};padding:3px 10px;border-radius:20px;font-size:.78rem;font-weight:700;">
+            ${STATUS_AR[o.status]||o.status}
+          </span>
+        </td>
+        <td style="padding:9px 10px;">${o.color==='c'?'🌈 ملون':'⚪ أسود'} · ${o.side==='1'?'وجه':'وجهين'}</td>
+        <td style="padding:9px 10px;text-align:center;">${o.files?.length||0}</td>
+        <td style="padding:9px 10px;font-weight:800;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</td>
+        <td style="padding:9px 10px;color:var(--text-muted);">${dt}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Staff analysis
+  const staffStats = {};
+  orders.forEach(o => {
+    if (!o.status_history) return;
+    o.status_history.forEach((h, idx) => {
+      if (!h.by) return;
+      const next = o.status_history[idx + 1];
+      const dur  = next ? (new Date(next.time) - new Date(h.time)) / 60000 : 0;
+      if (!staffStats[h.by]) staffStats[h.by] = { role: h.role||'', completed:0, totalMin:0, count:0, lastAt:'' };
+      staffStats[h.by].count++;
+      if (dur > 0) { staffStats[h.by].totalMin += dur; }
+      if (!staffStats[h.by].lastAt || h.time > staffStats[h.by].lastAt) staffStats[h.by].lastAt = h.time;
+      if (o.status === 'delivered') staffStats[h.by].completed++;
+    });
+  });
+  const sbody = document.getElementById('rp-staff-body');
+  const staffEntries = Object.entries(staffStats);
+  if (!staffEntries.length) {
+    sbody.innerHTML = `<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--text-muted);">لا توجد بيانات موظفين بعد</td></tr>`;
+  } else {
+    sbody.innerHTML = staffEntries.map(([name, s], i) => {
+      const avg = s.count > 0 ? Math.round(s.totalMin / s.count) : 0;
+      const last = s.lastAt ? new Date(s.lastAt).toLocaleDateString('ar-IQ') : '—';
+      const rowStyle = i % 2 === 0 ? 'background:#f8fafc;' : '';
+      return `<tr style="${rowStyle}">
+        <td style="padding:9px 10px;font-weight:800;">${name}</td>
+        <td style="padding:9px 10px;color:var(--text-muted);">${s.role||'—'}</td>
+        <td style="padding:9px 10px;text-align:center;font-weight:800;color:var(--green);">${s.completed}</td>
+        <td style="padding:9px 10px;text-align:center;">${avg} د</td>
+        <td style="padding:9px 10px;color:var(--text-muted);">${last}</td>
+      </tr>`;
+    }).join('');
+  }
+
+  // Order types analysis
+  const typeGroups = {
+    'ملون · وجه':    { label:'🌈 ملون — وجه واحد',  count:0, rev:0 },
+    'ملون · وجهين':  { label:'🌈 ملون — وجهين',      count:0, rev:0 },
+    'أسود · وجه':    { label:'⚪ أسود — وجه واحد',   count:0, rev:0 },
+    'أسود · وجهين':  { label:'⚪ أسود — وجهين',      count:0, rev:0 },
+  };
+  orders.forEach(o => {
+    const k = `${o.color==='c'?'ملون':'أسود'} · ${o.side==='1'?'وجه':'وجهين'}`;
+    if (typeGroups[k]) { typeGroups[k].count++; typeGroups[k].rev += (o.total||0); }
+  });
+  const totalOrders = orders.length || 1;
+  const tbody = document.getElementById('rp-type-body');
+  tbody.innerHTML = Object.values(typeGroups).map((g, i) => {
+    const pct = ((g.count / totalOrders) * 100).toFixed(1);
+    const rowStyle = i % 2 === 0 ? 'background:#f8fafc;' : '';
+    return `<tr style="${rowStyle}">
+      <td style="padding:9px 10px;font-weight:700;">${g.label}</td>
+      <td style="padding:9px 10px;text-align:center;font-weight:800;">${g.count}</td>
+      <td style="padding:9px 10px;color:var(--orange);font-weight:800;">${g.rev.toLocaleString()} د.ع</td>
+      <td style="padding:9px 10px;">
+        <div style="display:flex;align-items:center;gap:8px;">
+          <div style="flex:1;background:#e2e8f0;height:6px;border-radius:3px;overflow:hidden;">
+            <div style="width:${pct}%;height:100%;background:var(--teal);border-radius:3px;"></div>
+          </div>
+          <span style="font-size:.78rem;font-weight:700;color:var(--text-muted);min-width:35px;">${pct}%</span>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+// ── Excel export helpers ──────────────────────────
+function _xlsEscape(v) {
+  if (v == null) return '';
+  return String(v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function _buildXls(sheets) {
+  // sheets = [ { name, headers:[], rows:[[]] } ]
+  let xml = `<?xml version="1.0" encoding="UTF-8"?>
+<?mso-application progid="Excel.Sheet"?>
+<Workbook xmlns="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:ss="urn:schemas-microsoft-com:office:spreadsheet"
+  xmlns:x="urn:schemas-microsoft-com:office:excel">
+<Styles>
+  <Style ss:ID="h"><Font ss:Bold="1" ss:Color="#FFFFFF"/><Interior ss:Color="#0d3b66" ss:Pattern="Solid"/><Alignment ss:Horizontal="Right"/></Style>
+  <Style ss:ID="e"><Alignment ss:Horizontal="Right"/></Style>
+  <Style ss:ID="s"><Interior ss:Color="#f8fafc" ss:Pattern="Solid"/><Alignment ss:Horizontal="Right"/></Style>
+</Styles>`;
+  sheets.forEach(sh => {
+    xml += `<Worksheet ss:Name="${_xlsEscape(sh.name)}"><Table>`;
+    xml += `<Row>` + sh.headers.map(h => `<Cell ss:StyleID="h"><Data ss:Type="String">${_xlsEscape(h)}</Data></Cell>`).join('') + `</Row>`;
+    sh.rows.forEach((row, ri) => {
+      const style = ri % 2 === 0 ? 'e' : 's';
+      xml += `<Row>` + row.map(cell => {
+        const isNum = typeof cell === 'number';
+        return `<Cell ss:StyleID="${style}"><Data ss:Type="${isNum?'Number':'String'}">${_xlsEscape(cell)}</Data></Cell>`;
+      }).join('') + `</Row>`;
+    });
+    xml += `</Table></Worksheet>`;
+  });
+  xml += `</Workbook>`;
+  return xml;
+}
+
+function _downloadXls(xml, filename) {
+  const blob = new Blob([xml], { type:'application/vnd.ms-excel;charset=utf-8' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 2000);
+}
+
+function exportOrdersExcel() {
+  const headers = ['رقم الطلب','الاسم','رقم الهاتف','المنطقة','الحالة','نوع الطباعة','طريقة الطباعة','عدد الملفات','سعر الطباعة','رسوم التوصيل','المجموع','النقاط المكتسبة','تاريخ الطلب'];
+  const rows = allOrders.map(o => [
+    o.id,
+    o.name||'',
+    o.phone||'',
+    o.region||'',
+    STATUS_AR[o.status]||o.status,
+    o.color==='c'?'ملون':'أسود وأبيض',
+    o.side==='1'?'وجه واحد':'وجهين',
+    o.files?.length||0,
+    o.print_price||0,
+    o.delivery_fee||0,
+    o.total||0,
+    o.loyalty_points_earned||0,
+    new Date(o.created_at).toLocaleDateString('ar-IQ')
+  ]);
+  const xml = _buildXls([{ name:'جميع الطلبات', headers, rows }]);
+  _downloadXls(xml, `الشاطر_طلبات_${new Date().toLocaleDateString('ar-IQ').replace(/\//g,'-')}.xls`);
+  showToast('✅ تم تصدير الطلبات بنجاح');
+}
+
+function exportAnalysisExcel() {
+  // Sheet 1: Orders
+  const ordHeaders = ['رقم الطلب','الاسم','الهاتف','المنطقة','الحالة','الطباعة','الملفات','المجموع','التاريخ'];
+  const ordRows = allOrders.map(o => [
+    o.id, o.name||'', o.phone||'', o.region||'',
+    STATUS_AR[o.status]||o.status,
+    `${o.color==='c'?'ملون':'أسود'} · ${o.side==='1'?'وجه':'وجهين'}`,
+    o.files?.length||0, o.total||0,
+    new Date(o.created_at).toLocaleDateString('ar-IQ')
+  ]);
+
+  // Sheet 2: Status summary
+  const statHeaders = ['الحالة','العدد','الإيرادات (د.ع)'];
+  const statuses = ['received','printing','delivering','delivered','cancelled'];
+  const statRows = statuses.map(st => {
+    const grp = allOrders.filter(o => o.status === st);
+    return [STATUS_AR[st]||st, grp.length, grp.reduce((s,o)=>s+(o.total||0),0)];
+  });
+
+  // Sheet 3: Staff
+  const staffStats = {};
+  allOrders.forEach(o => {
+    (o.status_history||[]).forEach((h, idx) => {
+      if (!h.by) return;
+      const next = o.status_history[idx+1];
+      const dur  = next ? (new Date(next.time)-new Date(h.time))/60000 : 0;
+      if (!staffStats[h.by]) staffStats[h.by] = { role:h.role||'', completed:0, totalMin:0, count:0, lastAt:'' };
+      staffStats[h.by].count++;
+      if (dur>0) staffStats[h.by].totalMin += dur;
+      if (!staffStats[h.by].lastAt||h.time>staffStats[h.by].lastAt) staffStats[h.by].lastAt=h.time;
+      if (o.status==='delivered') staffStats[h.by].completed++;
+    });
+  });
+  const staffHeaders = ['الموظف','الدور','طلبات مكتملة','إجمالي تعاملات','متوسط الوقت (دقيقة)','آخر نشاط'];
+  const staffRows = Object.entries(staffStats).map(([name,s]) => [
+    name, s.role||'—', s.completed, s.count,
+    s.count>0?Math.round(s.totalMin/s.count):0,
+    s.lastAt?new Date(s.lastAt).toLocaleDateString('ar-IQ'):'—'
+  ]);
+
+  // Sheet 4: Type analysis
+  const typeGroups = {
+    'ملون · وجه': {label:'ملون — وجه واحد',count:0,rev:0},
+    'ملون · وجهين':{label:'ملون — وجهين',count:0,rev:0},
+    'أسود · وجه': {label:'أسود — وجه واحد',count:0,rev:0},
+    'أسود · وجهين':{label:'أسود — وجهين',count:0,rev:0},
+  };
+  allOrders.forEach(o=>{
+    const k=`${o.color==='c'?'ملون':'أسود'} · ${o.side==='1'?'وجه':'وجهين'}`;
+    if(typeGroups[k]){typeGroups[k].count++;typeGroups[k].rev+=(o.total||0);}
+  });
+  const typeHeaders=['نوع الطباعة','عدد الطلبات','الإيرادات (د.ع)','النسبة %'];
+  const total = allOrders.length||1;
+  const typeRows = Object.values(typeGroups).map(g=>[
+    g.label, g.count, g.rev, Number(((g.count/total)*100).toFixed(1))
+  ]);
+
+  const xml = _buildXls([
+    { name:'جميع الطلبات',      headers:ordHeaders,   rows:ordRows },
+    { name:'ملخص الحالات',      headers:statHeaders,  rows:statRows },
+    { name:'أداء الموظفين',      headers:staffHeaders, rows:staffRows },
+    { name:'تحليل أنواع الطباعة',headers:typeHeaders,  rows:typeRows },
+  ]);
+  _downloadXls(xml, `الشاطر_تحليل_شامل_${new Date().toLocaleDateString('ar-IQ').replace(/\//g,'-')}.xls`);
+  showToast('✅ تم تصدير التحليل الشامل بنجاح');
+}
+
+// ══════════════════════════════════
+//  REAL-TIME
+// ══════════════════════════════════
+async function startListening() {
+  await fetchOrders();
+  rtCh = sb.channel('admin-rt-v2')
+    .on('postgres_changes', {event:'*', schema:'public', table:'orders'}, () => fetchOrders())
+    .subscribe();
+}
+
+async function fetchOrders() {
+  let query = sb.from('orders').select('*').order('created_at', {ascending:false});
+  // Role-based pre-filter: each role sees only relevant statuses
+  const sees = (currentRole === '__custom__') ? null : ROLES[currentRole]?.sees;
+  if (sees) query = query.in('status', sees);
+  const {data, error} = await query;
+  if (error) return;
+  allOrders = data || [];
+  const p = allOrders.filter(o => ['received','printing','delivering'].includes(o.status)).length;
+  document.getElementById('pcnt').innerText = p;
+  renderOrders();
+  calcStats();
+  renderStaffDashboard();
+}
+
+// ══════════════════════════════════
+//  STATS
+// ══════════════════════════════════
+function calcStats() {
+  const tod = new Date(); tod.setHours(0,0,0,0);
+  const todayOrds   = allOrders.filter(o => new Date(o.created_at) >= tod);
+  const pendingOrds = allOrders.filter(o => ['received','printing','delivering'].includes(o.status));
+  const todayRev    = todayOrds.filter(o => o.status==='delivered').reduce((s,o) => s+(o.total||0), 0);
+  document.getElementById('s-today').innerText   = todayOrds.length;
+  document.getElementById('s-pending').innerText = pendingOrds.length;
+  document.getElementById('s-revenue').innerText = (todayRev/1000).toFixed(0) + 'K';
+  document.getElementById('s-total').innerText   = allOrders.length;
+  document.getElementById('s-pending').style.color = pendingOrds.length > 0 ? 'var(--orange)' : 'var(--green)';
+
+  const det = document.getElementById('stats-detail');
+  if (!det) return;
+  const byStatus = {};
+  Object.keys(SM).forEach(k => byStatus[k] = allOrders.filter(o=>o.status===k).length);
+  det.innerHTML = Object.entries(byStatus).map(([k,v]) => {
+    const s = SM[k];
+    return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:.92rem;"><span>${s.i} ${s.l}</span><b>${v} طلب</b></div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════
+//  RENDER ORDERS
+// ══════════════════════════════════
+function setFilter(f, el) {
+  curFilter = f;
+  document.querySelectorAll('.ftab').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderOrders();
+}
+
+function renderOrders() {
+  const cont = document.getElementById('olist');
+  const list = curFilter === 'all' ? allOrders : allOrders.filter(o => o.status === curFilter);
+  if (!list.length) { cont.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-muted);">لا توجد طلبات</div>'; return; }
+  const now = Date.now();
+  cont.innerHTML = list.map(o => {
+    const s    = SM[o.status] || SM.received;
+    const isNew = now - new Date(o.created_at).getTime() < 15*60*1000;
+    const sp   = 'event.stopPropagation()';
+    let act = '';
+    // Show buttons only if current role can perform the transition
+    if (o.status === 'received') {
+      if (canDo('received','printing'))   act += `<button class="abtn aprint" onclick="${sp};chStatus('${o.id}','printing')">🖨️ بدء الطباعة</button>`;
+      if (canDo('received','cancelled'))  act += `<button class="abtn acanc"  onclick="${sp};initCancel('${o.id}')">❌ إلغاء</button>`;
+    } else if (o.status === 'printing') {
+      if (canDo('printing','delivering')) act += `<button class="abtn adeliv" onclick="${sp};chStatus('${o.id}','delivering')">🛵 أرسل للتوصيل</button>`;
+      if (canDo('printing','cancelled'))  act += `<button class="abtn acanc"  onclick="${sp};initCancel('${o.id}')">❌ إلغاء</button>`;
+    } else if (o.status === 'delivering') {
+      if (canDo('delivering','delivered')) act += `<button class="abtn adone"  onclick="${sp};chStatus('${o.id}','delivered')">✅ تم التسليم</button>`;
+      if (canDo('delivering','cancelled')) act += `<button class="abtn acanc"  onclick="${sp};initCancel('${o.id}')">❌ إلغاء</button>`;
+    }
+    return `<div class="ocard ${isNew?'isnew':''}" onclick="openDet('${o.id}')">
+      <div class="ohdr">
+        <div><b style="color:var(--navy);font-size:1.05rem;">#${o.id}</b>${isNew?'<span class="newbdg">جديد</span>':''}</div>
+        <span class="sbdg ${s.c}">${s.i} ${s.l}</span>
+      </div>
+      <div class="infogrid">
+        <div class="ii">👤 ${o.name}</div><div class="ii">📞 ${o.phone}</div>
+        <div class="ii">🏠 ${o.region}</div><div class="ii" style="color:var(--orange);font-weight:700;">💰 ${(o.total||0).toLocaleString()} د.ع</div>
+        <div class="ii">🎨 ${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه':'وجهين'}</div>
+        <div class="ii" style="color:var(--teal);">📋 ${o.files?.length||0} ملف</div>
+      </div>
+      ${act?`<div class="arow">${act}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════
+//  CANCEL WITH REASON
+// ══════════════════════════════════
+let pendingCancelId = null;
+
+function initCancel(docId) {
+  pendingCancelId = docId;
+  document.querySelectorAll('.rbtn-reason').forEach(b => b.classList.remove('active'));
+  document.getElementById('custom-reason').value = '';
+  document.getElementById('cancel-modal').classList.add('open');
+}
+function closeCancelModal() { document.getElementById('cancel-modal').classList.remove('open'); pendingCancelId = null; }
+function pickReason(el, txt) {
+  document.querySelectorAll('.rbtn-reason').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('custom-reason').value = txt;
+}
+async function confirmCancel() {
+  const reason = document.getElementById('custom-reason').value.trim();
+  if (!reason) { alert('يرجى تحديد سبب الإلغاء أو كتابته'); return; }
+  
+  // -- التعديل تم هنا --
+  const idToCancel = pendingCancelId; // حفظ المعرف قبل الإغلاق
+  closeCancelModal();                 // إغلاق النافذة (والذي يفرغ pendingCancelId)
+  await chStatus(idToCancel, 'cancelled', reason); // الإرسال باستخدام المعرف المحفوظ
+}
+
+// ══════════════════════════════════
+//  CHANGE STATUS
+// ══════════════════════════════════
+async function chStatus(docId, newSt, cancelReason = '') {
+  if (newSt !== 'cancelled') {
+    if (!confirm(`تأكيد: تحديث الطلب إلى "${SM[newSt]?.l}"؟`)) return;
+  }
+
+  const {data:order, error:fErr} = await sb.from('orders').select('*').eq('id', docId).single();
+  if (fErr) { alert('❌ خطأ في جلب بيانات الطلب'); return; }
+
+  // Add loyalty points on delivery (only on print_price, only if no discount was applied)
+  if (newSt === 'delivered' && order.status !== 'delivered') {
+    const {data:user} = await sb.from('users').select('*').eq('id', order.user_id).single();
+    if (user) {
+      const ptsToAdd = order.loyalty_points_earned || 0;
+      await sb.from('users').update({
+        loyalty_points:   (user.loyalty_points || 0) + ptsToAdd,
+        first_order_done: true
+      }).eq('id', order.user_id);
+    }
+  }
+
+  const newHistory = [...(order.status_history || []), {
+    status: newSt, time: new Date().toISOString(), by: ROLES[currentRole]?.label || currentRole
+  }];
+
+  const {error:uErr} = await sb.from('orders').update({
+    status: newSt,
+    status_history: newHistory,
+    ...(newSt === 'cancelled' ? {cancel_reason: cancelReason} : {})
+  }).eq('id', docId);
+  if (uErr) { alert('❌ فشل التحديث: ' + uErr.message); return; }
+
+  // Notify customer
+  const custTg  = order.telegram_id || '';
+  const validTg = custTg && !custTg.startsWith('guest_');
+  if (validTg) {
+    const msg = custMsg(order.id, newSt, cancelReason);
+    if (msg) await tgSend(custTg, msg);
+  }
+
+  // Notify admin
+  const s = SM[newSt] || {};
+  await tgSend(ADMIN_ID,
+    `${s.i} تم تحديث الطلب #${order.id}\n` +
+    `الحالة: ${s.l}\nالزبون: ${order.name} | ${order.phone}\n` +
+    `المنفذ: ${ROLES[currentRole]?.emoji} ${ROLES[currentRole]?.label}\n` +
+    (newSt === 'cancelled' ? `السبب: ${cancelReason}\n` : '') +
+    (validTg ? '📲 تم إشعار الزبون' : '⚠️ الزبون غير مرتبط بتيليجرام')
+  );
+
+  showToast(`✅ تم التحديث: ${s.l}`);
+  closeDet();
+  await fetchOrders();
+}
+
+// ══════════════════════════════════
+//  TELEGRAM
+// ══════════════════════════════════
+async function tgSend(chatId, text) {
+  try {
+    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({chat_id:chatId, text, disable_web_page_preview:true})
+    });
+    const j = await res.json();
+    if (!j.ok) console.error('tgSend error:', j.description);
+    return j.ok;
+  } catch(e) { return false; }
+}
+
+// ══════════════════════════════════
+//  DETAIL PANEL
+// ══════════════════════════════════
+function openDet(docId) {
+  const o = allOrders.find(x => x.id === docId); if (!o) return;
+  document.getElementById('detov').style.display = 'block';
+  setTimeout(() => document.getElementById('detov').classList.add('open'), 10);
+  document.getElementById('detpan').classList.add('open');
+  document.getElementById('dettitle').innerText = 'طلب #' + o.id;
+
+  const s    = SM[o.status] || SM.received;
+  const zip  = o.zip_url || '';
+  const ph   = o.phone || '';
+  const waN  = '964' + ph.replace(/^0/, '');
+
+  let detAct = '';
+  if (o.status === 'received') {
+    if (canDo('received','printing'))  detAct += `<button class="abtn aprint" style="padding:12px;" onclick="chStatus('${o.id}','printing')">🖨️ بدء الطباعة</button>`;
+    if (canDo('received','cancelled')) detAct += `<button class="abtn acanc"  style="padding:12px;" onclick="initCancel('${o.id}')">❌ إلغاء</button>`;
+  } else if (o.status === 'printing') {
+    if (canDo('printing','delivering')) detAct += `<button class="abtn adeliv" style="padding:12px;" onclick="chStatus('${o.id}','delivering')">🛵 أرسل للتوصيل</button>`;
+    if (canDo('printing','cancelled'))  detAct += `<button class="abtn acanc"  style="padding:12px;" onclick="initCancel('${o.id}')">❌ إلغاء</button>`;
+  } else if (o.status === 'delivering') {
+    if (canDo('delivering','delivered')) detAct += `<button class="abtn adone"  style="padding:12px;" onclick="chStatus('${o.id}','delivered')">✅ تم التسليم</button>`;
+    if (canDo('delivering','cancelled')) detAct += `<button class="abtn acanc"  style="padding:12px;" onclick="initCancel('${o.id}')">❌ إلغاء</button>`;
+  }
+
+  document.getElementById('detbody').innerHTML = `
+    <div style="text-align:center;margin-bottom:20px;">
+      <span class="sbdg ${s.c}" style="font-size:.95rem;padding:8px 20px;">${s.i} ${s.l}</span>
+      ${o.cancel_reason?`<div style="margin-top:8px;font-size:.83rem;color:var(--red);font-weight:700;">السبب: ${o.cancel_reason}</div>`:''}
+    </div>
+
+    <div style="background:var(--light-teal);border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid rgba(90,179,196,.2);">
+      <div class="irow"><span>👤 الاسم</span><b>${o.name}</b></div>
+      <div class="irow"><span>📞 الهاتف</span><b>${ph}</b></div>
+      <div class="irow"><span>🏠 المنطقة</span><b>${o.region}</b></div>
+      <div class="irow"><span>⏰ وقت التوصيل</span><b>${o.delivery_time||'الآن'}</b></div>
+      <div class="irow"><span>📍 الموقع</span><a href="${o.loc_url||'#'}" target="_blank" style="color:#fff;background:var(--teal);padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.82rem;">الخريطة 🗺️</a></div>
+    </div>
+
+    <p style="font-size:.82rem;color:var(--text-muted);margin:0 0 8px;font-weight:700;">📲 تواصل مع الزبون:</p>
+    <div class="contact-row" style="margin-bottom:14px;">
+      <a href="tel:${ph}" class="cbtn cbtn-call">📞 اتصال</a>
+      <a href="https://wa.me/${waN}" target="_blank" class="cbtn cbtn-wa">💬 واتساب</a>
+      <a href="https://t.me/+${waN}" target="_blank" class="cbtn cbtn-tg">✈️ تيليجرام</a>
+    </div>
+
+    <div style="background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #f1f5f9;">
+      <div class="irow"><span>🎨 الطباعة</span><b>${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه':'وجهين'}</b></div>
+      <div class="irow"><span>💰 الإجمالي</span><b style="color:var(--orange);font-size:1.15rem;">${(o.total||0).toLocaleString()} د.ع</b></div>
+      <div class="irow"><span>💎 نقاط</span><b style="color:var(--green);background:#dcfce7;padding:3px 10px;border-radius:8px;">+${o.loyalty_points_earned||0}</b></div>
+    </div>
+
+    ${(currentRole !== 'driver' && currentRole !== '__custom__' ? true : (currentCustomCan?.includes('received→printing')||currentCustomCan?.includes('printing→delivering'))) ? `
+    <h4 style="margin:0 0 10px;color:var(--navy);font-weight:800;">الملفات (${o.files?.length||0})</h4>
+    ${zip?'<a href="'+zip+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:var(--navy);color:#fff;padding:14px;border-radius:13px;font-weight:800;text-decoration:none;margin-bottom:12px;box-shadow:0 5px 14px rgba(13,59,102,.2);">📦 تحميل كل الملفات (ZIP)</a>':'<p style=\"color:var(--red);background:#fef2f2;padding:10px;border-radius:10px;text-align:center;font-weight:700;margin-bottom:12px;\">⚠️ لم يتم رفع الملفات</p>'}
+    <div style="background:#fff;border-radius:13px;padding:8px 14px;border:1px solid #f1f5f9;margin-bottom:18px;">
+      ${o.files?.map(f=>'<div style="font-size:.87rem;padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;"><span>📄 '+f.name+'</span><span style="color:var(--text-muted);background:#f8fafc;padding:3px 8px;border-radius:6px;font-weight:700;font-size:.82rem;">'+f.pages+'ص × <b style=\"color:var(--navy);\">'+f.copies+'</b>ن</span></div>').join('')||''}
+    </div>` : ''}
+
+    ${detAct?`<div class="arow">${detAct}</div>`:`<div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px;color:var(--text-muted);font-weight:700;">${o.status==='delivered'?'✅ الطلب مكتمل':'❌ الطلب ملغى'}</div>`}`;
+}
+
+function closeDet() {
+  document.getElementById('detov').classList.remove('open');
+  document.getElementById('detpan').classList.remove('open');
+  setTimeout(() => document.getElementById('detov').style.display='none', 300);
+}
+
+function showToast(m) {
+  const t = document.getElementById('toast'); t.innerText = m; t.style.display='block';
+  clearTimeout(t._t); t._t = setTimeout(()=>t.style.display='none', 3500);
+}
+</script>
+</body>
+</html>
