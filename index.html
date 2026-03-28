@@ -13,281 +13,210 @@
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800&display=swap');
 
-/* ═══════════════════════════════
-   THEME TOKENS
-═══════════════════════════════ */
 :root {
   --navy:#0d3b66; --teal:#5ab3c4; --orange:#e86b24;
   --bg:#f4f7f9; --card:#ffffff; --text-main:#1e293b;
   --text-muted:#64748b; --green:#10b981; --red:#ef4444; --gold:#f59e0b;
   --light-teal:#eef9fa; --border:rgba(0,0,0,0.05);
   --input-bg:#f8fafc; --inv-bg:#0d3b66; --shadow:rgba(13,59,102,0.08);
-  --blue:var(--navy);
+  --blue:var(--navy); --express:#9333ea;
 }
 [data-theme="dark"] {
-  --navy:#60b4f0;
-  --teal:#5ab3c4;
-  --orange:#ff8c42;
-  --green:#34d399;
-  --red:#f87171;
+  --navy:#60b4f0; --teal:#5ab3c4; --orange:#ff8c42; --green:#34d399; --red:#f87171;
   --bg:#0f172a; --card:#1e293b; --text-main:#e2e8f0; --text-muted:#94a3b8;
   --light-teal:rgba(90,179,196,0.12); --border:rgba(255,255,255,0.09);
   --input-bg:#273549; --inv-bg:#0a1628; --shadow:rgba(0,0,0,0.35);
 }
-/* ── Dark mode component fixes ── */
-[data-theme="dark"] .ob-title          { color:var(--teal); }
-[data-theme="dark"] .upload            { color:var(--teal); background:rgba(90,179,196,.1); }
-[data-theme="dark"] .iosbox            { background:#1c2a3a; border-color:rgba(253,230,138,.3); }
-[data-theme="dark"] .iosbox b          { color:#fcd34d; }
-[data-theme="dark"] .iosbox ol         { color:#cbd5e1; }
-[data-theme="dark"] .obtn              { border-color:#334155; background:#1e293b; color:#94a3b8; }
-[data-theme="dark"] .obtn.on           { background:#2563eb !important; color:#fff !important; border-color:#2563eb !important; }
-[data-theme="dark"] .del-btn           { background:#3b1f1f; color:#f87171; }
-[data-theme="dark"] .bcnt              { color:var(--teal); }
-[data-theme="dark"] .rbtn:disabled     { background:#334155; color:#64748b; }
-[data-theme="dark"] input[type=text],
-[data-theme="dark"] input[type=tel]    { border-color:#334155; color:#e2e8f0; background:#273549; }
-[data-theme="dark"] .mpseg             { background:#334155; }
-[data-theme="dark"] .tlpendin          { background:#334155; color:#64748b; }
-[data-theme="dark"] .tlcon             { background:#334155; }
-[data-theme="dark"] .bnav              { background:rgba(15,23,42,.97); border-top:1px solid rgba(255,255,255,.07); }
-[data-theme="dark"] #toast             { background:#2563eb; }
-[data-theme="dark"] .s-r  { background:rgba(37,99,235,.2);  color:#93c5fd; }
-[data-theme="dark"] .s-p  { background:rgba(161,98,7,.25);  color:#fde047; }
-[data-theme="dark"] .s-d  { background:rgba(194,65,12,.2);  color:#fdba74; }
-[data-theme="dark"] .s-v  { background:rgba(22,101,52,.2);  color:#86efac; border-color:rgba(134,239,172,.25); }
-[data-theme="dark"] .s-c  { background:rgba(153,27,27,.2);  color:#fca5a5; }
-[data-theme="dark"] .mpseg.done        { background:var(--green); }
-[data-theme="dark"] .mpseg.cur         { background:var(--orange); }
+[data-theme="dark"] .ob-title{color:var(--teal);}
+[data-theme="dark"] .upload{color:var(--teal);background:rgba(90,179,196,.1);}
+[data-theme="dark"] .iosbox{background:#1c2a3a;border-color:rgba(253,230,138,.3);}
+[data-theme="dark"] .iosbox b{color:#fcd34d;}
+[data-theme="dark"] .iosbox ol{color:#cbd5e1;}
+[data-theme="dark"] .obtn{border-color:#334155;background:#1e293b;color:#94a3b8;}
+[data-theme="dark"] .obtn.on{background:#2563eb!important;color:#fff!important;border-color:#2563eb!important;}
+[data-theme="dark"] .del-btn{background:#3b1f1f;color:#f87171;}
+[data-theme="dark"] .bcnt{color:var(--teal);}
+[data-theme="dark"] .rbtn:disabled{background:#334155;color:#64748b;}
+[data-theme="dark"] input[type=text],[data-theme="dark"] input[type=tel],[data-theme="dark"] textarea,[data-theme="dark"] select{border-color:#334155;color:#e2e8f0;background:#273549;}
+[data-theme="dark"] .mpseg{background:#334155;}
+[data-theme="dark"] .tlpendin{background:#334155;color:#64748b;}
+[data-theme="dark"] .tlcon{background:#334155;}
+[data-theme="dark"] .bnav{background:rgba(15,23,42,.97);border-top:1px solid rgba(255,255,255,.07);}
+[data-theme="dark"] #toast{background:#2563eb;}
+[data-theme="dark"] .s-r{background:rgba(37,99,235,.2);color:#93c5fd;}
+[data-theme="dark"] .s-p{background:rgba(161,98,7,.25);color:#fde047;}
+[data-theme="dark"] .s-d{background:rgba(194,65,12,.2);color:#fdba74;}
+[data-theme="dark"] .s-v{background:rgba(22,101,52,.2);color:#86efac;border-color:rgba(134,239,172,.25);}
+[data-theme="dark"] .s-c{background:rgba(153,27,27,.2);color:#fca5a5;}
+[data-theme="dark"] .mpseg.done{background:var(--green);}
+[data-theme="dark"] .mpseg.cur{background:var(--orange);}
 
-/* ═══════════════════════════════
-   BASE
-═══════════════════════════════ */
-* { box-sizing:border-box; font-family:'Tajawal',sans-serif; -webkit-tap-highlight-color:transparent; }
-body { background:var(--bg); direction:rtl; margin:0; padding:0 0 85px; color:var(--text-main); transition:background .3s,color .3s; }
+*{box-sizing:border-box;font-family:'Tajawal',sans-serif;-webkit-tap-highlight-color:transparent;}
+body{background:var(--bg);direction:rtl;margin:0;padding:0 0 85px;color:var(--text-main);transition:background .3s,color .3s;}
 
-@keyframes fadeInUp  { from{opacity:0;transform:translateY(14px)} to{opacity:1;transform:translateY(0)} }
-@keyframes pop       { 0%{opacity:0;transform:scale(.88)} 80%{transform:scale(1.03)} 100%{opacity:1;transform:scale(1)} }
-@keyframes pulseGlow { 0%,100%{box-shadow:0 0 0 0 rgba(232,107,36,.45)} 60%{box-shadow:0 0 0 9px rgba(232,107,36,0)} }
-@keyframes spin      { to{transform:rotate(360deg)} }
-@keyframes slideUp   { from{transform:translateY(100%)} to{transform:translateY(0)} }
+@keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pop{0%{opacity:0;transform:scale(.88)}80%{transform:scale(1.03)}100%{opacity:1;transform:scale(1)}}
+@keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(232,107,36,.45)}60%{box-shadow:0 0 0 9px rgba(232,107,36,0)}}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
 
-/* ═══════════════════════════════
-   ONBOARDING
-═══════════════════════════════ */
-#onboarding {
-  position:fixed; inset:0; background:rgba(13,59,102,.93);
-  backdrop-filter:blur(6px); display:flex; align-items:center;
-  justify-content:center; z-index:500;
-}
-.ob-wrap {
-  background:var(--card); border-radius:28px; width:92%; max-width:400px;
-  padding:32px 24px 24px; overflow:hidden; position:relative;
-  box-shadow:0 25px 50px rgba(0,0,0,.25); animation:pop .4s ease;
-  user-select:none; -webkit-user-select:none;
-}
-.ob-skip { position:absolute; top:14px; left:16px; border:none; background:none; color:var(--text-muted); font-size:.85rem; cursor:pointer; font-weight:700; font-family:'Tajawal',sans-serif; }
-.ob-track { display:flex; transition:transform .38s cubic-bezier(.4,0,.2,1); }
-.ob-slide { min-width:100%; text-align:center; padding:0 6px; }
-.ob-emoji { font-size:4.5rem; display:block; margin-bottom:14px; }
-.ob-title { color:var(--navy); font-size:1.3rem; font-weight:800; margin:0 0 10px; }
-[data-theme="dark"] .ob-title { color:var(--teal); }
-.ob-desc  { color:var(--text-muted); font-size:.95rem; line-height:1.75; margin:0; font-weight:500; }
-.ob-dots  { display:flex; justify-content:center; gap:7px; margin:20px 0 16px; }
-.ob-dot   { width:8px; height:8px; border-radius:50%; background:#e2e8f0; transition:all .3s; }
-.ob-dot.active { background:var(--orange); width:22px; border-radius:4px; }
-.ob-btn   { width:100%; padding:15px; border:none; border-radius:14px; background:var(--orange); color:#fff; font-size:1.05rem; font-weight:800; cursor:pointer; font-family:'Tajawal',sans-serif; }
-.ob-btn:active { opacity:.85; }
+/* ONBOARDING */
+#onboarding{position:fixed;inset:0;background:rgba(13,59,102,.93);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500;}
+.ob-wrap{background:var(--card);border-radius:28px;width:92%;max-width:400px;padding:32px 24px 24px;overflow:hidden;position:relative;box-shadow:0 25px 50px rgba(0,0,0,.25);animation:pop .4s ease;user-select:none;-webkit-user-select:none;}
+.ob-skip{position:absolute;top:14px;left:16px;border:none;background:none;color:var(--text-muted);font-size:.85rem;cursor:pointer;font-weight:700;font-family:'Tajawal',sans-serif;}
+.ob-track{display:flex;transition:transform .38s cubic-bezier(.4,0,.2,1);}
+.ob-slide{min-width:100%;text-align:center;padding:0 6px;}
+.ob-emoji{font-size:4.5rem;display:block;margin-bottom:14px;}
+.ob-title{color:var(--navy);font-size:1.3rem;font-weight:800;margin:0 0 10px;}
+.ob-desc{color:var(--text-muted);font-size:.95rem;line-height:1.75;margin:0;font-weight:500;}
+.ob-dots{display:flex;justify-content:center;gap:7px;margin:20px 0 16px;}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:#e2e8f0;transition:all .3s;}
+.ob-dot.active{background:var(--orange);width:22px;border-radius:4px;}
+.ob-btn{width:100%;padding:15px;border:none;border-radius:14px;background:var(--orange);color:#fff;font-size:1.05rem;font-weight:800;cursor:pointer;font-family:'Tajawal',sans-serif;}
+.ob-btn:active{opacity:.85;}
 
-/* ═══════════════════════════════
-   NAV & TABS
-═══════════════════════════════ */
-.bnav {
-  position:fixed; bottom:0; left:0; right:0;
-  background:rgba(255,255,255,.95); backdrop-filter:blur(12px);
-  border-top:1px solid var(--border); display:flex; z-index:200;
-  box-shadow:0 -4px 20px var(--shadow); padding:5px 5px 14px;
-  transition:background .3s;
-}
-[data-theme="dark"] .bnav { background:rgba(30,41,59,.96); }
-.nbtn { flex:1; padding:10px 4px; border:none; background:none; cursor:pointer; font-size:.75rem; font-weight:700; color:var(--text-muted); display:flex; flex-direction:column; align-items:center; gap:4px; transition:color .25s; }
-.nbtn .ni { font-size:1.45rem; transition:transform .3s cubic-bezier(.175,.885,.32,1.275); }
-.nbtn.active { color:var(--teal); }
-.nbtn.active .ni { transform:translateY(-4px) scale(1.1); }
+/* NAV */
+.bnav{position:fixed;bottom:0;left:0;right:0;background:rgba(255,255,255,.95);backdrop-filter:blur(12px);border-top:1px solid var(--border);display:flex;z-index:200;box-shadow:0 -4px 20px var(--shadow);padding:5px 5px 14px;transition:background .3s;}
+[data-theme="dark"] .bnav{background:rgba(30,41,59,.96);}
+.nbtn{flex:1;padding:10px 4px;border:none;background:none;cursor:pointer;font-size:.75rem;font-weight:700;color:var(--text-muted);display:flex;flex-direction:column;align-items:center;gap:4px;transition:color .25s;}
+.nbtn .ni{font-size:1.45rem;transition:transform .3s cubic-bezier(.175,.885,.32,1.275);}
+.nbtn.active{color:var(--teal);}
+.nbtn.active .ni{transform:translateY(-4px) scale(1.1);}
+.tab{display:none;padding:15px;}
+.tab.active{display:block;animation:fadeInUp .35s ease;}
 
-.tab { display:none; padding:15px; }
-.tab.active { display:block; animation:fadeInUp .35s ease; }
+/* CARDS */
+.card{background:var(--card);border-radius:20px;padding:22px;margin-bottom:15px;box-shadow:0 4px 15px var(--shadow);border:1px solid var(--border);transition:background .3s;}
+.hdr{text-align:center;padding:10px 0 15px;}
+.app-logo{width:80px;height:80px;border-radius:50%;border:3px solid var(--teal);padding:3px;background:#fff;box-shadow:0 4px 15px rgba(90,179,196,.2);margin:0 auto 12px;display:block;object-fit:contain;}
 
-/* ═══════════════════════════════
-   CARDS
-═══════════════════════════════ */
-.card { background:var(--card); border-radius:20px; padding:22px; margin-bottom:15px; box-shadow:0 4px 15px var(--shadow); border:1px solid var(--border); transition:background .3s; }
-.hdr  { text-align:center; padding:10px 0 15px; }
-.app-logo { width:80px; height:80px; border-radius:50%; border:3px solid var(--teal); padding:3px; background:#fff; box-shadow:0 4px 15px rgba(90,179,196,.2); margin:0 auto 12px; display:block; object-fit:contain; }
+/* UPLOAD */
+.upload{border:2px dashed var(--teal);background:var(--light-teal);padding:28px 20px;text-align:center;color:var(--navy);cursor:pointer;border-radius:20px;transition:all .2s;}
+.upload:active{transform:scale(.98);}
+.upload-icon{font-size:2.4rem;margin-bottom:8px;display:block;}
 
-/* ═══════════════════════════════
-   UPLOAD ZONE
-═══════════════════════════════ */
-.upload { border:2px dashed var(--teal); background:var(--light-teal); padding:28px 20px; text-align:center; color:var(--navy); cursor:pointer; border-radius:20px; transition:all .2s; }
-[data-theme="dark"] .upload { color:var(--teal); }
-.upload:active { transform:scale(.98); }
-.upload-icon { font-size:2.4rem; margin-bottom:8px; display:block; }
+/* FILE CARDS */
+.fcard{display:flex;align-items:stretch;gap:12px;background:var(--input-bg);border:1.5px solid var(--border);border-radius:16px;padding:12px;margin-bottom:10px;animation:pop .22s ease;overflow:hidden;}
+.fcard-preview{width:70px;min-width:70px;height:90px;border-radius:10px;overflow:hidden;flex-shrink:0;position:relative;background:#e2e8f0;display:flex;align-items:center;justify-content:center;}
+.fcard-preview canvas,.fcard-preview img{width:100%;height:100%;object-fit:cover;transition:filter .3s ease;}
+.fcard-preview.bw canvas,.fcard-preview.bw img{filter:grayscale(1) brightness(.95);}
+.fcard-preview-icon{font-size:2rem;}
+.fcard-preview-badge{position:absolute;bottom:3px;right:3px;background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;padding:1px 5px;border-radius:5px;font-weight:800;}
+.fcard-info{flex:1;min-width:0;display:flex;flex-direction:column;justify-content:space-between;}
+.fcard-name{font-weight:800;font-size:.88rem;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;}
+[data-theme="dark"] .fcard-name{color:var(--teal);}
+.fcard-meta{font-size:.75rem;color:var(--text-muted);margin-top:3px;}
+.fcard-badge{font-size:.68rem;font-weight:700;padding:2px 7px;border-radius:7px;background:var(--light-teal);color:var(--teal);display:inline-block;margin-top:4px;}
+.fcard-controls{display:flex;align-items:center;gap:5px;margin-top:auto;}
+.bcnt{background:var(--light-teal);border:none;width:30px;height:30px;border-radius:9px;cursor:pointer;font-weight:800;font-size:1rem;color:var(--navy);}
+.bcnt:active{opacity:.7;}
+.fcard-qty{padding:0 6px;font-weight:800;font-size:1rem;color:var(--orange);min-width:22px;text-align:center;}
+.del-btn{background:#fef2f2;border:none;color:var(--red);font-size:.78rem;font-weight:700;padding:5px 9px;border-radius:8px;cursor:pointer;}
 
-/* ═══════════════════════════════
-   FILE CARDS — تأكيد بصري
-═══════════════════════════════ */
-.fcard {
-  display:flex; align-items:stretch; gap:12px;
-  background:var(--input-bg); border:1.5px solid var(--border);
-  border-radius:16px; padding:12px; margin-bottom:10px;
-  animation:pop .22s ease; overflow:hidden;
-}
-.fcard-preview {
-  width:70px; min-width:70px; height:90px; border-radius:10px;
-  overflow:hidden; flex-shrink:0; position:relative;
-  background:#e2e8f0; display:flex; align-items:center; justify-content:center;
-}
-.fcard-preview canvas, .fcard-preview img {
-  width:100%; height:100%; object-fit:cover;
-  transition:filter .3s ease;
-}
-.fcard-preview.bw canvas, .fcard-preview.bw img { filter:grayscale(1) brightness(.95); }
-.fcard-preview-icon { font-size:2rem; }
-.fcard-preview-badge {
-  position:absolute; bottom:3px; right:3px;
-  background:rgba(0,0,0,.6); color:#fff; font-size:.6rem;
-  padding:1px 5px; border-radius:5px; font-weight:800;
-}
-.fcard-info { flex:1; min-width:0; display:flex; flex-direction:column; justify-content:space-between; }
-.fcard-name { font-weight:800; font-size:.88rem; color:var(--navy); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:100%; }
-[data-theme="dark"] .fcard-name { color:var(--teal); }
-.fcard-meta { font-size:.75rem; color:var(--text-muted); margin-top:3px; }
-.fcard-badge { font-size:.68rem; font-weight:700; padding:2px 7px; border-radius:7px; background:var(--light-teal); color:var(--teal); display:inline-block; margin-top:4px; }
-.fcard-controls { display:flex; align-items:center; gap:5px; margin-top:auto; }
-.bcnt { background:var(--light-teal); border:none; width:30px; height:30px; border-radius:9px; cursor:pointer; font-weight:800; font-size:1rem; color:var(--navy); }
-.bcnt:active { opacity:.7; }
-.fcard-qty { padding:0 6px; font-weight:800; font-size:1rem; color:var(--orange); min-width:22px; text-align:center; }
-.del-btn { background:#fef2f2; border:none; color:var(--red); font-size:.78rem; font-weight:700; padding:5px 9px; border-radius:8px; cursor:pointer; }
+/* BUTTONS & INPUTS */
+.bgrp{display:flex;gap:10px;margin-top:10px;}
+.obtn{flex:1;padding:13px;border:1.5px solid #e2e8f0;border-radius:14px;cursor:pointer;font-weight:700;font-size:.95rem;transition:all .2s;background:var(--card);color:var(--text-muted);}
+.obtn.on{background:var(--navy)!important;color:#fff!important;border-color:var(--navy);box-shadow:0 4px 12px rgba(13,59,102,.2);}
+.obtn:active{transform:scale(.97);}
+.bmain{width:100%;padding:16px;border:none;border-radius:16px;font-weight:800;font-size:1.1rem;cursor:pointer;transition:all .25s;font-family:'Tajawal',sans-serif;}
+.bmain:active{transform:scale(.97);}
+.bmain:disabled{opacity:.65;cursor:not-allowed;transform:none;}
+.btn-action{background:var(--orange);color:#fff;box-shadow:0 6px 15px rgba(232,107,36,.25);}
+input[type=text],input[type=tel],textarea,select{width:100%;padding:15px;border:1.5px solid #e2e8f0;border-radius:14px;font-size:1rem;margin-bottom:12px;background:var(--input-bg);outline:none;transition:border-color .2s,background .25s,color .25s;font-family:'Tajawal',sans-serif;color:var(--text-main);}
+textarea{resize:none;min-height:60px;}
+input:focus,textarea:focus,select:focus{border-color:var(--teal);background:var(--card);box-shadow:0 0 0 4px rgba(90,179,196,.12);}
+.togw{position:relative;display:inline-block;width:52px;height:28px;flex-shrink:0;}
+.togw input{opacity:0;width:0;height:0;}
+.togs{position:absolute;cursor:pointer;inset:0;background:#cbd5e1;border-radius:28px;transition:.35s;}
+.togs:before{content:'';position:absolute;width:22px;height:22px;right:3px;bottom:3px;background:#fff;border-radius:50%;transition:.35s;box-shadow:0 2px 4px rgba(0,0,0,.1);}
+input:checked+.togs{background:var(--teal);}
+input:checked+.togs:before{transform:translateX(-24px);}
 
-/* ═══════════════════════════════
-   BUTTONS & INPUTS
-═══════════════════════════════ */
-.bgrp { display:flex; gap:10px; margin-top:10px; }
-.obtn { flex:1; padding:13px; border:1.5px solid #e2e8f0; border-radius:14px; cursor:pointer; font-weight:700; font-size:.95rem; transition:all .2s; background:var(--card); color:var(--text-muted); }
-[data-theme="dark"] .obtn { border-color:#334155; }
-.obtn.on { background:var(--navy)!important; color:#fff!important; border-color:var(--navy); box-shadow:0 4px 12px rgba(13,59,102,.2); }
-.obtn:active { transform:scale(.97); }
-.bmain { width:100%; padding:16px; border:none; border-radius:16px; font-weight:800; font-size:1.1rem; cursor:pointer; transition:all .25s; font-family:'Tajawal',sans-serif; }
-.bmain:active { transform:scale(.97); }
-.bmain:disabled { opacity:.65; cursor:not-allowed; transform:none; }
-.btn-action { background:var(--orange); color:#fff; box-shadow:0 6px 15px rgba(232,107,36,.25); }
-input[type=text],input[type=tel] {
-  width:100%; padding:15px; border:1.5px solid #e2e8f0; border-radius:14px;
-  font-size:1rem; margin-bottom:12px; background:var(--input-bg); outline:none;
-  transition:border-color .2s,background .25s,color .25s; font-family:'Tajawal',sans-serif;
-  color:var(--text-main);
-}
-[data-theme="dark"] input[type=text],[data-theme="dark"] input[type=tel] { border-color:#334155; }
-input:focus { border-color:var(--teal); background:var(--card); box-shadow:0 0 0 4px rgba(90,179,196,.12); }
-.togw { position:relative; display:inline-block; width:52px; height:28px; flex-shrink:0; }
-.togw input { opacity:0; width:0; height:0; }
-.togs { position:absolute; cursor:pointer; inset:0; background:#cbd5e1; border-radius:28px; transition:.35s; }
-.togs:before { content:''; position:absolute; width:22px; height:22px; right:3px; bottom:3px; background:#fff; border-radius:50%; transition:.35s; box-shadow:0 2px 4px rgba(0,0,0,.1); }
-input:checked+.togs { background:var(--teal); }
-input:checked+.togs:before { transform:translateX(-24px); }
+/* ADDRESS SUGGESTIONS */
+.addr-wrap{position:relative;}
+.addr-sug{display:none;position:absolute;top:calc(100% - 10px);right:0;left:0;background:var(--card);border:1.5px solid var(--teal);border-radius:14px;z-index:50;box-shadow:0 10px 25px var(--shadow);max-height:180px;overflow-y:auto;}
+.addr-item{padding:12px 16px;cursor:pointer;font-size:.9rem;font-weight:500;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.addr-item:last-child{border-bottom:none;}
+.addr-item:hover{background:var(--light-teal);}
 
-/* ═══════════════════════════════
-   ADDRESS SUGGESTIONS
-═══════════════════════════════ */
-.addr-wrap { position:relative; }
-.addr-sug { display:none; position:absolute; top:calc(100% - 10px); right:0; left:0; background:var(--card); border:1.5px solid var(--teal); border-radius:14px; z-index:50; box-shadow:0 10px 25px var(--shadow); max-height:180px; overflow-y:auto; }
-.addr-item { padding:12px 16px; cursor:pointer; font-size:.9rem; font-weight:500; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:8px; }
-.addr-item:last-child { border-bottom:none; }
-.addr-item:hover { background:var(--light-teal); }
+/* INVOICE */
+.inv{background:var(--inv-bg);color:#fff;border-radius:18px;padding:22px;margin-top:15px;}
+.il{display:flex;justify-content:space-between;margin-bottom:10px;font-size:.95rem;opacity:.9;}
+.tot{font-size:1.5rem;color:#4eff4e;text-align:center;margin-top:15px;border-top:1px dashed rgba(255,255,255,.2);padding-top:15px;font-weight:800;}
+.pcon{width:100%;background:#e2e8f0;height:10px;border-radius:5px;margin:15px 0;display:none;overflow:hidden;}
+.pbar{width:0;height:100%;background:var(--orange);transition:width .3s;border-radius:5px;}
 
-/* ═══════════════════════════════
-   INVOICE
-═══════════════════════════════ */
-.inv { background:var(--inv-bg); color:#fff; border-radius:18px; padding:22px; margin-top:15px; }
-.il  { display:flex; justify-content:space-between; margin-bottom:10px; font-size:.95rem; opacity:.9; }
-.tot { font-size:1.5rem; color:#4eff4e; text-align:center; margin-top:15px; border-top:1px dashed rgba(255,255,255,.2); padding-top:15px; font-weight:800; }
-.pcon { width:100%; background:#e2e8f0; height:10px; border-radius:5px; margin:15px 0; display:none; overflow:hidden; }
-.pbar { width:0; height:100%; background:var(--orange); transition:width .3s; border-radius:5px; }
+/* ALERTS */
+.inote{color:var(--orange);font-size:.85rem;font-weight:700;margin:12px 0;display:none;border:1px solid rgba(232,107,36,.3);padding:12px;border-radius:12px;background:rgba(232,107,36,.05);text-align:center;}
+.errmsg{background:#fef2f2;color:var(--red);padding:12px;border-radius:12px;font-size:.9rem;font-weight:700;margin-bottom:12px;text-align:center;display:none;border:1px solid #fecaca;}
+.iosbox{background:#fffbeb;border:1.5px solid #fde68a;border-radius:14px;padding:15px;margin-top:15px;}
 
-/* ═══════════════════════════════
-   ALERTS
-═══════════════════════════════ */
-.inote  { color:var(--orange); font-size:.85rem; font-weight:700; margin:12px 0; display:none; border:1px solid rgba(232,107,36,.3); padding:12px; border-radius:12px; background:rgba(232,107,36,.05); text-align:center; }
-.errmsg { background:#fef2f2; color:var(--red); padding:12px; border-radius:12px; font-size:.9rem; font-weight:700; margin-bottom:12px; text-align:center; display:none; border:1px solid #fecaca; }
-.iosbox { background:#fffbeb; border:1.5px solid #fde68a; border-radius:14px; padding:15px; margin-top:15px; }
+/* ORDER CARDS & MINI PROGRESS */
+.ocard{background:var(--card);border-radius:16px;padding:18px;margin-bottom:12px;box-shadow:0 3px 10px var(--shadow);border:1px solid var(--border);cursor:pointer;transition:transform .2s;}
+.ocard:active{transform:scale(.98);}
+.ocard.express-card{border-right:4px solid var(--express);}
+.sbadge{display:inline-block;padding:5px 13px;border-radius:20px;font-size:.8rem;font-weight:700;}
+.s-r{background:#e0f2fe;color:#1e40af;}.s-p{background:#fef3c7;color:#b45309;}.s-d{background:#ffedd5;color:var(--orange);}.s-v{background:#dcfce7;color:#166534;border:1px solid #bbf7d0;}.s-c{background:#fee2e2;color:#991b1b;}
+.mpbar{display:flex;gap:3px;margin-top:12px;align-items:center;}
+.mpseg{flex:1;height:6px;border-radius:3px;background:#e2e8f0;transition:background .3s;}
+.mpseg.done{background:var(--green);}
+.mpseg.cur{background:var(--orange);animation:pulseGlow 2s infinite;}
+.mplabels{display:flex;justify-content:space-between;margin-top:4px;}
+.mplbl{flex:1;font-size:.68rem;color:var(--text-muted);text-align:center;font-weight:700;}
+.mplbl.cur{color:var(--orange);}.mplbl.done{color:var(--green);font-weight:800;}
 
-/* ═══════════════════════════════
-   ORDER CARDS & MINI PROGRESS
-═══════════════════════════════ */
-.ocard { background:var(--card); border-radius:16px; padding:18px; margin-bottom:12px; box-shadow:0 3px 10px var(--shadow); border:1px solid var(--border); cursor:pointer; transition:transform .2s; }
-.ocard:active { transform:scale(.98); }
-.sbadge { display:inline-block; padding:5px 13px; border-radius:20px; font-size:.8rem; font-weight:700; }
-.s-r { background:#e0f2fe; color:#1e40af; } .s-p { background:#fef3c7; color:#b45309; }
-.s-d { background:#ffedd5; color:var(--orange); } .s-v { background:#dcfce7; color:#166534; border:1px solid #bbf7d0; }
-.s-c { background:#fee2e2; color:#991b1b; }
-/* progress bar in card */
-.mpbar { display:flex; gap:3px; margin-top:12px; align-items:center; }
-.mpseg { flex:1; height:6px; border-radius:3px; background:#e2e8f0; transition:background .3s; }
-.mpseg.done { background:var(--green); }
-/* only animate the CURRENT step, not completed ones */
-.mpseg.cur  { background:var(--orange); animation:pulseGlow 2s infinite; }
-.mplabels { display:flex; justify-content:space-between; margin-top:4px; }
-.mplbl { flex:1; font-size:.68rem; color:var(--text-muted); text-align:center; font-weight:700; }
-.mplbl.cur  { color:var(--orange); }
-.mplbl.done { color:var(--green); font-weight:800; }
+/* TIMELINE */
+.tlstep{display:flex;align-items:flex-start;gap:14px;margin-bottom:5px;}
+.tlc{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;font-weight:800;transition:all .3s;}
+.tld{background:var(--green);color:#fff;box-shadow:0 0 8px rgba(16,185,129,.25);}
+.tlcur{background:var(--orange);color:#fff;animation:pulseGlow 2s infinite;}
+.tlpendin{background:#f1f5f9;color:#94a3b8;}
+[data-theme="dark"] .tlpendin{background:#334155;color:#64748b;}
+.tlcon{width:2px;height:26px;background:#e2e8f0;margin:2px 0 2px 17px;border-radius:2px;}
+.tlcon.done{background:var(--green);}
 
-/* ═══════════════════════════════
-   ORDER DETAIL TIMELINE
-═══════════════════════════════ */
-.tlstep { display:flex; align-items:flex-start; gap:14px; margin-bottom:5px; }
-.tlc { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0; font-weight:800; transition:all .3s; }
-/* done = stable green — no animation */
-.tld    { background:var(--green); color:#fff; box-shadow:0 0 8px rgba(16,185,129,.25); }
-/* current = orange pulse — only for non-delivered */
-.tlcur  { background:var(--orange); color:#fff; animation:pulseGlow 2s infinite; }
-/* delivered final = stable green — same as tld */
-.tlpendin { background:#f1f5f9; color:#94a3b8; }
-[data-theme="dark"] .tlpendin { background:#334155; color:#64748b; }
-.tlcon { width:2px; height:26px; background:#e2e8f0; margin:2px 0 2px 17px; border-radius:2px; }
-.tlcon.done { background:var(--green); }
+/* POINTS */
+.ptshero{background:linear-gradient(135deg,var(--navy),var(--teal));color:#fff;border-radius:24px;padding:28px 22px;margin-bottom:15px;text-align:center;box-shadow:0 8px 20px rgba(13,59,102,.2);}
+.ptsnum{font-size:3.4rem;font-weight:800;line-height:1.1;margin:5px 0;}
+.tierbadge{display:inline-block;padding:6px 18px;border-radius:20px;font-weight:800;margin:10px 0 8px;}
+.tgold{background:linear-gradient(135deg,#fcd34d,#f59e0b);color:#78350f;}
+.tsilv{background:linear-gradient(135deg,#e2e8f0,#94a3b8);color:#1e293b;}
+.tbron{background:linear-gradient(135deg,#fed7aa,#d97706);color:#78350f;}
+.ptspw{width:100%;height:10px;background:rgba(255,255,255,.2);border-radius:5px;overflow:hidden;margin:12px 0;}
+.ptspf{height:100%;background:#4eff4e;border-radius:5px;transition:width .8s cubic-bezier(.4,0,.2,1);}
+.rcard{background:var(--card);border-radius:16px;padding:15px;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);}
+.rbtn{background:var(--teal);color:#fff;padding:10px 18px;border-radius:12px;font-size:.9rem;cursor:pointer;font-weight:700;border:none;}
+.rbtn:disabled{background:#e2e8f0;color:#94a3b8;cursor:not-allowed;}
 
-/* ═══════════════════════════════
-   POINTS
-═══════════════════════════════ */
-.ptshero { background:linear-gradient(135deg,var(--navy),var(--teal)); color:#fff; border-radius:24px; padding:28px 22px; margin-bottom:15px; text-align:center; box-shadow:0 8px 20px rgba(13,59,102,.2); }
-.ptsnum  { font-size:3.4rem; font-weight:800; line-height:1.1; margin:5px 0; }
-.tierbadge { display:inline-block; padding:6px 18px; border-radius:20px; font-weight:800; margin:10px 0 8px; }
-.tgold { background:linear-gradient(135deg,#fcd34d,#f59e0b); color:#78350f; }
-.tsilv { background:linear-gradient(135deg,#e2e8f0,#94a3b8); color:#1e293b; }
-.tbron { background:linear-gradient(135deg,#fed7aa,#d97706); color:#78350f; }
-.ptspw { width:100%; height:10px; background:rgba(255,255,255,.2); border-radius:5px; overflow:hidden; margin:12px 0; }
-.ptspf { height:100%; background:#4eff4e; border-radius:5px; transition:width .8s cubic-bezier(.4,0,.2,1); }
-.rcard { background:var(--card); border-radius:16px; padding:15px; margin-bottom:12px; display:flex; justify-content:space-between; align-items:center; border:1px solid var(--border); }
-.rbtn  { background:var(--teal); color:#fff; padding:10px 18px; border-radius:12px; font-size:.9rem; cursor:pointer; font-weight:700; border:none; }
-.rbtn:disabled { background:#e2e8f0; color:#94a3b8; cursor:not-allowed; }
+/* SHEET & MODAL */
+.shov{position:fixed;inset:0;background:rgba(15,23,42,.6);backdrop-filter:blur(4px);display:none;align-items:flex-end;justify-content:center;z-index:300;}
+.shov.open{display:flex;}
+.sheet{background:var(--bg);border-radius:26px 26px 0 0;padding:22px 18px;width:100%;max-height:90vh;overflow-y:auto;animation:slideUp .3s cubic-bezier(.175,.885,.32,1.1);}
+.handle{width:48px;height:5px;background:#cbd5e1;border-radius:3px;margin:0 auto 18px;}
+#wmodal{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(5px);display:flex;align-items:center;justify-content:center;z-index:400;}
+.mbox{background:var(--card);padding:32px 22px;border-radius:26px;text-align:center;width:90%;max-width:390px;box-shadow:0 20px 40px rgba(0,0,0,.2);animation:pop .4s cubic-bezier(.175,.885,.32,1.2);}
+#toast{position:fixed;top:18px;left:50%;transform:translateX(-50%);background:var(--navy);color:#fff;padding:13px 22px;border-radius:16px;font-size:.95rem;font-weight:700;z-index:999;display:none;box-shadow:0 8px 22px var(--shadow);max-width:90%;text-align:center;}
 
-/* ═══════════════════════════════
-   SHEET & MODAL
-═══════════════════════════════ */
-.shov { position:fixed; inset:0; background:rgba(15,23,42,.6); backdrop-filter:blur(4px); display:none; align-items:flex-end; justify-content:center; z-index:300; }
-.shov.open { display:flex; }
-.sheet { background:var(--bg); border-radius:26px 26px 0 0; padding:22px 18px; width:100%; max-height:90vh; overflow-y:auto; animation:slideUp .3s cubic-bezier(.175,.885,.32,1.1); }
-.handle { width:48px; height:5px; background:#cbd5e1; border-radius:3px; margin:0 auto 18px; }
-#wmodal { position:fixed; inset:0; background:rgba(15,23,42,.85); backdrop-filter:blur(5px); display:flex; align-items:center; justify-content:center; z-index:400; }
-.mbox   { background:var(--card); padding:32px 22px; border-radius:26px; text-align:center; width:90%; max-width:390px; box-shadow:0 20px 40px rgba(0,0,0,.2); animation:pop .4s cubic-bezier(.175,.885,.32,1.2); }
-#toast  { position:fixed; top:18px; left:50%; transform:translateX(-50%); background:var(--navy); color:#fff; padding:13px 22px; border-radius:16px; font-size:.95rem; font-weight:700; z-index:999; display:none; box-shadow:0 8px 22px var(--shadow); max-width:90%; text-align:center; }
+/* ── RATING MODAL ── */
+#rate-modal{position:fixed;inset:0;background:rgba(15,23,42,.85);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;z-index:400;}
+#rate-modal.open{display:flex;}
+.rate-stars{display:flex;gap:8px;justify-content:center;margin:16px 0;}
+.rate-star{font-size:2.5rem;cursor:pointer;transition:transform .15s;filter:grayscale(1) opacity(.35);}
+.rate-star.active{filter:none;transform:scale(1.15);}
+
+/* ── EXPRESS BADGE ── */
+.express-badge{display:inline-block;padding:4px 12px;border-radius:20px;font-size:.72rem;font-weight:800;background:linear-gradient(135deg,#9333ea,#7c3aed);color:#fff;animation:pulseGlow 2s infinite;}
+
+/* ── ORDER FILTER BAR ── */
+.orders-fbar{display:flex;gap:6px;margin-bottom:14px;overflow-x:auto;padding-bottom:4px;}
+.orders-fbar::-webkit-scrollbar{display:none;}
+.ofbtn{padding:7px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:var(--card);cursor:pointer;font-size:.8rem;white-space:nowrap;font-weight:700;color:var(--text-muted);font-family:'Tajawal',sans-serif;}
+.ofbtn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════
-     ONBOARDING — قابل للمسح
-═══════════════════════════════ -->
+<!-- ONBOARDING -->
 <div id="onboarding">
   <div class="ob-wrap" id="ob-wrap">
     <button class="ob-skip" onclick="finishOB()">تخطي ←</button>
@@ -300,7 +229,7 @@ input:checked+.togs:before { transform:translateX(-24px); }
       <div class="ob-slide">
         <span class="ob-emoji">📦</span>
         <h2 class="ob-title">تتبع طلبك لحظة بلحظة</h2>
-        <p class="ob-desc">ستصلك إشعارات فورية على تيليجرام عند كل مرحلة:<br><br>📥 استلام &nbsp;←&nbsp; 🖨️ طباعة &nbsp;←&nbsp; 🛵 توصيل &nbsp;←&nbsp; ✅ تسليم</p>
+        <p class="ob-desc">ستصلك إشعارات فورية على تيليجرام عند كل مرحلة:<br><br>📥 استلام ← 🖨️ طباعة ← 🛵 توصيل ← ✅ تسليم</p>
       </div>
       <div class="ob-slide">
         <span class="ob-emoji">💎</span>
@@ -308,18 +237,12 @@ input:checked+.togs:before { transform:translateX(-24px); }
         <p class="ob-desc">كل 1,000 د.ع = 10 نقاط ولاء.<br>استبدل نقاطك بخصومات، واحصل على خصم 5% دائم عند الوصول للمستوى الذهبي (1000 نقطة)! 🥇</p>
       </div>
     </div>
-    <div class="ob-dots">
-      <div class="ob-dot active" id="od0"></div>
-      <div class="ob-dot" id="od1"></div>
-      <div class="ob-dot" id="od2"></div>
-    </div>
+    <div class="ob-dots"><div class="ob-dot active" id="od0"></div><div class="ob-dot" id="od1"></div><div class="ob-dot" id="od2"></div></div>
     <button class="ob-btn" id="ob-btn" onclick="obNext()">التالي ←</button>
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     WELCOME MODAL
-═══════════════════════════════ -->
+<!-- WELCOME MODAL -->
 <div id="wmodal">
   <div class="mbox">
     <img src="Logo.jpg" alt="Logo" class="app-logo" onerror="this.outerHTML=`<div class='app-logo' style='display:flex;align-items:center;justify-content:center;font-size:2.5rem;'>🖨️</div>`">
@@ -334,9 +257,26 @@ input:checked+.togs:before { transform:translateX(-24px); }
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     DETAIL SHEET
-═══════════════════════════════ -->
+<!-- RATING MODAL -->
+<div id="rate-modal">
+  <div class="mbox">
+    <div style="font-size:3.5rem;margin-bottom:10px;">⭐</div>
+    <h3 style="color:var(--navy);margin:0 0 6px;font-weight:800;">كيف كانت تجربتك؟</h3>
+    <p style="color:var(--text-muted);margin:0 0 6px;font-size:.9rem;">قيّم خدمتنا لنستمر بالتحسين</p>
+    <div class="rate-stars" id="rate-stars">
+      <span class="rate-star" data-v="1" onclick="pickStar(1)">⭐</span>
+      <span class="rate-star" data-v="2" onclick="pickStar(2)">⭐</span>
+      <span class="rate-star" data-v="3" onclick="pickStar(3)">⭐</span>
+      <span class="rate-star" data-v="4" onclick="pickStar(4)">⭐</span>
+      <span class="rate-star" data-v="5" onclick="pickStar(5)">⭐</span>
+    </div>
+    <textarea id="rate-comment" placeholder="ملاحظاتك (اختياري)..." rows="2" style="resize:none;"></textarea>
+    <button class="bmain btn-action" onclick="submitRating()" id="rate-submit-btn" disabled>إرسال التقييم</button>
+    <button onclick="closeRateModal()" style="border:none;background:none;color:var(--text-muted);margin-top:10px;cursor:pointer;font-size:.88rem;font-weight:700;font-family:'Tajawal',sans-serif;">لاحقاً</button>
+  </div>
+</div>
+
+<!-- DETAIL SHEET -->
 <div class="shov" id="det-ov">
   <div class="sheet">
     <div class="handle"></div>
@@ -350,15 +290,12 @@ input:checked+.togs:before { transform:translateX(-24px); }
 
 <div id="toast"></div>
 
-<!-- ═══════════════════════════════
-     TAB 1 — طلب جديد
-═══════════════════════════════ -->
+<!-- TAB 1 — طلب جديد -->
 <div class="tab active" id="tab-order">
   <div class="hdr">
     <img src="Logo.jpg" alt="Logo" class="app-logo" style="width:75px;height:75px;" onerror="this.style.display='none'">
     <h1 style="margin:0;color:var(--navy);font-size:1.4rem;font-weight:800;">خدمات الشاطر الطلابية</h1>
   </div>
-
   <div class="card" style="margin-top:5px;">
     <div class="upload" onclick="document.getElementById('fileinp').click()">
       <span class="upload-icon">📁</span>
@@ -375,12 +312,8 @@ input:checked+.togs:before { transform:translateX(-24px); }
     </div>
     <input type="file" id="fileinp" multiple style="display:none">
   </div>
-
-  <!-- File list with previews -->
   <div id="flist" style="display:none;"></div>
-
   <div id="opts" style="display:none;">
-    <!-- Print options -->
     <div class="card">
       <p style="margin:0 0 10px;color:var(--navy);font-weight:700;">نوع الطباعة:</p>
       <div class="bgrp">
@@ -394,6 +327,17 @@ input:checked+.togs:before { transform:translateX(-24px); }
           <button id="s1btn" class="obtn on" onclick="setS('1')">📄 وجه واحد</button>
           <button id="s2btn" class="obtn off" onclick="setS('2')">📖 وجهين</button>
         </div>
+      </div>
+    </div>
+
+    <!-- ⚡ Express Order -->
+    <div class="card" id="express-card" style="border:2px solid var(--express);background:linear-gradient(135deg,rgba(147,51,234,.05),rgba(124,58,237,.08));transition:all .3s;">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <b id="express-label" style="color:var(--express);font-size:1.05rem;">⚡ طلب عاجل (Express)</b>
+          <p style="margin:4px 0 0;font-size:.83rem;color:var(--text-muted);font-weight:600;">أولوية في الطباعة والتوصيل (+1,500 د.ع)</p>
+        </div>
+        <label class="togw"><input type="checkbox" id="expressTog" onchange="toggleExpressStyle();calcUI()"><span class="togs" style="background:#cbd5e1;"></span></label>
       </div>
     </div>
 
@@ -418,15 +362,20 @@ input:checked+.togs:before { transform:translateX(-24px); }
     <!-- Order form -->
     <div class="card" style="margin-top:15px;">
       <div id="errbox" class="errmsg"></div>
-      <input type="text" id="uName"  placeholder="✍️ الاسم الكامل">
-      <input type="tel"  id="uPhone" placeholder="📞 رقم الهاتف (11 رقم)" maxlength="11">
-
-      <!-- Region with saved suggestions -->
+      <input type="text" id="uName" placeholder="✍️ الاسم الكامل" maxlength="60">
+      <input type="tel" id="uPhone" placeholder="📞 رقم الهاتف (11 رقم)" maxlength="11">
       <div class="addr-wrap">
-        <input type="text" id="uRegion" placeholder="🏠 المنطقة / الحي" autocomplete="off"
+        <input type="text" id="uRegion" placeholder="🏠 المنطقة / الحي" autocomplete="off" maxlength="80"
           onfocus="showAddrSug()" oninput="showAddrSug()">
         <div id="addr-sug" class="addr-sug"></div>
       </div>
+
+      <!-- 🎟️ Coupon Code -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <input type="text" id="couponInput" placeholder="🎟️ كود الخصم (اختياري)" maxlength="20" style="margin-bottom:0;flex:1;" oninput="this.value=this.value.toUpperCase()">
+        <button onclick="applyCoupon()" style="background:var(--teal);color:#fff;border:none;border-radius:14px;padding:0 18px;font-weight:800;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.88rem;white-space:nowrap;">تطبيق</button>
+      </div>
+      <div id="coupon-msg" style="display:none;padding:8px;border-radius:10px;font-size:.85rem;font-weight:700;margin-bottom:12px;text-align:center;"></div>
 
       <button id="locbtn" class="bmain" style="background:#64748b;color:#fff;margin-bottom:15px;" onclick="getLoc()">📍 تحديد موقعي على الخريطة</button>
       <div class="pcon" id="pcon"><div class="pbar" id="pbar"></div></div>
@@ -436,11 +385,16 @@ input:checked+.togs:before { transform:translateX(-24px); }
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     TAB 2 — طلباتي
-═══════════════════════════════ -->
+<!-- TAB 2 — طلباتي -->
 <div class="tab" id="tab-orders">
-  <h2 style="color:var(--navy);margin:0 0 20px;font-weight:800;">📋 طلباتي</h2>
+  <h2 style="color:var(--navy);margin:0 0 14px;font-weight:800;">📋 طلباتي</h2>
+  <!-- Filter bar -->
+  <div class="orders-fbar" id="orders-fbar">
+    <button class="ofbtn active" onclick="setOrdFilter('all',this)">الكل</button>
+    <button class="ofbtn" onclick="setOrdFilter('active',this)">🔄 نشطة</button>
+    <button class="ofbtn" onclick="setOrdFilter('delivered',this)">✅ مكتملة</button>
+    <button class="ofbtn" onclick="setOrdFilter('cancelled',this)">❌ ملغاة</button>
+  </div>
   <div id="ordersbox">
     <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
       <div style="font-size:4rem;opacity:.4;margin-bottom:10px;">📦</div>
@@ -449,9 +403,7 @@ input:checked+.togs:before { transform:translateX(-24px); }
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     TAB 3 — النقاط
-═══════════════════════════════ -->
+<!-- TAB 3 — النقاط -->
 <div class="tab" id="tab-points">
   <h2 style="color:var(--navy);margin:0 0 20px;font-weight:800;">🏆 نقاط الولاء</h2>
   <div class="ptshero">
@@ -483,11 +435,9 @@ input:checked+.togs:before { transform:translateX(-24px); }
   </div>
 </div>
 
-<!-- ═══════════════════════════════
-     BOTTOM NAV
-═══════════════════════════════ -->
+<!-- BOTTOM NAV -->
 <nav class="bnav">
-  <button class="nbtn active" id="nav-order"  onclick="goTab('order')"><span class="ni">🖨️</span><span>الرئيسية</span></button>
+  <button class="nbtn active" id="nav-order" onclick="goTab('order')"><span class="ni">🖨️</span><span>الرئيسية</span></button>
   <button class="nbtn" id="nav-orders" onclick="goTab('orders')" style="position:relative;">
     <span class="ni">📋</span><span>طلباتي</span>
     <span id="ordbadge" style="display:none;background:var(--orange);color:#fff;border-radius:10px;font-size:.62rem;font-weight:800;padding:2px 6px;position:absolute;top:4px;margin-right:-14px;"></span>
@@ -498,11 +448,18 @@ input:checked+.togs:before { transform:translateX(-24px); }
   </button>
 </nav>
 
-<!-- ═══════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════ -->
 <script>
-// ══ CONFIG ═══════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  🔒 SECURITY: Escape HTML to prevent XSS
+// ══════════════════════════════════════════════════
+function esc(s) {
+  if (s == null) return '';
+  const d = document.createElement('div');
+  d.textContent = String(s);
+  return d.innerHTML;
+}
+
+// ══ CONFIG ════════════════════════════════════════
 const SB_URL = 'https://zrumnqtgdscrwgcguseq.supabase.co';
 const SB_KEY = 'sb_publishable_xEqE6S21QUMCkDxSMvTskg_9g3pi-vZ';
 const BOT    = '8507186698:AAHXCtsLn8j88A2QgiXSmNFbnEfpn1nCYew';
@@ -515,8 +472,72 @@ const userId = tgU?.id ? String(tgU.id) : 'guest_' + Date.now();
 
 let files=[], color='c', side='1', locUrl='', pendingR=null;
 let uDoc = {loyalty_points:0, first_order_done:false, total_orders:0, total_spent:0};
+let appliedCoupon = null;
+let ordFilter = 'all';
+let allUserOrders = [];
+let _rateOid = null, _rateStars = 0;
 
-// ══ DARK MODE ══════════════════════════════════
+// 🔒 Rate Limiting
+let lastOrderTime = 0;
+const ORDER_COOLDOWN = 60000; // 1 minute between orders
+
+// ══ SOUND NOTIFICATION ═══════════════════════════
+// AudioContext مشترك لتجنب إنشاء context جديد في كل مرة
+const _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+function _playNote(freq, startTime, duration, volume = 0.3) {
+  if (_audioCtx.state === 'suspended') _audioCtx.resume();
+  const osc  = _audioCtx.createOscillator();
+  const gain = _audioCtx.createGain();
+  osc.connect(gain); gain.connect(_audioCtx.destination);
+  osc.type = 'sine';
+  osc.frequency.setValueAtTime(freq, startTime);
+  gain.gain.setValueAtTime(volume, startTime);
+  gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+  osc.start(startTime);
+  osc.stop(startTime + duration);
+}
+
+function playStatusSound(status) {
+  try {
+    if (_audioCtx.state === 'suspended') _audioCtx.resume();
+    const t = _audioCtx.currentTime;
+    switch (status) {
+      case 'received':
+        // نغمة هادئة صاعدة — تأكيد الاستلام
+        _playNote(220, t,        0.2, 0.25);
+        _playNote(440, t + 0.22, 0.35, 0.3);
+        break;
+      case 'printing':
+        // نغمتان متتاليتان — بدء الطباعة
+        _playNote(440, t,        0.18, 0.3);
+        _playNote(550, t + 0.22, 0.22, 0.3);
+        break;
+      case 'delivering':
+        // ثلاث نبضات سريعة تصاعدية — المندوب في الطريق
+        _playNote(440, t,        0.13, 0.28);
+        _playNote(550, t + 0.17, 0.13, 0.28);
+        _playNote(660, t + 0.34, 0.18, 0.3);
+        break;
+      case 'delivered':
+        // لحن احتفالي أربع نغمات — تم التسليم 🎉
+        _playNote(523,  t,        0.16, 0.35);
+        _playNote(659,  t + 0.19, 0.16, 0.35);
+        _playNote(784,  t + 0.38, 0.16, 0.35);
+        _playNote(1047, t + 0.57, 0.28, 0.4);
+        break;
+      case 'cancelled':
+        // نغمتان هابطتان — إلغاء
+        _playNote(440, t,        0.32, 0.28);
+        _playNote(330, t + 0.38, 0.38, 0.25);
+        break;
+      default:
+        _playNote(880, t, 0.4, 0.25);
+    }
+  } catch(e) {}
+}
+
+// ══ DARK MODE ════════════════════════════════════
 function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   document.getElementById('dm-icon').innerText = dark ? '☀️' : '🌙';
@@ -529,22 +550,16 @@ function toggleDark() {
 }
 applyTheme(localStorage.getItem('sh-dark') === 'true');
 
-// ══ ONBOARDING ══════════════════════════════════
-let obIdx = 0;
-const OB_TOTAL = 3;
-
-// Swipe support
+// ══ ONBOARDING ═══════════════════════════════════
+let obIdx = 0; const OB_TOTAL = 3;
 let _tx = 0, _ty = 0;
 const obTrack = document.getElementById('ob-track');
 obTrack.addEventListener('touchstart', e => { _tx = e.changedTouches[0].screenX; _ty = e.changedTouches[0].screenY; }, {passive:true});
 obTrack.addEventListener('touchend', e => {
   const dx = e.changedTouches[0].screenX - _tx;
   const dy = e.changedTouches[0].screenY - _ty;
-  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 45) {
-    if (dx < 0) obNext(); else obPrev();
-  }
+  if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 45) { if (dx < 0) obNext(); else obPrev(); }
 }, {passive:true});
-
 function obGo(n) {
   obIdx = Math.max(0, Math.min(OB_TOTAL - 1, n));
   obTrack.style.transform = `translateX(${obIdx * 100}%)`;
@@ -553,7 +568,6 @@ function obGo(n) {
 }
 function obNext() { if (obIdx >= OB_TOTAL - 1) finishOB(); else obGo(obIdx + 1); }
 function obPrev() { obGo(obIdx - 1); }
-
 function finishOB() {
   document.getElementById('onboarding').style.display = 'none';
   localStorage.setItem('sh-ob', '1');
@@ -561,7 +575,7 @@ function finishOB() {
 }
 if (localStorage.getItem('sh-ob') === '1') document.getElementById('onboarding').style.display = 'none';
 
-// ══ INIT ════════════════════════════════════════
+// ══ INIT ═════════════════════════════════════════
 async function init() {
   try {
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
@@ -571,7 +585,7 @@ async function init() {
               loyalty_points:0, total_orders:0, total_spent:0, first_order_done:false};
       await sb.from('users').insert(uDoc);
     }
-  } catch(e) {}
+  } catch(e) { console.error('Init error:', e); }
   if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
   refreshPtsUI();
   startRT();
@@ -582,97 +596,77 @@ function startRT() {
   try {
     sb.channel('orders-user-' + userId)
       .on('postgres_changes', {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'orders',
-          filter: `user_id=eq.${userId}` // فلترة من السيرفر لضمان جلب التحديثات الصحيحة
-        },
-        p => {
+          event: 'UPDATE', schema: 'public', table: 'orders',
+          filter: `user_id=eq.${userId}`
+        }, p => {
           if (!p.new || !p.new.status) return;
-
           const st = p.new.status;
-          const m = {received:'📥 تم الاستلام',printing:'🖨️ قيد الطباعة',delivering:'🛵 جاري التوصيل',delivered:'✅ تم التسليم',cancelled:'❌ ملغى'};
-          showToast('🔔 ' + (m[st] || st));
+          const m = {received:'📥 تم الاستلام',printing:'🖨️ قيد الطباعة',delivering:'🛵 جاري التوصيل',delivered:'✅ تم التسليم'};
+          if (st === 'cancelled') {
+            showToast('❌ تم إلغاء الطلب' + (p.new.cancel_reason ? ': ' + p.new.cancel_reason : ''));
+          } else {
+            showToast('🔔 ' + (m[st] || st));
+          }
+          playStatusSound(st);
 
-          // ① دائماً حدّث قائمة الطلبات
+          // ① حدّث قائمة الطلبات
           loadOrders();
 
-          // ② حدّث شاشة النجاح إذا كانت تعرض هذا الطلب
+          // ② حدّث شاشة النجاح
           if (_successOid && p.new.id === _successOid) {
-            // تحديث الشاشة بالحالة الجديدة
+            if (st === 'cancelled') _successCancelReason = p.new.cancel_reason || '';
             _updateSuccessScreen(st, p.new.status_history || []);
           }
 
-          // ③ حدّث تفاصيل الطلب إذا كانت مفتوحة
+          // ③ حدّث تفاصيل الطلب إذا مفتوحة
           if (document.getElementById('det-ov').classList.contains('open') &&
               document.getElementById('det-title').innerText.includes(p.new.id)) {
               showDet(p.new.id);
           }
 
-          if (st === 'delivered') init();
+          // ④ عرض تقييم عند التسليم
+          if (st === 'delivered') {
+            init();
+            setTimeout(() => showRateModal(p.new.id), 1500);
+          }
         })
       .subscribe();
-  } catch(e) {}
+  } catch(e) { console.error('RT error:', e); }
 }
 
-// ══ UPDATE SUCCESS SCREEN ═════════════════════════
-// تُستدعى من startRT
-function _updateSuccessScreen(status, history) {
-  const banner = document.getElementById('suc-banner');
-  const steps  = document.getElementById('suc-steps');
-  const thx    = document.getElementById('suc-thx');
-  if (!banner) return; // success screen not mounted
-
-  // ── Banner ──
-  const bannerMap = {
-    cancelled:  { text:'❌ تم إلغاء الطلب',          bg:'rgba(239,68,68,.12)',   border:'#fca5a5',   color:'var(--red)'   },
-    delivered:  { text:'✅ تم التسليم بنجاح!',        bg:'rgba(16,185,129,.12)', border:'#86efac',   color:'var(--green)' },
-    delivering: { text:'🛵 المندوب في الطريق إليك!', bg:'rgba(232,107,36,.1)',  border:'rgba(232,107,36,.4)', color:'var(--orange)' },
-    printing:   { text:'🖨️ جاري طباعة ملفاتك...',    bg:'rgba(232,107,36,.1)',  border:'rgba(232,107,36,.4)', color:'var(--orange)' },
-    received:   { text:'📥 تم استلام طلبك',           bg:'rgba(90,179,196,.12)', border:'rgba(90,179,196,.35)', color:'var(--teal)' },
-  };
-  const bInfo = bannerMap[status] || bannerMap.received;
-  banner.innerText = bInfo.text;
-  banner.style.background   = bInfo.bg;
-  banner.style.borderColor  = bInfo.border;
-  banner.style.color        = bInfo.color;
-
-  // ── Steps ──
-  if (steps) {
-    const si = STATUS_STEPS.findIndex(s => s.k === status);
-    const isDelivered  = status === 'delivered';
-    const isCancelled  = status === 'cancelled';
-    steps.innerHTML = STATUS_STEPS.map((s, i) => {
-      const isDone = isDelivered || (!isCancelled && i < si);
-      // current step = orange pulse only if NOT delivered
-      const isCur  = !isDelivered && !isCancelled && i === si;
-      const opacity = (isDone || isCur || i <= si) ? '1' : '0.35';
-      const lc = isDone ? 'var(--green)' : isCur ? 'var(--orange)' : 'var(--text-muted)';
-      // Current step icon shows pulse; done shows ✅; pending shows original icon
-      const iconEl = isDone
-        ? `<span style="font-size:1.4rem;">✅</span>`
-        : isCur
-          ? `<span style="font-size:1.4rem;display:inline-block;animation:pulseGlow 2s infinite;">${s.icon}</span>`
-          : `<span style="font-size:1.4rem;">${s.icon}</span>`;
-      return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;
-        border-bottom:${i < 3 ? '1px solid var(--border)' : 'none'};
-        opacity:${opacity};transition:opacity .4s;">
-        ${iconEl}
-        <b style="color:${lc};font-size:.97rem;">${s.label}</b>
-      </div>`;
-    }).join('');
-  }
-
-  // ── Thank-you section on delivery ──
-  if (status === 'delivered' && thx) {
-    thx.style.display = 'block';
-  }
-  if (status === 'cancelled' && thx) {
-    thx.style.display = 'none';
-  }
+// ══ RATING SYSTEM ════════════════════════════════
+function showRateModal(oid) {
+  const rated = JSON.parse(localStorage.getItem('sh-rated') || '[]');
+  if (rated.includes(oid)) return;
+  _rateOid = oid; _rateStars = 0;
+  document.querySelectorAll('.rate-star').forEach(s => s.classList.remove('active'));
+  document.getElementById('rate-comment').value = '';
+  document.getElementById('rate-submit-btn').disabled = true;
+  document.getElementById('rate-modal').classList.add('open');
+}
+function closeRateModal() { document.getElementById('rate-modal').classList.remove('open'); _rateOid = null; }
+function pickStar(v) {
+  _rateStars = v;
+  document.querySelectorAll('.rate-star').forEach(s => s.classList.toggle('active', +s.dataset.v <= v));
+  document.getElementById('rate-submit-btn').disabled = false;
+}
+async function submitRating() {
+  if (!_rateOid || !_rateStars) return;
+  const comment = document.getElementById('rate-comment').value.trim();
+  try {
+    await sb.from('orders').update({
+      rating: _rateStars,
+      rating_comment: comment || null
+    }).eq('id', _rateOid);
+    const rated = JSON.parse(localStorage.getItem('sh-rated') || '[]');
+    rated.push(_rateOid);
+    localStorage.setItem('sh-rated', JSON.stringify(rated));
+    showToast('🌟 شكراً على تقييمك!');
+  } catch(e) { console.error('Rating error:', e); }
+  closeRateModal();
 }
 
-// ══ TABS ════════════════════════════════════════
+// ══ TABS ═════════════════════════════════════════
 function goTab(t) {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nbtn').forEach(x => x.classList.remove('active'));
@@ -680,10 +674,59 @@ function goTab(t) {
   document.getElementById('nav-' + t).classList.add('active');
   if (t === 'orders') loadOrders();
   if (t === 'points') loadPtsTab();
-  // عند العودة للرئيسية أعد تحميل حالة الطلب الحالي
-  if (t === 'order' && _successOid) {
-    _refreshSuccessFromServer(_successOid);
+  if (t === 'order' && _successOid) _refreshSuccessFromServer(_successOid);
+}
+
+// ══ EXPRESS TOGGLE STYLE ══════════════════════════
+function toggleExpressStyle() {
+  const tog   = document.getElementById('expressTog');
+  const card  = document.getElementById('express-card');
+  const label = document.getElementById('express-label');
+  if (!card) return;
+  if (tog.checked) {
+    card.style.border      = '2px solid var(--green)';
+    card.style.background  = 'linear-gradient(135deg,rgba(16,185,129,.08),rgba(5,150,105,.12))';
+    label.style.color      = 'var(--green)';
+    label.innerText        = '⚡ طلب عاجل — مفعّل ✅';
+  } else {
+    card.style.border      = '2px solid var(--express)';
+    card.style.background  = 'linear-gradient(135deg,rgba(147,51,234,.05),rgba(124,58,237,.08))';
+    label.style.color      = 'var(--express)';
+    label.innerText        = '⚡ طلب عاجل (Express)';
   }
+}
+
+// ══ COUPON SYSTEM ════════════════════════════════
+function setCouponMsg(type, text) {
+  const styles = {
+    error:   { background:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca' },
+    success: { background:'#f0fdf4', color:'#166534', border:'1px solid #86efac' },
+    warn:    { background:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca' }
+  };
+  const s = styles[type] || styles.error;
+  const msg = document.getElementById('coupon-msg');
+  Object.assign(msg.style, { display:'block', ...s });
+  msg.innerText = text;
+}
+
+async function applyCoupon() {
+  const code = document.getElementById('couponInput').value.trim();
+  const msg = document.getElementById('coupon-msg');
+  if (!code) { msg.style.display = 'none'; appliedCoupon = null; calcUI(); return; }
+  try {
+    const {data, error} = await sb.from('coupons').select('*').eq('code', code).eq('active', true).maybeSingle();
+    if (error || !data) {
+      setCouponMsg('error', '❌ كود الخصم غير صالح'); appliedCoupon = null;
+    } else if (data.max_uses > 0 && data.used_count >= data.max_uses) {
+      setCouponMsg('warn', '❌ تم استنفاد هذا الكوبون'); appliedCoupon = null;
+    } else {
+      appliedCoupon = data;
+      setCouponMsg('success', `✅ تم تطبيق الكوبون — خصم ${data.discount_type === 'percent' ? data.discount_value + '%' : data.discount_value.toLocaleString() + ' د.ع'}`);
+    }
+  } catch(e) {
+    setCouponMsg('error', '❌ خطأ في التحقق من الكوبون'); appliedCoupon = null;
+  }
+  calcUI();
 }
 
 // ══ SAVED ADDRESSES ══════════════════════════════
@@ -699,7 +742,7 @@ function showAddrSug() {
   const box = document.getElementById('addr-sug');
   if (!all.length) { box.style.display = 'none'; return; }
   box.style.display = 'block';
-  box.innerHTML = all.map(a => `<div class="addr-item" onclick="pickAddr('${a}')">📍 ${a}</div>`).join('');
+  box.innerHTML = all.map(a => `<div class="addr-item" onclick="pickAddr('${esc(a)}')">📍 ${esc(a)}</div>`).join('');
 }
 function pickAddr(a) {
   document.getElementById('uRegion').value = a;
@@ -710,82 +753,52 @@ document.addEventListener('click', e => {
     document.getElementById('addr-sug').style.display = 'none';
 });
 
-// ══ FILE INPUT — with preview ════════════════════
+// ══ FILE INPUT ═══════════════════════════════════
 const FILE_TYPE_INFO = {
-  pdf:  { icon:'📕', cls:'fi-pdf',  bg:'#fee2e2', label:'PDF'  },
-  docx: { icon:'📘', cls:'fi-doc',  bg:'#dbeafe', label:'Word' },
-  doc:  { icon:'📘', cls:'fi-doc',  bg:'#dbeafe', label:'Word' },
-  xlsx: { icon:'📗', cls:'fi-xl',   bg:'#dcfce7', label:'Excel'},
-  xls:  { icon:'📗', cls:'fi-xl',   bg:'#dcfce7', label:'Excel'},
-  pptx: { icon:'📙', cls:'fi-ppt',  bg:'#ffedd5', label:'PPT'  },
-  ppt:  { icon:'📙', cls:'fi-ppt',  bg:'#ffedd5', label:'PPT'  },
-  jpg:  { icon:'🖼️', cls:'fi-img',  bg:'#fdf4ff', label:'صورة' },
-  jpeg: { icon:'🖼️', cls:'fi-img',  bg:'#fdf4ff', label:'صورة' },
-  png:  { icon:'🖼️', cls:'fi-img',  bg:'#fdf4ff', label:'صورة' },
-  webp: { icon:'🖼️', cls:'fi-img',  bg:'#fdf4ff', label:'صورة' },
+  pdf:{icon:'📕',bg:'#fee2e2',label:'PDF'},docx:{icon:'📘',bg:'#dbeafe',label:'Word'},
+  doc:{icon:'📘',bg:'#dbeafe',label:'Word'},xlsx:{icon:'📗',bg:'#dcfce7',label:'Excel'},
+  xls:{icon:'📗',bg:'#dcfce7',label:'Excel'},pptx:{icon:'📙',bg:'#ffedd5',label:'PPT'},
+  ppt:{icon:'📙',bg:'#ffedd5',label:'PPT'},jpg:{icon:'🖼️',bg:'#fdf4ff',label:'صورة'},
+  jpeg:{icon:'🖼️',bg:'#fdf4ff',label:'صورة'},png:{icon:'🖼️',bg:'#fdf4ff',label:'صورة'},
+  webp:{icon:'🖼️',bg:'#fdf4ff',label:'صورة'},
 };
-
-function fmtSize(b) {
-  if (b < 1024) return b + ' B';
-  if (b < 1048576) return (b/1024).toFixed(1) + ' KB';
-  return (b/1048576).toFixed(1) + ' MB';
-}
+function fmtSize(b) { if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'; }
 
 document.getElementById('fileinp').onchange = async e => {
   const okExts = ['.pdf','.docx','.doc','.xlsx','.xls','.pptx','.ppt','.jpg','.jpeg','.png','.webp'];
   for (const f of e.target.files) {
+    if (f.size > 50 * 1024 * 1024) { showToast('❌ ' + f.name + ' يتجاوز 50MB'); continue; }
     const nm = f.name.toLowerCase(), ext = nm.substring(nm.lastIndexOf('.'));
     if (!okExts.includes(ext) && !f.type.startsWith('image/')) continue;
     const raw_ext = ext.replace('.','');
-    const obj = {file:f, name:f.name, p:1, c:1, isImg:f.type.startsWith('image/'), type:'ملف',
-                 ext:raw_ext, size:fmtSize(f.size), preview:null};
+    const obj = {file:f, name:f.name, p:1, c:1, isImg:f.type.startsWith('image/'), type:'ملف', ext:raw_ext, size:fmtSize(f.size), preview:null};
     try {
       const buf = await f.arrayBuffer();
       if (nm.endsWith('.pdf')) {
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         const pdf = await pdfjsLib.getDocument({data:buf}).promise;
         obj.p = pdf.numPages; obj.type = 'PDF'; obj.isImg = false;
-        // Render page 1 for preview
-        try {
-          const pg = await pdf.getPage(1);
-          const vp = pg.getViewport({scale:0.45});
-          const c  = document.createElement('canvas');
-          c.width  = vp.width; c.height = vp.height;
-          await pg.render({canvasContext:c.getContext('2d'), viewport:vp}).promise;
-          obj.preview = c.toDataURL('image/jpeg', 0.72);
-          obj.previewType = 'img';
-        } catch {}
+        try { const pg = await pdf.getPage(1); const vp = pg.getViewport({scale:0.45}); const c = document.createElement('canvas'); c.width=vp.width;c.height=vp.height; await pg.render({canvasContext:c.getContext('2d'),viewport:vp}).promise; obj.preview=c.toDataURL('image/jpeg',0.72); obj.previewType='img'; } catch {}
       } else if (nm.endsWith('.docx') || nm.endsWith('.doc')) {
-        try {
-          const z = await JSZip.loadAsync(buf), xf = z.file('docProps/app.xml');
-          if (xf) { const m = (await xf.async('string')).match(/<Pages>(\d+)<\/Pages>/); if(m) obj.p = +m[1]; }
-        } catch { const r = await mammoth.extractRawText({arrayBuffer:buf}); obj.p = Math.max(1, Math.ceil(r.value.trim().split(/\s+/).length/300)); }
+        try { const z=await JSZip.loadAsync(buf),xf=z.file('docProps/app.xml'); if(xf){const m=(await xf.async('string')).match(/<Pages>(\d+)<\/Pages>/);if(m)obj.p=+m[1];} } catch { const r=await mammoth.extractRawText({arrayBuffer:buf}); obj.p=Math.max(1,Math.ceil(r.value.trim().split(/\s+/).length/300)); }
         obj.type = 'Word'; obj.isImg = false;
       } else if (nm.endsWith('.pptx') || nm.endsWith('.ppt')) {
-        const z = await JSZip.loadAsync(buf), xf = z.file('docProps/app.xml');
-        if (xf) { const m = (await xf.async('string')).match(/<Slides>(\d+)<\/Slides>/); if(m) obj.p = +m[1]; }
+        const z=await JSZip.loadAsync(buf),xf=z.file('docProps/app.xml'); if(xf){const m=(await xf.async('string')).match(/<Slides>(\d+)<\/Slides>/);if(m)obj.p=+m[1];}
         obj.type = 'PowerPoint'; obj.isImg = false;
       } else if (nm.endsWith('.xlsx') || nm.endsWith('.xls')) {
-        const wb = XLSX.read(buf,{type:'array'}); let tot=0;
-        wb.SheetNames.forEach(s=>{const sh=wb.Sheets[s],r=XLSX.utils.decode_range(sh['!ref']||'A1:A1');tot+=Math.ceil((r.e.r-r.s.r+1)/45)*Math.ceil((r.e.c-r.s.c+1)/8);});
-        obj.p = Math.max(1,tot); obj.type = 'Excel'; obj.isImg = false;
-      } else if (obj.isImg) {
-        obj.type = 'صورة';
-        obj.preview = URL.createObjectURL(f);
-        obj.previewType = 'img';
-      }
+        const wb=XLSX.read(buf,{type:'array'});let tot=0; wb.SheetNames.forEach(s=>{const sh=wb.Sheets[s],r=XLSX.utils.decode_range(sh['!ref']||'A1:A1');tot+=Math.ceil((r.e.r-r.s.r+1)/45)*Math.ceil((r.e.c-r.s.c+1)/8);}); obj.p=Math.max(1,tot);obj.type='Excel';obj.isImg=false;
+      } else if (obj.isImg) { obj.type='صورة';obj.preview=URL.createObjectURL(f);obj.previewType='img'; }
     } catch { obj.p = 1; }
     files.push(obj);
   }
   calcUI(); e.target.value = '';
 };
 
-// ══ PRINT CONFIG ════════════════════════════════
+// ══ PRINT CONFIG ═════════════════════════════════
 function setC(v) {
   color = v;
-  document.getElementById('cbtn').className  = v==='c' ? 'obtn on' : 'obtn off';
-  document.getElementById('nbtn').className  = v==='n' ? 'obtn on' : 'obtn off';
-  // Update all preview filters immediately
+  document.getElementById('cbtn').className = v==='c' ? 'obtn on' : 'obtn off';
+  document.getElementById('nbtn').className = v==='n' ? 'obtn on' : 'obtn off';
   document.querySelectorAll('.fcard-preview').forEach(p => p.classList.toggle('bw', v==='n'));
   calcUI();
 }
@@ -796,30 +809,22 @@ function setS(v) {
   calcUI();
 }
 
-// ══ LOCATION ════════════════════════════════════
+// ══ LOCATION ═════════════════════════════════════
 function getLoc() {
   navigator.geolocation.getCurrentPosition(
-    p => {
-      locUrl = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`;
-      const b = document.getElementById('locbtn');
-      b.innerText = '✅ تم حفظ الموقع بنجاح'; b.style.background = 'var(--green)';
-      hideErr();
-    },
+    p => { locUrl = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; const b=document.getElementById('locbtn'); b.innerText='✅ تم حفظ الموقع بنجاح';b.style.background='var(--green)';hideErr(); },
     () => showErr('❌ يرجى تفعيل GPS والسماح بالوصول للموقع')
   );
 }
 
-// ══ PRICE CALCULATION — rounded to nearest 250 IQD ══
+// ══ PRICE CALCULATION ════════════════════════════
 function roundTo250(n) { return Math.round(n / 250) * 250; }
 function calcPrice(sh, im) {
   const t = sh + im; if (!t) return 0;
   if (t <= 5) return roundTo250(1000);
   let raw;
-  if (color === 'c') {
-    if(t<=25) raw=t*150; else if(t<=40) raw=t*130; else if(t<=70) raw=t*120; else raw=t*100;
-  } else {
-    raw = t * (side === '1' ? 90 : 75);
-  }
+  if (color === 'c') { if(t<=25) raw=t*150; else if(t<=40) raw=t*130; else if(t<=70) raw=t*120; else raw=t*100; }
+  else { raw = t * (side === '1' ? 90 : 75); }
   return roundTo250(raw);
 }
 
@@ -828,60 +833,42 @@ function calcUI() {
   let sh=0, im=0, dp=0, hasD=false, hasI=false;
   const fl = document.getElementById('flist');
   fl.innerHTML = '';
-
   if (files.length) {
     let cards = `<div class="card" style="padding:16px;"><p style="margin:0 0 12px;color:var(--navy);font-weight:800;font-size:.95rem;">📂 الملفات المرفقة (${files.length})</p>`;
     files.forEach((f, i) => {
       if (f.isImg) { hasI=true; im+=f.c; }
       else { hasD=true; dp+=f.p*f.c; const u=f.type==='PowerPoint'?Math.ceil(f.p/2):f.p; sh+=(side==='2'?Math.ceil(u/2):u)*f.c; }
-      const ti  = FILE_TYPE_INFO[f.ext] || {icon:'📄',bg:'#f1f5f9',label:'ملف'};
+      const ti = FILE_TYPE_INFO[f.ext] || {icon:'📄',bg:'#f1f5f9',label:'ملف'};
       const bwCls = color === 'n' ? 'bw' : '';
       const sideMeta = f.isImg ? 'وجه واحد' : (side === '2' ? 'وجهين' : 'وجه واحد');
-      let previewHtml;
-      if (f.preview && f.previewType === 'img') {
-        previewHtml = `<img src="${f.preview}" alt="preview">`;
-      } else {
-        previewHtml = `<span class="fcard-preview-icon">${ti.icon}</span>`;
-      }
-      cards += `
-        <div class="fcard">
-          <div class="fcard-preview ${bwCls}" style="background:${ti.bg};">
-            ${previewHtml}
-            <span class="fcard-preview-badge">${ti.label}</span>
-          </div>
-          <div class="fcard-info">
-            <div>
-              <div class="fcard-name" title="${f.name}">${f.name}</div>
-              <div class="fcard-meta">${f.size} &nbsp;•&nbsp; ${f.p} صفحة &nbsp;•&nbsp; <span style="color:var(--teal);font-weight:700;">${sideMeta}</span></div>
-            </div>
-            <div class="fcard-controls">
-              <button class="bcnt" onclick="adjC(${i},-1)">−</button>
-              <span class="fcard-qty">${f.c}</span>
-              <button class="bcnt" onclick="adjC(${i},1)">+</button>
-              <button class="del-btn" onclick="rmF(${i})">حذف ✕</button>
-            </div>
-          </div>
-        </div>`;
+      let previewHtml = f.preview && f.previewType === 'img' ? `<img src="${f.preview}" alt="preview">` : `<span class="fcard-preview-icon">${ti.icon}</span>`;
+      cards += `<div class="fcard"><div class="fcard-preview ${bwCls}" style="background:${ti.bg};">${previewHtml}<span class="fcard-preview-badge">${ti.label}</span></div><div class="fcard-info"><div><div class="fcard-name" title="${esc(f.name)}">${esc(f.name)}</div><div class="fcard-meta">${esc(f.size)} · ${f.p} صفحة · <span style="color:var(--teal);font-weight:700;">${sideMeta}</span></div></div><div class="fcard-controls"><button class="bcnt" onclick="adjC(${i},-1)">−</button><span class="fcard-qty">${f.c}</span><button class="bcnt" onclick="adjC(${i},1)">+</button><button class="del-btn" onclick="rmF(${i})">حذف ✕</button></div></div></div>`;
     });
-    cards += '</div>';
-    fl.innerHTML = cards;
+    cards += '</div>'; fl.innerHTML = cards;
+  }
+  document.getElementById('sidebox').style.display = hasD ? 'block' : 'none';
+  document.getElementById('inote').style.display = hasI ? 'block' : 'none';
+  document.getElementById('flist').style.display = files.length ? 'block' : 'none';
+  document.getElementById('opts').style.display = files.length ? 'block' : 'none';
+
+  const pp = calcPrice(sh, im);
+  const isFO = !uDoc.first_order_done;
+  const df = files.length===0 ? 0 : (pp>=10000||isFO ? 0 : 1000);
+  const isG = (uDoc.loyalty_points||0) >= 1000;
+  const td = isG ? Math.round(pp*.05) : 0;
+  const useP = document.getElementById('ptstog')?.checked && pendingR;
+  const pd = useP ? pendingR.disc : 0;
+  const isExpress = document.getElementById('expressTog')?.checked;
+  const expressFee = isExpress ? 1500 : 0;
+
+  // Coupon discount
+  let couponDisc = 0;
+  if (appliedCoupon && pp > 0) {
+    if (appliedCoupon.discount_type === 'percent') couponDisc = Math.round(pp * appliedCoupon.discount_value / 100);
+    else couponDisc = Math.min(appliedCoupon.discount_value, pp);
   }
 
-  document.getElementById('sidebox').style.display = hasD ? 'block' : 'none';
-  document.getElementById('inote').style.display   = hasI ? 'block' : 'none';
-  document.getElementById('flist').style.display   = files.length ? 'block' : 'none';
-  document.getElementById('opts').style.display    = files.length ? 'block' : 'none';
-
-  const pp   = calcPrice(sh, im);
-  const isFO = !uDoc.first_order_done;
-  const df   = files.length===0 ? 0 : (pp>=10000||isFO ? 0 : 1000);
-  const isG  = (uDoc.loyalty_points||0) >= 1000;   // gold at 1000
-  const td   = isG ? Math.round(pp*.05) : 0;
-  const useP = document.getElementById('ptstog')?.checked && pendingR;
-  const pd   = useP ? pendingR.disc : 0;
-
   const pc = document.getElementById('ptscard');
-  // Only show points redemption card when no gold (tier) discount is already applied
   if (pendingR && files.length && td === 0) {
     pc.style.display = 'block';
     document.getElementById('ptslbl').innerText = `رصيدك ${uDoc.loyalty_points||0} نقطة — خصم: ${pendingR.disc.toLocaleString()} د.ع`;
@@ -890,27 +877,26 @@ function calcUI() {
     sl.innerText = `✨ سيُخصم ${pendingR.disc.toLocaleString()} د.ع من المجموع`;
   } else pc.style.display = 'none';
 
-  const tot  = Math.max(0, pp - td - pd + df);
-  // Points: only on print price, no points if any discount applied, only added on delivery
-  const hasDiscount = (td > 0) || (pd > 0);
-  const pe   = hasDiscount ? 0 : Math.floor(pp / 1000) * 10;
+  const tot = Math.max(0, pp - td - pd - couponDisc + df + expressFee);
+  const hasDiscount = (td > 0) || (pd > 0) || (couponDisc > 0);
+  const pe = hasDiscount ? 0 : Math.floor(pp / 1000) * 10;
   const dtxt = isFO ? '<b style="color:#4eff4e;">مجاني 🎁</b>' : df===0 ? '<b style="color:#4eff4e;">مجاني ✨</b>' : df.toLocaleString()+' د.ع';
 
   document.getElementById('invdet').innerHTML = `
     <div class="il"><span>إجمالي الصفحات:</span><b>${dp}</b></div>
     <div class="il"><span>الصور:</span><b>${im}</b></div>
-    <div class="il" style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px;margin-top:5px;">
-      <span>سعر الطباعة:</span><b>${pp.toLocaleString()} د.ع</b>
-    </div>
+    <div class="il" style="border-top:1px solid rgba(255,255,255,.2);padding-top:10px;margin-top:5px;"><span>سعر الطباعة:</span><b>${pp.toLocaleString()} د.ع</b></div>
     ${td>0?`<div class="il"><span>🥇 خصم الذهبي (5%):</span><b style="color:#4eff4e;">−${td.toLocaleString()} د.ع</b></div>`:''}
     ${pd>0&&useP?`<div class="il"><span>💎 خصم النقاط:</span><b style="color:#4eff4e;">−${pd.toLocaleString()} د.ع</b></div>`:''}
+    ${couponDisc>0?`<div class="il"><span>🎟️ خصم الكوبون:</span><b style="color:#4eff4e;">−${couponDisc.toLocaleString()} د.ع</b></div>`:''}
+    ${isExpress?`<div class="il"><span>⚡ رسوم الطلب العاجل:</span><b style="color:#e9d5ff;">${expressFee.toLocaleString()} د.ع</b></div>`:''}
     <div class="il"><span>أجور التوصيل:</span><b>${dtxt}</b></div>
     <div class="il" style="background:rgba(0,0,0,.18);padding:10px;border-radius:10px;margin-top:8px;">
       <span>💎 نقاط ستكسبها (عند التسليم):</span>
       <b style="color:${hasDiscount?'#94a3b8':'#ffd700'};">${hasDiscount?'0 (خصم مطبّق)':'+'+pe}</b>
     </div>`;
   document.getElementById('totlbl').innerText = `المجموع النهائي: ${tot.toLocaleString()} د.ع`;
-  window._ord = {pp, df, td, pd, tot, pe, isFO};
+  window._ord = {pp, df, td, pd, couponDisc, expressFee, tot, pe, isFO};
 }
 
 window.adjC = (i,d) => { files[i].c=Math.max(1,files[i].c+d); calcUI(); };
@@ -926,18 +912,29 @@ function redeemPts(pts, disc) {
   goTab('order'); calcUI();
 }
 
-// ══ SEND ORDER ════════════════════════════════════
+// ══ SEND ORDER ═══════════════════════════════════
 async function sendOrder() {
   const name   = document.getElementById('uName').value.trim();
   const phone  = document.getElementById('uPhone').value.trim();
   const region = document.getElementById('uRegion').value.trim();
 
+  // 🔒 Input validation
   if (!name)                               return showErr('❌ يرجى كتابة الاسم');
+  if (name.length < 3)                     return showErr('❌ الاسم يجب أن يكون 3 أحرف على الأقل');
   if (phone.length!==11 || isNaN(+phone)) return showErr('❌ رقم الهاتف يجب أن يكون 11 رقمًا');
   if (!region)                              return showErr('❌ يرجى إدخال اسم المنطقة');
   if (!locUrl)                              return showErr('❌ يرجى تحديد موقعك على الخريطة');
   if (!files.length)                        return showErr('❌ يرجى رفع ملف واحد على الأقل');
+
+  // 🔒 Rate limiting
+  const now = Date.now();
+  if (now - lastOrderTime < ORDER_COOLDOWN) {
+    return showErr('❌ يرجى الانتظار قليلاً قبل إرسال طلب جديد');
+  }
   hideErr();
+
+  // تحديث الحساب قبل قراءة البيانات
+  calcUI();
 
   const btn = document.getElementById('sendbtn');
   btn.disabled = true; btn.innerText = 'جاري الإرسال... 🚀';
@@ -945,10 +942,11 @@ async function sendOrder() {
   const stxt = document.getElementById('statustxt'); stxt.style.display = 'block';
 
   try {
-    const oid = 'SH-' + Math.floor(1000 + Math.random() * 9000);
-    const {pp, df, td, pd, tot, pe, isFO} = window._ord || {};
+    const oid = 'SH-' + Date.now().toString(36).toUpperCase();
+    const {pp, df, td, pd, couponDisc, expressFee, tot, pe, isFO} = window._ord || {};
     const useP = document.getElementById('ptstog')?.checked && pendingR;
     const pu   = useP ? pendingR.pts : 0;
+    const isExpress = document.getElementById('expressTog')?.checked;
 
     stxt.innerText = 'جاري تجهيز وضغط الملفات...';
     document.getElementById('pbar').style.width = '15%';
@@ -966,7 +964,6 @@ async function sendOrder() {
     const zpath = `orders/${oid}/files_${oid}.zip`;
     const {error:upErr} = await sb.storage.from('order-files').upload(zpath, zipBlob, {cacheControl:'3600',upsert:true});
     if (upErr) throw new Error('فشل رفع الملفات: ' + upErr.message);
-
     const {data:urlData} = sb.storage.from('order-files').getPublicUrl(zpath);
     const zipUrl = urlData?.publicUrl || '';
     document.getElementById('pbar').style.width = '75%';
@@ -979,6 +976,10 @@ async function sendOrder() {
       color, side,
       print_price:pp||0, delivery_fee:df||0,
       tier_discount:td||0, pts_discount:pd||0,
+      coupon_discount:couponDisc||0,
+      coupon_code: appliedCoupon?.code || null,
+      express_fee:expressFee||0,
+      is_express:!!isExpress,
       pts_used:pu, total:tot||0,
       loyalty_points_earned:pe||0,
       is_first_order:!!isFO,
@@ -989,7 +990,11 @@ async function sendOrder() {
     const {error:dbErr} = await sb.from('orders').insert(order);
     if (dbErr) throw dbErr;
 
-    // Deduct used points immediately; earned points added only on delivery by admin
+    // Update coupon usage
+    if (appliedCoupon) {
+      await sb.from('coupons').update({used_count: (appliedCoupon.used_count||0) + 1}).eq('id', appliedCoupon.id);
+    }
+
     const np = Math.max(0, (uDoc.loyalty_points||0) - pu);
     await sb.from('users').update({
       loyalty_points:np, total_orders:(uDoc.total_orders||0)+1,
@@ -998,180 +1003,212 @@ async function sendOrder() {
     }).eq('id', userId);
     uDoc.loyalty_points = np; uDoc.first_order_done = true;
 
-    // Save address for future use
     if (region) saveAddr(region);
-
     document.getElementById('pbar').style.width = '90%';
 
     const flist = meta.map(f=>`📄 ${f.name} (${f.pages}ص × ${f.copies}ن)`).join('\n');
     await tgMsg(ADMIN,
-      `🆕 طلب جديد #${oid}\n${isFO?'🚚 توصيل مجاني — أول طلب\n':''}` +
+      `🆕 طلب جديد #${oid}${isExpress?' ⚡عاجل':''}\n${isFO?'🚚 توصيل مجاني — أول طلب\n':''}` +
       `👤 ${name}\n📞 ${phone}\n🏠 ${region}\n` +
       `🎨 ${color==='c'?'ملون':'أسود'} — ${side==='1'?'وجه':'وجهين'}\n` +
-      `💰 ${(tot||0).toLocaleString()} د.ع\n📍 ${locUrl}\n\n` +
-      `📋 الملفات:\n${flist}\n\n📦 رابط التحميل:\n${zipUrl}`
+      `💰 ${(tot||0).toLocaleString()} د.ع\n📍 ${locUrl}\n` +
+      (appliedCoupon ? `🎟️ كوبون: ${appliedCoupon.code}\n` : '') +
+      `\n📋 الملفات:\n${flist}\n\n📦 رابط التحميل:\n${zipUrl}`
     );
     if (tgU?.id) await tgMsg(String(tgU.id),
       `✅ تم استلام طلبك #${oid} بنجاح!\n💰 ${(tot||0).toLocaleString()} د.ع\n\n${pe>0?`💎 ستكسب ${pe} نقطة ولاء عند التسليم!\n`:''}سنُخطرك بكل تحديث 🔔`
     );
 
     document.getElementById('pbar').style.width = '100%';
-    pendingR = null; refreshPtsUI();
+    lastOrderTime = Date.now();
+    pendingR = null; appliedCoupon = null; refreshPtsUI();
     showSuccessUI(oid, pe, np);
 
   } catch(e) {
-    console.error(e);
+    console.error('Send order error:', e);
     showErr('❌ ' + (e.message || 'حدث خطأ أثناء الإرسال'));
     btn.disabled = false; btn.innerText = '🚀 تأكيد وإرسال الطلب';
     stxt.style.display = 'none';
   }
 }
 
-// ══ SUCCESS SCREEN — live status ═════════════════
-let _successOid = null;
-let _successPe  = 0;
-let _successNp  = 0;
-
+// ══ SUCCESS SCREEN ═══════════════════════════════
+let _successOid = null, _successPe = 0, _successNp = 0, _successCancelReason = '';
 const STATUS_STEPS = [
-  { k:'received',   icon:'📥', label:'تم الاستلام'    },
-  { k:'printing',   icon:'🖨️', label:'قيد الطباعة'   },
-  { k:'delivering', icon:'🛵', label:'جاري التوصيل'  },
-  { k:'delivered',  icon:'✅', label:'تم التسليم'    },
+  { k:'received', icon:'📥', label:'تم الاستلام' },
+  { k:'printing', icon:'🖨️', label:'قيد الطباعة' },
+  { k:'delivering', icon:'🛵', label:'جاري التوصيل' },
+  { k:'delivered', icon:'✅', label:'تم التسليم' },
 ];
 
 function _buildSuccessHTML(currentStatus) {
   const si = STATUS_STEPS.findIndex(s => s.k === currentStatus);
-  const isCancelled  = currentStatus === 'cancelled';
-  const isDelivered  = currentStatus === 'delivered';
+  const isCancelled = currentStatus === 'cancelled';
+  const isDelivered = currentStatus === 'delivered';
+  const isPending   = ['received','printing','delivering'].includes(currentStatus);
 
   const stepsHTML = STATUS_STEPS.map((s, i) => {
     const isDone = isDelivered || (!isCancelled && i < si);
-    const isCur  = i === si && !isCancelled && currentStatus !== 'delivered';
-    const opacity = (isDone || isCur || i === si) ? '1' : '0.38';
-    let labelColor = 'var(--text-muted)';
-    let iconFilter = '';
-    if (isDone) { labelColor = 'var(--green)'; }
-    else if (isCur) { labelColor = 'var(--orange)'; }
-    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;
-              border-bottom:${i < 3 ? '1px solid var(--border)' : 'none'};
-              opacity:${opacity};transition:opacity .4s;">
-      <span style="font-size:1.4rem;min-width:32px;text-align:center;">${isDone ? '✅' : s.icon}</span>
-      <b style="color:${labelColor};font-size:.97rem;">${s.label}</b>
-    </div>`;
+    const isCur  = i === si && !isCancelled && !isDelivered;
+    const opacity = (isDone || isCur || i <= si) ? '1' : '0.38';
+    const lc = isDone ? 'var(--green)' : isCur ? 'var(--orange)' : 'var(--text-muted)';
+    const iconEl = isDone ? `<span style="font-size:1.4rem;">✅</span>`
+      : isCur ? `<span style="font-size:1.4rem;display:inline-block;animation:pulseGlow 2s infinite;">${s.icon}</span>`
+      : `<span style="font-size:1.4rem;">${s.icon}</span>`;
+    return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:${i < 3 ? '1px solid var(--border)' : 'none'};opacity:${opacity};transition:opacity .4s;">${iconEl}<b style="color:${lc};font-size:.97rem;">${s.label}</b></div>`;
   }).join('');
 
-  const bannerText = isCancelled ? '❌ تم إلغاء الطلب'
-    : currentStatus === 'delivered' ? '✅ تم التسليم بنجاح!'
-    : currentStatus === 'delivering' ? '🛵 المندوب في الطريق إليك!'
-    : currentStatus === 'printing'   ? '🖨️ جاري طباعة ملفاتك...'
-    : '📥 تم استلام طلبك';
-  const bannerBg = isCancelled ? 'rgba(239,68,68,.12)' : 'rgba(90,179,196,.12)';
-  const bannerBorder = isCancelled ? '#fca5a5' : 'rgba(90,179,196,.35)';
-  const bannerColor  = isCancelled ? 'var(--red)' : 'var(--teal)';
+  // Dynamic header based on status
+  const headerMap = {
+    received:   { icon:'📥', title:'تم استلام طلبك',       sub:'سنبدأ بالعمل عليه قريباً' },
+    printing:   { icon:'🖨️', title:'جاري طباعة ملفاتك',   sub:'سنُخطرك عند الانتهاء' },
+    delivering: { icon:'🛵', title:'المندوب في الطريق إليك', sub:'سيصلك طلبك قريباً' },
+    delivered:  { icon:'🎉', title:'تم تسليم طلبك بنجاح!', sub:'شكراً لتعاملك مع الشاطر 💚' },
+    cancelled:  { icon:'❌', title:'تم إلغاء الطلب',        sub:'للاستفسار تواصل معنا' },
+  };
+  const hdr = headerMap[currentStatus] || headerMap.received;
+
+  // Points message based on status
+  let ptsHtml = '';
+  if (_successPe > 0) {
+    if (isDelivered) {
+      ptsHtml = `<div style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border-radius:16px;padding:16px;margin-bottom:16px;text-align:center;">
+        <b style="font-size:1rem;">💎 تم إضافة ${_successPe} نقطة لرصيدك!</b>
+        <p style="margin:6px 0 0;opacity:.85;font-size:.88rem;">رصيدك الحالي: ${_successNp + _successPe} نقطة</p>
+      </div>`;
+    } else if (isPending) {
+      ptsHtml = `<div style="background:linear-gradient(135deg,#0d3b66,var(--teal));color:#fff;border-radius:16px;padding:14px;margin-bottom:16px;text-align:center;font-size:.92rem;">
+        💎 ستكسب <b>${_successPe} نقطة</b> عند التسليم
+      </div>`;
+    }
+  }
 
   return `
-    <div style="text-align:center;padding:50px 20px;animation:fadeInUp .5s ease;">
-      <div style="font-size:5rem;margin-bottom:10px;">${isCancelled ? '❌' : '✅'}</div>
-      <h2 style="color:var(--navy);margin:0 0 6px;font-weight:800;">تم إرسال طلبك بنجاح!</h2>
-      <p style="color:var(--text-muted);margin:0 0 18px;">رقم الطلب: <b style="color:var(--orange);font-size:1.1rem;">#${_successOid}</b></p>
+    <div style="text-align:center;padding:40px 20px;animation:fadeInUp .5s ease;">
+      <div style="font-size:4.5rem;margin-bottom:8px;">${hdr.icon}</div>
+      <h2 style="color:var(--navy);margin:0 0 4px;font-weight:800;font-size:1.3rem;">${hdr.title}</h2>
+      <p style="color:var(--text-muted);margin:0 0 6px;font-size:.92rem;">${hdr.sub}</p>
+      <p style="color:var(--orange);margin:0 0 20px;font-weight:800;font-size:1.05rem;">طلب #${esc(_successOid)}</p>
 
-      <!-- Live status banner -->
-      <div id="suc-banner" style="background:${bannerBg};border:1.5px solid ${bannerBorder};
-           color:${bannerColor};border-radius:14px;padding:13px 18px;margin-bottom:16px;
-           font-size:1.05rem;font-weight:800;transition:all .4s;">
-        ${bannerText}
-      </div>
+      ${isPending ? `<p style="font-size:.82rem;color:var(--teal);font-weight:600;margin:0 0 16px;background:rgba(90,179,196,.1);padding:8px 14px;border-radius:10px;">📱 ستصلك إشعارات على تيليجرام عند كل تحديث</p>` : ''}
 
-      <!-- Telegram note -->
-      <p style="font-size:.85rem;color:var(--teal);font-weight:700;margin:0 0 16px;
-         background:rgba(90,179,196,.1);padding:9px 14px;border-radius:12px;border:1px solid rgba(90,179,196,.25);">
-        📱 ستصلك إشعارات على تيليجرام عند تحديث الطلب
-      </p>
+      ${isCancelled ? `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:16px;padding:18px;margin-bottom:16px;text-align:right;">
+        ${_successCancelReason ? `<div style="background:#fff;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:14px;">
+          <p style="margin:0 0 4px;font-size:.82rem;color:#94a3b8;font-weight:700;">📋 سبب الإلغاء:</p>
+          <p style="margin:0;font-size:.95rem;color:#991b1b;font-weight:800;line-height:1.6;">${esc(_successCancelReason)}</p>
+        </div>` : ''}
+        <p style="margin:0 0 10px;font-size:.88rem;color:#78350f;font-weight:700;text-align:center;">📞 للاستفسار تواصل معنا:</p>
+        <div style="display:flex;flex-direction:column;gap:8px;">
+          <a href="tel:07752564099" style="display:block;background:#ef4444;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.9rem;text-align:center;">📞 اتصل بنا (07752564099)</a>
+          <div style="display:flex;gap:8px;">
+            <a href="https://wa.me/9647752564099" target="_blank" style="flex:1;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">💬 واتساب</a>
+            <a href="https://t.me/+9647752564099" target="_blank" style="flex:1;background:#0088cc;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">✈️ تيليجرام</a>
+          </div>
+        </div>
+      </div>` : ''}
 
-      <!-- Points -->
-      <div style="background:linear-gradient(135deg,#0d3b66,var(--teal));color:#fff;border-radius:20px;padding:20px;margin-bottom:16px;box-shadow:0 8px 20px rgba(13,59,102,.2);">
-        <div style="font-size:2.2rem;margin-bottom:6px;">💎</div>
-        ${_successPe > 0
-          ? `<b style="font-size:1rem;">ستكسب ${_successPe} نقطة ولاء عند التسليم!</b>
-             <p style="margin:6px 0 0;opacity:.8;font-size:.88rem;">رصيدك الحالي: ${_successNp} نقطة</p>`
-          : `<b style="font-size:.95rem;">رصيدك الحالي: ${_successNp} نقطة</b>`
-        }
-      </div>
+      <div id="suc-banner" style="display:none;"></div>
 
-      <!-- Steps -->
-      <div id="suc-steps" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:18px;text-align:right;">
-        ${stepsHTML}
-      </div>
+      <div id="suc-steps" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:16px;text-align:right;">${stepsHTML}</div>
 
-      <!-- شكر عند التسليم — مخفي حتى يتم التحديث -->
-      <div id="suc-thx" style="display:none;background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border-radius:18px;padding:22px;margin-bottom:16px;text-align:center;animation:pop .4s ease;">
-        <div style="font-size:3rem;margin-bottom:8px;">🎉</div>
-        <h3 style="margin:0 0 6px;font-weight:800;font-size:1.1rem;">شكراً لتعاملك مع الشاطر!</h3>
-        <p style="margin:0 0 14px;opacity:.85;font-size:.9rem;">نتمنى أن تكون راضياً عن خدمتنا 💚</p>
-        <button onclick="location.reload()" class="bmain"
-          style="background:rgba(255,255,255,.2);color:#fff;border:1.5px solid rgba(255,255,255,.4);
-                 font-size:.95rem;padding:12px;border-radius:12px;">
-          🖨️ اطلب مرة أخرى
-        </button>
-      </div>
+      ${ptsHtml}
 
-      <button onclick="goTab('orders')" class="bmain btn-action" style="margin-bottom:10px;">📋 تتبع طلبي</button>
-      <button onclick="location.reload()" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">🆕 طلب جديد</button>
+      <div id="suc-thx" style="display:none;"></div>
+
+      ${isDelivered ? `
+        <button onclick="location.reload()" class="bmain btn-action" style="margin-bottom:10px;">🖨️ اطلب مرة أخرى</button>
+        <button onclick="goTab('orders')" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">📋 طلباتي</button>
+      ` : isCancelled ? `
+        <button onclick="location.reload()" class="bmain btn-action" style="margin-bottom:10px;">🔄 إنشاء طلب جديد</button>
+        <button onclick="goTab('orders')" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">📋 طلباتي</button>
+      ` : `
+        <button onclick="goTab('orders')" class="bmain btn-action" style="margin-bottom:10px;">📋 تتبع طلبي</button>
+        <button onclick="location.reload()" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">🆕 طلب جديد</button>
+      `}
     </div>`;
+}
+
+function _updateSuccessScreen(status, history) {
+  const tab = document.getElementById('tab-order');
+  if (!tab || !_successOid) return;
+  // Simply rebuild the whole success screen with new status
+  tab.innerHTML = _buildSuccessHTML(status);
 }
 
 function _refreshSuccessScreen(newStatus) {
   const tab = document.getElementById('tab-order');
-  if (!tab || !tab.querySelector('#suc-banner')) return; // not on success screen
+  if (!tab || !tab.querySelector('#suc-banner')) return;
   _updateSuccessScreen(newStatus);
 }
 
-// جلب آخر حالة من السيرفر وتحديث شاشة النجاح
 async function _refreshSuccessFromServer(oid) {
   try {
-    const {data:o} = await sb.from('orders').select('status,status_history').eq('id', oid).maybeSingle();
+    const {data:o} = await sb.from('orders').select('status,status_history,cancel_reason').eq('id', oid).maybeSingle();
     if (o && o.status) {
+      if (o.status === 'cancelled') _successCancelReason = o.cancel_reason || '';
       _updateSuccessScreen(o.status, o.status_history || []);
     }
   } catch {}
 }
 
 function showSuccessUI(oid, pe, np) {
-  _successOid = oid;
-  _successPe  = pe;
-  _successNp  = np;
+  _successOid = oid; _successPe = pe; _successNp = np;
   document.getElementById('tab-order').innerHTML = _buildSuccessHTML('received');
 }
 
-// ══ TELEGRAM ════════════════════════════════════
+// ══ TELEGRAM ═════════════════════════════════════
 async function tgMsg(cid, txt) {
   try {
     const r = await fetch(`https://api.telegram.org/bot${BOT}/sendMessage`,
       {method:'POST', headers:{'Content-Type':'application/json'},
        body:JSON.stringify({chat_id:cid, text:txt, disable_web_page_preview:true})});
     return (await r.json()).ok;
-  } catch(e) { return false; }
+  } catch(e) { console.error('TG send error:', e); return false; }
 }
 
 // ══ ORDERS LIST ══════════════════════════════════
+function setOrdFilter(f, el) {
+  ordFilter = f;
+  document.querySelectorAll('.ofbtn').forEach(b => b.classList.remove('active'));
+  el.classList.add('active');
+  renderUserOrders();
+}
+
 async function loadOrders() {
   const box = document.getElementById('ordersbox');
   box.innerHTML = '<div style="text-align:center;padding:40px;color:var(--teal);"><b>جاري التحميل...</b></div>';
-  const SM = {
-    received:  {l:'تم الاستلام',  c:'s-r',i:'📥',idx:0},
-    printing:  {l:'قيد الطباعة', c:'s-p',i:'🖨️',idx:1},
-    delivering:{l:'جاري التوصيل',c:'s-d',i:'🛵',idx:2},
-    delivered: {l:'تم التسليم',  c:'s-v',i:'✅',idx:3},
-    cancelled: {l:'ملغى',        c:'s-c',i:'❌',idx:-1}
-  };
-  const segs = ['استلام','طباعة','توصيل','تسليم'];
-  const {data, error} = await sb.from('orders').select('*').eq('user_id', userId).order('created_at',{ascending:false}).limit(30);
+  const {data, error} = await sb.from('orders').select('*').eq('user_id', userId).order('created_at',{ascending:false}).limit(50);
   if (error || !data?.length) {
+    allUserOrders = [];
     box.innerHTML = '<div style="text-align:center;padding:60px 20px;color:var(--text-muted);"><div style="font-size:4rem;opacity:.3;margin-bottom:12px;">📦</div><h3 style="color:var(--navy);margin:0 0 10px;">لا توجد طلبات بعد</h3><button onclick="goTab(\'order\')" class="bmain btn-action" style="max-width:200px;margin:0 auto;">أنشئ أول طلب ✨</button></div>';
+    document.getElementById('ordbadge').style.display = 'none';
     return;
   }
+  allUserOrders = data;
+  renderUserOrders();
+}
+
+function renderUserOrders() {
+  const SM = {
+    received:{l:'تم الاستلام',c:'s-r',i:'📥',idx:0}, printing:{l:'قيد الطباعة',c:'s-p',i:'🖨️',idx:1},
+    delivering:{l:'جاري التوصيل',c:'s-d',i:'🛵',idx:2}, delivered:{l:'تم التسليم',c:'s-v',i:'✅',idx:3},
+    cancelled:{l:'ملغى',c:'s-c',i:'❌',idx:-1}
+  };
+  const segs = ['استلام','طباعة','توصيل','تسليم'];
+
+  let filtered = allUserOrders;
+  if (ordFilter === 'active') filtered = allUserOrders.filter(o => ['received','printing','delivering'].includes(o.status));
+  else if (ordFilter === 'delivered') filtered = allUserOrders.filter(o => o.status === 'delivered');
+  else if (ordFilter === 'cancelled') filtered = allUserOrders.filter(o => o.status === 'cancelled');
+
+  const box = document.getElementById('ordersbox');
+  if (!filtered.length) {
+    box.innerHTML = `<div style="text-align:center;padding:40px;color:var(--text-muted);"><div style="font-size:3rem;opacity:.3;margin-bottom:10px;">📭</div><p style="font-weight:600;">لا توجد طلبات في هذا القسم</p></div>`;
+    return;
+  }
+
   let ac = 0;
-  box.innerHTML = data.map(o => {
+  box.innerHTML = filtered.map(o => {
     const s = SM[o.status] || SM.received;
     if (['received','printing','delivering'].includes(o.status)) ac++;
     const dt = new Date(o.created_at).toLocaleDateString('ar-IQ');
@@ -1179,31 +1216,28 @@ async function loadOrders() {
     if (o.status==='delivered') ptsNote = '<span style="color:var(--green);">تمت الإضافة ✅</span>';
     if (o.status==='cancelled') ptsNote = '<span style="color:var(--red);">ملغاة ❌</span>';
 
-    // Mini progress bar — delivered=all green stable, current=orange pulse, done=green stable
     let mpHtml = '';
     if (o.status !== 'cancelled') {
-      mpHtml = `<div class="mpbar">` +
-        [0,1,2,3].map(i => {
-          // all green when delivered; done=green; current=orange pulse; pending=empty
-          const cls = o.status === 'delivered' ? 'done'
-                    : i < s.idx              ? 'done'
-                    : i === s.idx            ? 'cur' : '';
-          return `<div class="mpseg ${cls}"></div>`;
-        }).join('') +
-        `</div><div class="mplabels">` +
-        segs.map((lb,i) => {
-          const lCls = o.status === 'delivered' ? 'done'
-                     : i === s.idx ? 'cur' : '';
-          return `<span class="mplbl ${lCls}">${lb}</span>`;
-        }).join('') +
-        `</div>`;
+      mpHtml = `<div class="mpbar">${[0,1,2,3].map(i => {
+        const cls = o.status==='delivered'?'done':i<s.idx?'done':i===s.idx?'cur':'';
+        return `<div class="mpseg ${cls}"></div>`;
+      }).join('')}</div><div class="mplabels">${segs.map((lb,i) => {
+        const lCls = o.status==='delivered'?'done':i===s.idx?'cur':'';
+        return `<span class="mplbl ${lCls}">${lb}</span>`;
+      }).join('')}</div>`;
     } else {
-      mpHtml = `<div style="margin-top:10px;font-size:.82rem;color:var(--red);font-weight:700;">❌ تم إلغاء هذا الطلب</div>`;
+      mpHtml = `<div style="margin-top:10px;background:#fef2f2;border:1px solid #fecaca;border-radius:12px;padding:10px;">
+        <div style="font-size:.85rem;color:#991b1b;font-weight:700;margin-bottom:${o.cancel_reason?'6px':'0'};">❌ تم إلغاء هذا الطلب</div>
+        ${o.cancel_reason ? `<div style="font-size:.82rem;color:#b91c1c;font-weight:600;">📋 السبب: ${esc(o.cancel_reason)}</div>` : ''}
+      </div>`;
     }
 
-    return `<div class="ocard" onclick="showDet('${o.id}')">
+    return `<div class="ocard ${o.is_express?'express-card':''}" onclick="showDet('${esc(o.id)}')">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
-        <b style="color:var(--navy);font-size:1.1rem;">#${o.id}</b>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <b style="color:var(--navy);font-size:1.1rem;">#${esc(o.id)}</b>
+          ${o.is_express?'<span class="express-badge">⚡ عاجل</span>':''}
+        </div>
         <span class="sbadge ${s.c}">${s.i} ${s.l}</span>
       </div>
       <div style="background:var(--input-bg);padding:10px;border-radius:10px;display:flex;justify-content:space-between;font-size:.85rem;color:var(--text-muted);font-weight:500;">
@@ -1216,21 +1250,15 @@ async function loadOrders() {
   }).join('');
 
   const b = document.getElementById('ordbadge');
-  if (ac > 0) { b.innerText=ac; b.style.display='inline'; } else b.style.display='none';
+  const totalActive = allUserOrders.filter(o => ['received','printing','delivering'].includes(o.status)).length;
+  if (totalActive > 0) { b.innerText=totalActive; b.style.display='inline'; } else b.style.display='none';
 }
 
 // ══ ORDER DETAIL ═════════════════════════════════
 async function showDet(oid) {
   document.getElementById('det-ov').classList.add('open');
   document.getElementById('det-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--teal);"><b>جاري جلب التفاصيل...</b></div>';
-
-  const steps = [
-    {k:'received',  l:'استلام الطلب',   i:'📥'},
-    {k:'printing',  l:'جاري الطباعة',   i:'🖨️'},
-    {k:'delivering',l:'في الطريق إليك', i:'🛵'},
-    {k:'delivered', l:'تم التسليم',     i:'✅'}
-  ];
-
+  const steps = [{k:'received',l:'استلام الطلب',i:'📥'},{k:'printing',l:'جاري الطباعة',i:'🖨️'},{k:'delivering',l:'في الطريق إليك',i:'🛵'},{k:'delivered',l:'تم التسليم',i:'✅'}];
   const {data:o} = await sb.from('orders').select('*').eq('id', oid).maybeSingle();
   if (!o) { document.getElementById('det-body').innerHTML='<p style="color:var(--red);text-align:center;font-weight:700;padding:20px;">⚠️ لم يتم العثور على الطلب</p>'; return; }
 
@@ -1242,25 +1270,39 @@ async function showDet(oid) {
   steps.forEach((s, i) => {
     const done = i < ci;
     const isCur = i === ci;
-    // Delivered final step = stable green (tld), NOT animated orange
     const isFinalDone = isCur && isDelivered;
     const cl = (done || isFinalDone) ? 'tld' : isCur ? 'tlcur' : 'tlpendin';
-    const h  = o.status_history?.find(x => x.status === s.k);
+    const h = o.status_history?.find(x => x.status === s.k);
     const ts = h ? new Date(h.time).toLocaleString('ar-IQ', {hour:'2-digit',minute:'2-digit',month:'short',day:'numeric'}) : '';
-    tl += `<div class="tlstep"><div style="display:flex;flex-direction:column;align-items:center;">
-      <div class="tlc ${cl}">${(done||isFinalDone)?'✓':s.i}</div>
-      ${i<steps.length-1?`<div class="tlcon ${(done||isFinalDone)?'done':''}"></div>`:''}
-    </div><div style="padding-top:5px;">
-      <b style="color:${isCur?'var(--navy)':'var(--text-muted)'};font-size:${isCur?'1.05rem':'.95rem'}">${s.l}</b>
-      ${ts?`<div style="font-size:.78rem;color:#94a3b8;margin-top:2px;">${ts}</div>`:''}
-    </div></div>`;
+    tl += `<div class="tlstep"><div style="display:flex;flex-direction:column;align-items:center;"><div class="tlc ${cl}">${(done||isFinalDone)?'✓':s.i}</div>${i<steps.length-1?`<div class="tlcon ${(done||isFinalDone)?'done':''}"></div>`:''}</div><div style="padding-top:5px;"><b style="color:${isCur?'var(--navy)':'var(--text-muted)'};font-size:${isCur?'1.05rem':'.95rem'}">${s.l}</b>${ts?`<div style="font-size:.78rem;color:#94a3b8;margin-top:2px;">${ts}</div>`:''}</div></div>`;
   });
   tl += '</div>';
 
   let cancelBox = '';
-  if (['received','printing','delivering'].includes(o.status)) {
+  if (o.status === 'cancelled') {
+    // ── Cancelled: show reason + contact ──
     cancelBox = `
-    <div style="background:#fef2f2;border:1px solid #fecaca;border-radius:16px;padding:14px;margin-bottom:18px;text-align:center;">
+    <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:18px;padding:18px;margin-bottom:18px;">
+      <div style="text-align:center;margin-bottom:14px;">
+        <div style="font-size:2.5rem;margin-bottom:6px;">❌</div>
+        <h3 style="margin:0 0 4px;color:#991b1b;font-weight:800;font-size:1.1rem;">تم إلغاء هذا الطلب</h3>
+      </div>
+      ${o.cancel_reason ? `
+      <div style="background:#fff5f5;border:1px solid #fecaca;border-radius:14px;padding:14px;margin-bottom:14px;">
+        <p style="margin:0 0 6px;font-size:.82rem;color:#991b1b;font-weight:800;">📋 سبب الإلغاء:</p>
+        <p style="margin:0;font-size:.95rem;color:#b91c1c;font-weight:700;line-height:1.7;">${esc(o.cancel_reason)}</p>
+      </div>` : ''}
+      <p style="margin:0 0 10px;font-size:.88rem;color:#991b1b;font-weight:700;text-align:center;">للاستفسار أو إعادة الطلب تواصل معنا:</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="tel:07752564099" style="display:block;background:#ef4444;color:#fff;text-decoration:none;padding:12px;border-radius:12px;font-weight:700;font-size:.92rem;text-align:center;">📞 اتصل بنا (07752564099)</a>
+        <div style="display:flex;gap:8px;">
+          <a href="https://wa.me/9647752564099" target="_blank" style="flex:1;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">💬 واتساب</a>
+          <a href="https://t.me/+9647752564099" target="_blank" style="flex:1;background:#0088cc;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">✈️ تيليجرام</a>
+        </div>
+      </div>
+    </div>`;
+  } else if (['received','printing','delivering'].includes(o.status)) {
+    cancelBox = `<div style="background:#fef2f2;border:1px solid #fecaca;border-radius:16px;padding:14px;margin-bottom:18px;text-align:center;">
       <b style="color:#991b1b;font-size:.92rem;display:block;margin-bottom:10px;">هل ترغب في تعديل أو إلغاء الطلب؟</b>
       <div style="display:flex;flex-direction:column;gap:8px;">
         <a href="tel:07752564099" style="display:block;background:#ef4444;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.9rem;">📞 اتصل بنا (07752564099)</a>
@@ -1270,10 +1312,48 @@ async function showDet(oid) {
         </div>
       </div>
     </div>`;
+  } else if (o.status === 'cancelled') {
+    cancelBox = `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:16px;padding:18px;margin-bottom:18px;">
+      <div style="text-align:center;margin-bottom:12px;">
+        <div style="font-size:2.5rem;margin-bottom:6px;">❌</div>
+        <b style="color:#991b1b;font-size:1.05rem;">تم إلغاء هذا الطلب</b>
+      </div>
+      ${o.cancel_reason ? `<div style="background:#fff;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:14px;">
+        <p style="margin:0 0 4px;font-size:.82rem;color:#94a3b8;font-weight:700;">📋 سبب الإلغاء:</p>
+        <p style="margin:0;font-size:.95rem;color:#991b1b;font-weight:800;line-height:1.6;">${esc(o.cancel_reason)}</p>
+      </div>` : ''}
+      <p style="margin:0 0 10px;font-size:.88rem;color:#78350f;font-weight:700;text-align:center;">📞 للاستفسار أو إعادة الطلب تواصل معنا:</p>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <a href="tel:07752564099" style="display:block;background:#ef4444;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.9rem;text-align:center;">📞 اتصل بنا (07752564099)</a>
+        <div style="display:flex;gap:8px;">
+          <a href="https://wa.me/9647752564099" target="_blank" style="flex:1;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">💬 واتساب</a>
+          <a href="https://t.me/+9647752564099" target="_blank" style="flex:1;background:#0088cc;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">✈️ تيليجرام</a>
+        </div>
+      </div>
+    </div>`;
+  }
+
+  // Rating display
+  let ratingHtml = '';
+  if (o.rating) {
+    ratingHtml = `<div style="background:var(--light-teal);border-radius:14px;padding:12px;margin-bottom:16px;text-align:center;">
+      <p style="margin:0 0 4px;font-weight:700;color:var(--navy);">تقييمك لهذا الطلب</p>
+      <div style="font-size:1.8rem;">${'⭐'.repeat(o.rating)}${'☆'.repeat(5-o.rating)}</div>
+      ${o.rating_comment ? `<p style="margin:6px 0 0;font-size:.85rem;color:var(--text-muted);">${esc(o.rating_comment)}</p>` : ''}
+    </div>`;
+  } else if (o.status === 'delivered') {
+    ratingHtml = `<button onclick="showRateModal('${esc(o.id)}')" class="bmain" style="background:var(--teal);color:#fff;margin-bottom:16px;font-size:.95rem;">⭐ قيّم هذا الطلب</button>`;
+  }
+
+  // Re-order button
+  let reorderBtn = '';
+  if (o.status === 'delivered' || o.status === 'cancelled') {
+    reorderBtn = `<button onclick="reOrder('${esc(o.id)}')" class="bmain" style="background:var(--navy);color:#fff;margin-bottom:14px;font-size:.95rem;">🔄 أعد هذا الطلب</button>`;
   }
 
   document.getElementById('det-body').innerHTML = `
-    ${tl}${cancelBox}
+    ${o.is_express?'<div style="text-align:center;margin-bottom:12px;"><span class="express-badge" style="font-size:.85rem;padding:6px 16px;">⚡ طلب عاجل</span></div>':''}
+    ${tl}${cancelBox}${ratingHtml}
     <div style="background:var(--light-teal);border:1px solid rgba(90,179,196,.2);border-radius:16px;padding:16px;margin-bottom:16px;">
       <div class="il" style="color:var(--navy);"><span>الطباعة:</span><b>${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه واحد':'وجهين'}</b></div>
       <div class="il" style="color:var(--navy);margin-top:8px;"><span>المجموع:</span><b style="font-size:1.15rem;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</b></div>
@@ -1281,22 +1361,49 @@ async function showDet(oid) {
     </div>
     <h4 style="margin:0 0 10px;color:var(--navy);font-weight:800;">الملفات (${o.files?.length||0})</h4>
     <div style="background:var(--card);border-radius:14px;padding:8px 14px;border:1px solid var(--border);">
-      ${o.files?.map(f=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem;display:flex;justify-content:space-between;align-items:center;"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;">📄 ${f.name}</span><span style="color:var(--text-muted);font-size:.83rem;background:var(--input-bg);padding:3px 8px;border-radius:6px;">${f.pages}ص × <b style="color:var(--navy);">${f.copies}</b>ن</span></div>`).join('')||''}
-    </div>`;
+      ${o.files?.map(f=>`<div style="padding:10px 0;border-bottom:1px solid var(--border);font-size:.88rem;display:flex;justify-content:space-between;align-items:center;"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:65%;">📄 ${esc(f.name)}</span><span style="color:var(--text-muted);font-size:.83rem;background:var(--input-bg);padding:3px 8px;border-radius:6px;">${f.pages}ص × <b style="color:var(--navy);">${f.copies}</b>ن</span></div>`).join('')||''}
+    </div>
+    ${reorderBtn}`;
 }
 function closeDet() { document.getElementById('det-ov').classList.remove('open'); }
+
+// ══ RE-ORDER ═════════════════════════════════════
+async function reOrder(oid) {
+  const {data:o} = await sb.from('orders').select('*').eq('id', oid).maybeSingle();
+  if (!o) return;
+  closeDet();
+  // حفظ البيانات أولاً ثم إعادة التحميل
+  localStorage.setItem('sh-reorder', JSON.stringify({name:o.name, phone:o.phone, region:o.region, color:o.color, side:o.side}));
+  location.reload();
+}
+// Check for reorder data on load
+(function() {
+  try {
+    const ro = JSON.parse(localStorage.getItem('sh-reorder'));
+    if (ro) {
+      localStorage.removeItem('sh-reorder');
+      setTimeout(() => {
+        if (ro.name) document.getElementById('uName').value = ro.name;
+        if (ro.phone) document.getElementById('uPhone').value = ro.phone;
+        if (ro.region) document.getElementById('uRegion').value = ro.region;
+        if (ro.color) setC(ro.color);
+        if (ro.side) setS(ro.side);
+        showToast('✅ تم تعبئة البيانات — ارفع الملفات فقط');
+      }, 500);
+    }
+  } catch {}
+})();
 
 // ══ POINTS UI ════════════════════════════════════
 function refreshPtsUI() {
   const p = uDoc?.loyalty_points || 0;
   document.getElementById('ptsnum').innerText = p.toLocaleString();
   let tier, cls, next, pct;
-  // Gold at 1000
-  if (p >= 1000)     { tier='🥇 المستوى الذهبي'; cls='tgold'; next='أنت في أعلى مستوى! خصم 5% دائم 🎉'; pct=100; }
-  else if (p >= 200) { tier='🥈 المستوى الفضي';  cls='tsilv'; next=`${1000-p} نقطة للذهبي`;            pct=((p-200)/800)*100; }
-  else               { tier='🥉 المستوى البرونزي';cls='tbron'; next=`${200-p} نقطة للفضي`;              pct=(p/200)*100; }
+  if (p >= 1000) { tier='🥇 المستوى الذهبي';cls='tgold';next='أنت في أعلى مستوى! خصم 5% دائم 🎉';pct=100; }
+  else if (p >= 200) { tier='🥈 المستوى الفضي';cls='tsilv';next=`${1000-p} نقطة للذهبي`;pct=((p-200)/800)*100; }
+  else { tier='🥉 المستوى البرونزي';cls='tbron';next=`${200-p} نقطة للفضي`;pct=(p/200)*100; }
   document.getElementById('tierdisp').innerHTML = `<div class="tierbadge ${cls}">${tier}</div>`;
-  document.getElementById('ptsnext').innerText  = next;
+  document.getElementById('ptsnext').innerText = next;
   document.getElementById('ptsbar').style.width = pct + '%';
   [['rb100',100],['rb300',300],['rb700',700]].forEach(([id,c]) => {
     const b = document.getElementById(id); if(b) b.disabled = p < c;
@@ -1314,12 +1421,12 @@ async function loadPtsTab() {
       const d = new Date(o.created_at).toLocaleDateString('ar-IQ');
       if (o.loyalty_points_earned > 0) {
         const earned = o.status === 'delivered';
-        h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);"><div><b style="font-size:.93rem;color:var(--navy);">طلب #${o.id}</b><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">${d}</div></div><span style="background:${earned?'#dcfce7':'#fef3c7'};color:${earned?'#166534':'#b45309'};font-weight:800;padding:5px 12px;border-radius:10px;font-size:.88rem;">${earned?'+':'⏳ '} ${o.loyalty_points_earned} نقطة</span></div>`;
+        h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);"><div><b style="font-size:.93rem;color:var(--navy);">طلب #${esc(o.id)}</b><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">${d}</div></div><span style="background:${earned?'#dcfce7':'#fef3c7'};color:${earned?'#166534':'#b45309'};font-weight:800;padding:5px 12px;border-radius:10px;font-size:.88rem;">${earned?'+':'⏳ '} ${o.loyalty_points_earned} نقطة</span></div>`;
       }
-      if (o.pts_used > 0) h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);"><div><b style="font-size:.93rem;color:var(--navy);">استبدال مكافأة — طلب #${o.id}</b><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">${d}</div></div><span style="background:#fee2e2;color:#991b1b;font-weight:800;padding:5px 12px;border-radius:10px;font-size:.88rem;">−${o.pts_used} نقطة</span></div>`;
+      if (o.pts_used > 0) h += `<div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border);"><div><b style="font-size:.93rem;color:var(--navy);">استبدال مكافأة — طلب #${esc(o.id)}</b><div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">${d}</div></div><span style="background:#fee2e2;color:#991b1b;font-weight:800;padding:5px 12px;border-radius:10px;font-size:.88rem;">−${o.pts_used} نقطة</span></div>`;
     });
     document.getElementById('ptshist').innerHTML = h || '<p style="color:#94a3b8;font-size:.9rem;text-align:center;padding:10px;">لا يوجد سجل بعد. أكمل أول طلب لتبدأ!</p>';
-  } catch {}
+  } catch(e) { console.error('Points load error:', e); }
 }
 
 // ══ HELPERS ══════════════════════════════════════
