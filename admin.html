@@ -417,6 +417,11 @@ input:focus,textarea:focus,select:focus { border-color:var(--teal); }
           <input type="text" id="cpn-value" placeholder="القيمة" style="flex:1;margin-bottom:0;">
         </div>
         <input type="text" id="cpn-max" placeholder="الحد الأقصى للاستخدام (0 = غير محدود)" style="margin-bottom:12px;">
+        <input type="number" id="cpn-min-order" placeholder="الحد الأدنى لقيمة الطلب بالدينار (0 = بدون حد)" style="margin-bottom:12px;">
+        <div style="margin-bottom:14px;">
+          <label style="font-size:.83rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">📅 تاريخ انتهاء الصلاحية (اختياري):</label>
+          <input type="date" id="cpn-expires" style="margin-bottom:0;">
+        </div>
         <button class="bmain" style="background:var(--teal);color:#fff;" onclick="createCoupon()">✅ إنشاء الكوبون</button>
       </div>
       <!-- Coupon list -->
@@ -514,6 +519,7 @@ const ADMIN_ID  = '7618746133';
 
 const sb = window.supabase.createClient(SB_URL, SB_KEY);
 let allOrders = [], curFilter = 'all', rtCh = null, currentRole = '';
+let _detOrderId = null, _detOrderTgId = null;
 
 // ══ DEBOUNCE البحث ════════════════════════════════
 let _searchT;
@@ -1275,24 +1281,76 @@ async function fetchOrders() {
 //  STATS
 // ══════════════════════════════════
 function calcStats() {
+  const now = new Date();
   const tod = new Date(); tod.setHours(0,0,0,0);
-  const todayOrds   = allOrders.filter(o => new Date(o.created_at) >= tod);
-  const pendingOrds = allOrders.filter(o => ['received','printing','delivering'].includes(o.status));
-  const todayRev    = todayOrds.filter(o => o.status==='delivered').reduce((s,o) => s+(o.total||0), 0);
+  const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  const weekStart  = new Date(now); weekStart.setDate(weekStart.getDate() - 6); weekStart.setHours(0,0,0,0);
+
+  const todayOrds    = allOrders.filter(o => new Date(o.created_at) >= tod);
+  const pendingOrds  = allOrders.filter(o => ['received','printing','delivering'].includes(o.status));
+  const deliveredAll = allOrders.filter(o => o.status === 'delivered');
+  const todayRev     = todayOrds.filter(o => o.status==='delivered').reduce((s,o)=>s+(o.total||0),0);
+  const monthRev     = allOrders.filter(o=>o.status==='delivered'&&new Date(o.created_at)>=monthStart).reduce((s,o)=>s+(o.total||0),0);
+  const weekOrds     = allOrders.filter(o=>new Date(o.created_at)>=weekStart).length;
+  const avgOrder     = deliveredAll.length ? Math.round(deliveredAll.reduce((s,o)=>s+(o.total||0),0)/deliveredAll.length) : 0;
+  const nonCancelled = allOrders.filter(o=>o.status!=='cancelled').length || 1;
+  const completionRate = Math.round((deliveredAll.length / nonCancelled) * 100);
+  const couponsUsed  = allOrders.filter(o=>o.coupon_code).length;
+
+  const regionMap = {};
+  allOrders.forEach(o=>{ if(o.region) regionMap[o.region]=(regionMap[o.region]||0)+1; });
+  const topRegions = Object.entries(regionMap).sort((a,b)=>b[1]-a[1]).slice(0,3);
+
+  const expressCount = allOrders.filter(o=>o.is_express).length;
+
   document.getElementById('s-today').innerText   = todayOrds.length;
   document.getElementById('s-pending').innerText = pendingOrds.length;
-  document.getElementById('s-revenue').innerText = (todayRev/1000).toFixed(0) + 'K';
+  document.getElementById('s-revenue').innerText = (todayRev/1000).toFixed(1) + 'K';
   document.getElementById('s-total').innerText   = allOrders.length;
   document.getElementById('s-pending').style.color = pendingOrds.length > 0 ? 'var(--orange)' : 'var(--green)';
 
   const det = document.getElementById('stats-detail');
   if (!det) return;
+
   const byStatus = {};
   Object.keys(SM).forEach(k => byStatus[k] = allOrders.filter(o=>o.status===k).length);
-  det.innerHTML = Object.entries(byStatus).map(([k,v]) => {
+  const statusRows = Object.entries(byStatus).map(([k,v]) => {
     const s = SM[k];
-    return `<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid #f1f5f9;font-size:.92rem;"><span>${s.i} ${s.l}</span><b>${v} طلب</b></div>`;
+    return `<div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:.9rem;"><span>${s.i} ${s.l}</span><b>${v} طلب</b></div>`;
   }).join('');
+
+  det.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px;">
+      <div style="background:linear-gradient(135deg,#0d3b66,#1e40af);color:#fff;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:1.7rem;font-weight:800;">${(monthRev/1000).toFixed(0)}K</div>
+        <div style="font-size:.73rem;opacity:.85;margin-top:2px;">إيرادات الشهر (د.ع)</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#065f46,#10b981);color:#fff;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:1.7rem;font-weight:800;">${weekOrds}</div>
+        <div style="font-size:.73rem;opacity:.85;margin-top:2px;">طلبات هذا الأسبوع</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#b45309,#f59e0b);color:#fff;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:1.7rem;font-weight:800;">${avgOrder.toLocaleString()}</div>
+        <div style="font-size:.73rem;opacity:.85;margin-top:2px;">متوسط قيمة الطلب</div>
+      </div>
+      <div style="background:linear-gradient(135deg,#7c3aed,#9333ea);color:#fff;border-radius:14px;padding:14px;text-align:center;">
+        <div style="font-size:1.7rem;font-weight:800;">${completionRate}%</div>
+        <div style="font-size:.73rem;opacity:.85;margin-top:2px;">معدل الإتمام</div>
+      </div>
+    </div>
+
+    <h4 style="margin:0 0 10px;color:var(--navy);font-weight:800;font-size:.92rem;">📊 توزيع الطلبات حسب الحالة</h4>
+    ${statusRows}
+
+    ${topRegions.length ? `
+    <h4 style="margin:14px 0 10px;color:var(--navy);font-weight:800;font-size:.92rem;">📍 أكثر المناطق طلباً</h4>
+    ${topRegions.map(([r,c],i)=>`<div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #f1f5f9;font-size:.9rem;"><span>${['🥇','🥈','🥉'][i]||'📍'} ${esc(r)}</span><b style="color:var(--teal);">${c} طلب</b></div>`).join('')}` : ''}
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:16px;">
+      ${couponsUsed > 0 ? `<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#166534;">${couponsUsed}</div><div style="font-size:.73rem;color:#166534;">استخدام الكوبونات</div></div>` : ''}
+      ${expressCount > 0 ? `<div style="background:#f5f3ff;border:1px solid #c4b5fd;border-radius:12px;padding:12px;text-align:center;"><div style="font-size:1.4rem;font-weight:800;color:#7c3aed;">${expressCount}</div><div style="font-size:.73rem;color:#7c3aed;">طلبات عاجلة ⚡</div></div>` : ''}
+    </div>
+  `;
 }
 
 // ══════════════════════════════════
@@ -1481,6 +1539,7 @@ async function tgSend(chatId, text) {
 // ══════════════════════════════════
 function openDet(docId) {
   const o = allOrders.find(x => x.id === docId); if (!o) return;
+  _detOrderId = o.id; _detOrderTgId = o.telegram_id || '';
   document.getElementById('detov').style.display = 'block';
   setTimeout(() => document.getElementById('detov').classList.add('open'), 10);
   document.getElementById('detpan').classList.add('open');
@@ -1514,7 +1573,7 @@ function openDet(docId) {
       <div class="irow"><span>👤 الاسم</span><b>${esc(o.name)}</b></div>
       <div class="irow"><span>📞 الهاتف</span><b>${esc(ph)}</b></div>
       <div class="irow"><span>🏠 المنطقة</span><b>${esc(o.region)}</b></div>
-      <div class="irow"><span>⏰ وقت التوصيل</span><b>${esc(o.delivery_time)||'الآن'}</b></div>
+      <div class="irow"><span>⏰ وقت التوصيل المتوقع</span><b style="color:var(--teal);">${o.eta ? esc(o.eta) : '—'}</b></div>
       <div class="irow"><span>📍 الموقع</span><a href="${o.loc_url||'#'}" target="_blank" style="color:#fff;background:var(--teal);padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.82rem;">الخريطة 🗺️</a></div>
     </div>
 
@@ -1546,7 +1605,33 @@ function openDet(docId) {
       ${o.files?.map(f=>'<div style="font-size:.87rem;padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;"><span>📄 '+f.name+'</span><span style="color:var(--text-muted);background:#f8fafc;padding:3px 8px;border-radius:6px;font-weight:700;font-size:.82rem;">'+f.pages+'ص × <b style=\"color:var(--navy);\">'+f.copies+'</b>ن</span></div>').join('')||''}
     </div>` : ''}
 
+    ${['received','printing','delivering'].includes(o.status) ? `
+    <div style="background:#f0fdf4;border:1.5px solid #86efac;border-radius:14px;padding:14px;margin-bottom:14px;">
+      <p style="margin:0 0 8px;font-size:.85rem;color:#166534;font-weight:800;">⏱️ تحديد وقت التوصيل المتوقع</p>
+      <div style="display:flex;gap:6px;">
+        <input type="text" id="eta-inp" value="${esc(o.eta||'')}" placeholder="مثال: خلال ساعتين / 4:30 م" style="flex:1;margin:0;padding:8px 12px;font-size:.88rem;">
+        <button onclick="setOrderETA()" style="background:#16a34a;color:#fff;border:none;border-radius:10px;padding:8px 14px;font-size:.85rem;font-weight:700;cursor:pointer;white-space:nowrap;font-family:'Tajawal',sans-serif;">💾 حفظ وأرسل للزبون</button>
+      </div>
+    </div>` : ''}
     ${detAct?`<div class="arow">${detAct}</div>`:`<div style="text-align:center;background:#f8fafc;border-radius:12px;padding:14px;color:var(--text-muted);font-weight:700;">${o.status==='delivered'?'✅ الطلب مكتمل':'❌ الطلب ملغى'}</div>`}`;
+}
+
+async function setOrderETA() {
+  const eta = document.getElementById('eta-inp')?.value?.trim();
+  if (!eta) { showToast('⚠️ أدخل وقت التوصيل المتوقع'); return; }
+  try {
+    const {error} = await sb.from('orders').update({eta}).eq('id', _detOrderId);
+    if (error) throw error;
+    const ord = allOrders.find(o => o.id === _detOrderId);
+    if (ord) ord.eta = eta;
+    showToast('✅ تم حفظ وقت التوصيل: ' + eta);
+    if (_detOrderTgId && !_detOrderTgId.startsWith('guest_')) {
+      await tgSend(_detOrderTgId,
+        `⏱️ تحديث طلبك #${_detOrderId}\n\nالوقت المتوقع للتوصيل: ${eta}\n\nنتمنى لك تجربة رائعة مع الشاطر! 🌟`
+      );
+      showToast('✅ تم الحفظ وإشعار الزبون ✅');
+    }
+  } catch(e) { console.error(e); showToast('❌ فشل الحفظ: ' + (e.message||e)); }
 }
 
 function closeDet() {
@@ -1583,8 +1668,10 @@ async function loadCoupons() {
             </div>
             <span style="font-size:.88rem;font-weight:800;color:var(--orange);">${c.discount_type==='percent'?c.discount_value+'%':c.discount_value.toLocaleString()+' د.ع'}</span>
           </div>
-          <div style="font-size:.8rem;color:var(--text-muted);margin-top:6px;">
+          <div style="font-size:.8rem;color:var(--text-muted);margin-top:6px;line-height:1.8;">
             تم الاستخدام: <b>${c.used_count||0}</b>${c.max_uses>0?' / '+c.max_uses:' (غير محدود)'}
+            ${c.expires_at ? ` &nbsp;•&nbsp; ⏰ ينتهي: <b style="color:${new Date(c.expires_at)<new Date()?'#ef4444':'#166534'};">${new Date(c.expires_at).toLocaleDateString('ar-IQ')}</b>` : ''}
+            ${c.min_order_amount > 0 ? ` &nbsp;•&nbsp; حد أدنى: <b>${c.min_order_amount.toLocaleString()} د.ع</b>` : ''}
           </div>
           <div style="display:flex;gap:6px;margin-top:8px;">
             <button onclick="toggleCoupon('${c.id}',${!c.active})" style="border:none;background:${c.active?'#fef2f2':'#dcfce7'};color:${c.active?'var(--red)':'#166534'};padding:5px 12px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:700;">${c.active?'تعطيل':'تفعيل'}</button>
@@ -1606,15 +1693,22 @@ async function createCoupon() {
   if (isNaN(value) || value <= 0) { alert('يرجى إدخال قيمة صحيحة'); return; }
   if (type === 'percent' && value > 100) { alert('النسبة لا يمكن أن تتجاوز 100%'); return; }
 
+  const expiresAt  = document.getElementById('cpn-expires').value  || null;
+  const minOrderAmt = parseInt(document.getElementById('cpn-min-order').value) || 0;
+
   try {
     const {error} = await sb.from('coupons').insert({
       code, discount_type: type, discount_value: value,
-      max_uses: maxUses, used_count: 0, active: true
+      max_uses: maxUses, used_count: 0, active: true,
+      expires_at: expiresAt,
+      min_order_amount: minOrderAmt
     });
     if (error) throw error;
     document.getElementById('cpn-code').value = '';
     document.getElementById('cpn-value').value = '';
     document.getElementById('cpn-max').value = '';
+    document.getElementById('cpn-expires').value = '';
+    document.getElementById('cpn-min-order').value = '';
     showToast('✅ تم إنشاء الكوبون ' + code);
     loadCoupons();
   } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
@@ -1639,4 +1733,5 @@ async function deleteCoupon(id) {
 </script>
 </body>
 </html>
+
 
