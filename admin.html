@@ -150,7 +150,7 @@ input:focus,textarea:focus,select:focus { border-color:var(--teal); }
     <p style="color:var(--text-muted);margin-bottom:24px;font-size:.92rem;">خدمات الشاطر الطلابية</p>
 
     <div class="errbox" id="loginerr"></div>
-    <input type="text" id="adm-user" placeholder="👤 اسم المستخدم" autocomplete="username">
+    <input type="text" id="adm-user" placeholder="📧 البريد الإلكتروني" autocomplete="email">
     <input type="password" id="adm-pass" placeholder="🔑 كلمة المرور" autocomplete="current-password">
     <button class="bmain" style="background:var(--navy);color:#fff;" onclick="doLogin()">تسجيل الدخول</button>
   </div>
@@ -240,7 +240,7 @@ input:focus,textarea:focus,select:focus { border-color:var(--teal); }
       <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);">
         <h4 style="margin:0 0 14px;color:var(--navy);font-weight:800;">➕ إضافة حساب موظف جديد</h4>
         <input type="text"     id="new-staff-name"  placeholder="✍️ اسم الموظف" style="margin-bottom:10px;">
-        <input type="text"     id="new-staff-user"  placeholder="👤 اسم المستخدم (للدخول)" style="margin-bottom:10px;">
+        <input type="text"     id="new-staff-user"  placeholder="📧 البريد الإلكتروني (للدخول)" style="margin-bottom:10px;">
         <input type="password" id="new-staff-pass"  placeholder="🔑 كلمة المرور">
         <p style="margin:0 0 8px;font-size:.88rem;color:var(--text-muted);font-weight:700;">صلاحياته:</p>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
@@ -508,7 +508,7 @@ function playAdminAlert(status) {
 //  CONFIG
 // ══════════════════════════════════
 const SB_URL    = 'https://zrumnqtgdscrwgcguseq.supabase.co';
-const SB_KEY    = 'sb_publishable_xEqE6S21QUMCkDxSMvTskg_9g3pi-vZ';
+const SB_KEY    = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpydW1ucXRnZHNjcndnY2d1c2VxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQyNjM2NzMsImV4cCI6MjA4OTgzOTY3M30.Pw71Qfz57br6TwnaRK_2DcgHfEGUHgK_OrpRzuv2Na8';
 const BOT_TOKEN = '8507186698:AAHXCtsLn8j88A2QgiXSmNFbnEfpn1nCYew';
 const ADMIN_ID  = '7618746133';
 
@@ -594,55 +594,62 @@ function custMsg(id, status, reason='') {
 }
 
 // ══════════════════════════════════
-//  AUTH
+//  AUTH — Supabase Auth
 // ══════════════════════════════════
-function doLogin() {
-  const user = document.getElementById('adm-user').value.trim();
-  const pass = document.getElementById('adm-pass').value;
-  const err  = document.getElementById('loginerr');
+async function doLogin() {
+  const email = document.getElementById('adm-user').value.trim();
+  const pass  = document.getElementById('adm-pass').value;
+  const err   = document.getElementById('loginerr');
+  const btn   = document.querySelector('#login-screen .bmain');
   err.style.display = 'none';
 
-  if (!user || !pass) {
-    err.innerText = '❌ يرجى إدخال اسم المستخدم وكلمة المرور';
+  if (!email || !pass) {
+    err.innerText = '❌ يرجى إدخال البريد الإلكتروني وكلمة المرور';
     err.style.display = 'block';
     return;
   }
 
-  // 1. Try built-in roles — match by username + password
-  for (const [roleKey, roleData] of Object.entries(ROLES)) {
-    if (user === getUser(roleKey) && pass === getPass(roleKey)) {
-      currentRole = roleKey;
-      sessionStorage.setItem('adm-role', currentRole);
-      sessionStorage.removeItem('adm-custom');
-      enterDashboard();
-      return;
+  btn.innerText = 'جاري التحقق...';
+  btn.disabled = true;
+
+  try {
+    // 1. تسجيل الدخول عبر Supabase Auth
+    const { data, error } = await sb.auth.signInWithPassword({ email, password: pass });
+    if (error) throw error;
+
+    // 2. جلب الدور من جدول profiles
+    const { data: profile, error: pErr } = await sb.from('profiles')
+      .select('role, name, emoji, permissions')
+      .eq('id', data.user.id)
+      .single();
+
+    if (pErr || !profile) throw new Error('لا يوجد صلاحيات لهذا الحساب');
+
+    // 3. تعيين الدور
+    currentRole = profile.role;
+    if (profile.role === 'custom') {
+      currentCustomCan = profile.permissions || [];
+      currentCustomLabel = `${profile.emoji||'👤'} ${profile.name}`;
     }
-  }
 
-  // 2. Try custom accounts — match by username + password
-  const cust = tryCustomLogin(user, pass);
-  if (cust) {
-    currentRole = '__custom__';
-    currentCustomCan = cust.can;
-    currentCustomLabel = `${cust.emoji||'👤'} ${cust.name}`;
-    sessionStorage.setItem('adm-role', '__custom__');
-    sessionStorage.setItem('adm-custom', JSON.stringify(cust));
-    enterDashboard();
-    return;
+    enterDashboard(profile);
+  } catch(e) {
+    err.innerText = '❌ ' + (e.message === 'Invalid login credentials' ? 'البريد أو كلمة المرور غير صحيحة' : e.message);
+    err.style.display = 'block';
+    btn.innerText = 'تسجيل الدخول';
+    btn.disabled = false;
   }
-
-  err.innerText = '❌ اسم المستخدم أو كلمة المرور غير صحيحة';
-  err.style.display = 'block';
 }
 
-function enterDashboard() {
+function enterDashboard(profile) {
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('dashboard').style.display = 'block';
-  if (currentRole === '__custom__') {
+
+  if (currentRole === 'custom') {
     document.getElementById('role-badge-top').innerText = currentCustomLabel;
   } else {
-    const r = ROLES[currentRole];
-    document.getElementById('role-badge-top').innerText = `${r.emoji} ${r.label}`;
+    const r = ROLES[currentRole] || ROLES.operator;
+    document.getElementById('role-badge-top').innerText = `${profile?.emoji||r.emoji} ${profile?.name||r.label}`;
     if (r.mgr) {
       document.getElementById('tab-staff-btn').style.display = '';
       document.getElementById('tab-dash-btn').style.display  = '';
@@ -653,47 +660,36 @@ function enterDashboard() {
   renderStaffList();
   startListening();
 }
-function doLogout() {
-  sessionStorage.removeItem('adm-role');
+
+async function doLogout() {
+  await sb.auth.signOut();
   if (rtCh) sb.removeChannel(rtCh);
   location.reload();
 }
 
-// Auto-login if session exists
-(function () {
-  const saved = sessionStorage.getItem('adm-role');
-  if (!saved) return;
-  if (saved === '__custom__') {
-    try {
-      const cust = JSON.parse(sessionStorage.getItem('adm-custom') || '{}');
-      if (cust.name) {
-        currentRole = '__custom__';
-        currentCustomCan = cust.can;
-        currentCustomLabel = `${cust.emoji||'👤'} ${cust.name}`;
-        document.getElementById('login-screen').style.display = 'none';
-        document.getElementById('dashboard').style.display = 'block';
-        document.getElementById('role-badge-top').innerText = currentCustomLabel;
-        renderStaffList();
-        setTimeout(startListening, 80);
-      }
-    } catch {}
-    return;
-  }
-  if (ROLES[saved]) {
-    currentRole = saved;
+// Auto-login إذا كانت الجلسة نشطة
+(async function () {
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) return;
+
+    const { data: profile } = await sb.from('profiles')
+      .select('role, name, emoji, permissions')
+      .eq('id', session.user.id)
+      .single();
+
+    if (!profile) return;
+
+    currentRole = profile.role;
+    if (profile.role === 'custom') {
+      currentCustomCan = profile.permissions || [];
+      currentCustomLabel = `${profile.emoji||'👤'} ${profile.name}`;
+    }
+
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('dashboard').style.display = 'block';
-    const r = ROLES[currentRole];
-    document.getElementById('role-badge-top').innerText = `${r.emoji} ${r.label}`;
-    if (r.mgr) {
-      document.getElementById('tab-staff-btn').style.display = '';
-      document.getElementById('tab-dash-btn').style.display = '';
-      document.getElementById('tab-reports-btn').style.display = '';
-      document.getElementById('tab-coupons-btn').style.display = '';
-    }
-    renderStaffList();
-    setTimeout(startListening, 80);
-  }
+    enterDashboard(profile);
+  } catch {}
 })();
 
 document.addEventListener('keydown', e => {
@@ -703,21 +699,16 @@ document.addEventListener('keydown', e => {
 // ══════════════════════════════════
 //  STAFF MANAGEMENT
 // ══════════════════════════════════
-function renderStaffList() {
+async function renderStaffList() {
   const list = document.getElementById('staff-list');
   if (!list) return;
 
-  // Built-in roles
-  list.innerHTML = '<h4 style="margin:0 0 12px;color:var(--navy);font-weight:800;font-size:.95rem;">🏷️ الحسابات الأساسية</h4>' +
+  list.innerHTML = '<h4 style="margin:0 0 12px;color:var(--navy);font-weight:800;font-size:.95rem;">🏷️ الأدوار المتاحة</h4>' +
     Object.entries(ROLES).map(([key, r]) => `
       <div class="staff-card">
         <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
           <div><b style="color:var(--navy);">${r.emoji} ${r.label}</b>
             <span class="role-badge ${r.badge}" style="margin-right:6px;font-size:.72rem;">${key}</span>
-          </div>
-          <div style="font-size:.8rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-            <span>👤 <b>${getUser(key)}</b></span>
-            <span>🔑 <b>••••••</b></span>
           </div>
         </div>
         <div style="margin-top:8px;font-size:.8rem;color:var(--text-muted);">
@@ -725,80 +716,116 @@ function renderStaffList() {
         </div>
       </div>`).join('');
 
-  // Custom accounts
-  const customs = getCustomAccounts();
   const custEl = document.getElementById('custom-accounts-list');
-  if (custEl) {
-    if (!customs.length) { custEl.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:10px;">لا يوجد حسابات مخصصة بعد</p>'; return; }
-    custEl.innerHTML = '<h4 style="margin:14px 0 10px;color:var(--navy);font-weight:800;font-size:.92rem;">👤 حسابات مخصصة</h4>' +
-      customs.map((a, i) => `
+  if (!custEl) return;
+  custEl.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:10px;">جاري التحميل...</p>';
+
+  try {
+    const { data: accounts } = await sb.from('profiles')
+      .select('id, name, emoji, role, permissions')
+      .neq('role', 'admin')
+      .order('created_at', { ascending: false });
+
+    if (!accounts?.length) {
+      custEl.innerHTML = '<p style="color:#94a3b8;font-size:.85rem;text-align:center;padding:10px;">لا يوجد حسابات موظفين بعد</p>';
+      return;
+    }
+
+    custEl.innerHTML = '<h4 style="margin:14px 0 10px;color:var(--navy);font-weight:800;font-size:.92rem;">👥 حسابات الموظفين</h4>' +
+      accounts.map(a => `
         <div class="staff-card" style="border-right:3px solid var(--teal);">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px;">
-            <b style="color:var(--navy);">${a.emoji||'👤'} ${a.name}</b>
-            <div style="font-size:.8rem;color:var(--text-muted);display:flex;flex-direction:column;align-items:flex-end;gap:2px;">
-              <span>👤 ${a.username||'—'}</span>
-              <span>🔑 ••••••</span>
-            </div>
+            <b style="color:var(--navy);">${a.emoji||'👤'} ${esc(a.name)}</b>
+            <span class="role-badge rb-oper">${a.role}</span>
           </div>
           <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">
-            ${a.can.map(p=>p.replace('→',' ← ')).join(' | ')}
+            ${(a.permissions||[]).map(p=>p.replace('→',' ← ')).join(' | ') || 'لا صلاحيات'}
           </div>
-          <button onclick="deleteCustomAccount(${i})" style="margin-top:8px;border:none;background:#fef2f2;color:var(--red);padding:5px 12px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:700;">حذف</button>
+          <button onclick="deleteCustomAccount('${a.id}')" style="margin-top:8px;border:none;background:#fef2f2;color:var(--red);padding:5px 12px;border-radius:8px;font-size:.78rem;cursor:pointer;font-weight:700;">حذف</button>
         </div>`).join('');
+  } catch(e) {
+    custEl.innerHTML = '<p style="color:var(--red);font-size:.85rem;text-align:center;padding:10px;">❌ خطأ في تحميل الحسابات</p>';
   }
 }
 
-function createCustomAccount() {
-  const name = document.getElementById('new-staff-name').value.trim();
-  const username = document.getElementById('new-staff-user').value.trim();
-  const pass = document.getElementById('new-staff-pass').value;
+
+async function createCustomAccount() {
+  const name  = document.getElementById('new-staff-name').value.trim();
+  const email = document.getElementById('new-staff-user').value.trim();
+  const pass  = document.getElementById('new-staff-pass').value;
   const emoji = document.getElementById('new-staff-emoji').value;
-  if (!name || !username || !pass || pass.length < 4) { alert('يرجى إدخال الاسم واسم المستخدم وكلمة مرور (4 أحرف+)'); return; }
-  if (username.length < 3) { alert('اسم المستخدم يجب أن يكون 3 أحرف على الأقل'); return; }
-  // Check for duplicate username
-  const existing = getCustomAccounts();
-  if (existing.find(a => a.username === username)) { alert('اسم المستخدم مستخدم بالفعل!'); return; }
-  // Check against built-in roles
-  for (const [k] of Object.entries(ROLES)) {
-    if (getUser(k) === username) { alert('اسم المستخدم مستخدم بالفعل!'); return; }
+
+  if (!name || !email || !pass || pass.length < 6) {
+    alert('يرجى إدخال الاسم والبريد الإلكتروني وكلمة مرور (6 أحرف+)');
+    return;
   }
+
   const perms = ['perm-rp','perm-pd','perm-dd','perm-canc']
     .map(id => document.getElementById(id))
     .filter(el => el?.checked)
     .map(el => el.value);
+
   if (!perms.length) { alert('يرجى اختيار صلاحية واحدة على الأقل'); return; }
-  existing.push({name, username, pass, emoji, can: perms, createdAt: new Date().toISOString()});
-  saveCustomAccounts(existing);
-  document.getElementById('new-staff-name').value = '';
-  document.getElementById('new-staff-user').value = '';
-  document.getElementById('new-staff-pass').value = '';
-  ['perm-rp','perm-pd','perm-dd','perm-canc'].forEach(id => { const el=document.getElementById(id); if(el) el.checked=false; });
-  renderStaffList();
-  showToast('✅ تم إنشاء حساب ' + name);
+
+  try {
+    // إنشاء مستخدم جديد عبر Supabase Auth Admin API مباشرة
+    const res = await fetch(
+      'https://zrumnqtgdscrwgcguseq.supabase.co/auth/v1/admin/users',
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': SB_KEY,
+          'Authorization': 'Bearer ' + SB_KEY
+        },
+        body: JSON.stringify({
+          email,
+          password: pass,
+          email_confirm: true,
+          user_metadata: { name, emoji, permissions: perms }
+        })
+      }
+    );
+
+    const userData = await res.json();
+    if (!res.ok) throw new Error(userData.msg || userData.message || 'فشل إنشاء المستخدم');
+
+    // إضافة الدور في profiles
+    const { error: profErr } = await sb.from('profiles').insert({
+      id: userData.id,
+      role: 'custom',
+      name,
+      emoji: emoji || '👤',
+      permissions: perms
+    });
+    if (profErr) throw profErr;
+
+    document.getElementById('new-staff-name').value = '';
+    document.getElementById('new-staff-user').value = '';
+    document.getElementById('new-staff-pass').value = '';
+    ['perm-rp','perm-pd','perm-dd','perm-canc'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.checked = false;
+    });
+    renderStaffList();
+    showToast('✅ تم إنشاء حساب ' + name);
+  } catch(e) {
+    console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.');
+  }
 }
 
-function deleteCustomAccount(idx) {
+async function deleteCustomAccount(userId) {
   if (!confirm('حذف هذا الحساب؟')) return;
-  const accounts = getCustomAccounts();
-  accounts.splice(idx, 1);
-  saveCustomAccounts(accounts);
-  renderStaffList();
-  showToast('🗑️ تم حذف الحساب');
+  try {
+    await sb.from('profiles').delete().eq('id', userId);
+    showToast('🗑️ تم حذف الحساب');
+    renderStaffList();
+  } catch(e) {
+    console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.');
+  }
 }
 
 function changeCredentials() {
-  const role    = document.getElementById('change-role-sel').value;
-  const newuser = document.getElementById('new-user').value.trim();
-  const newpass = document.getElementById('new-pass').value.trim();
-  if (!newuser && !newpass) { alert('يرجى إدخال اسم مستخدم أو كلمة مرور جديدة'); return; }
-  if (newuser && newuser.length < 3) { alert('اسم المستخدم يجب أن يكون 3 أحرف على الأقل'); return; }
-  if (newpass && newpass.length < 4) { alert('كلمة المرور يجب أن تكون 4 أحرف على الأقل'); return; }
-  if (newuser) localStorage.setItem('su-' + role, newuser);
-  if (newpass) localStorage.setItem('sp-' + role, newpass);
-  document.getElementById('new-user').value = '';
-  document.getElementById('new-pass').value = '';
-  renderStaffList();
-  showToast('✅ تم تحديث بيانات ' + (ROLES[role]?.label || role));
+  showToast('⚠️ لتغيير كلمة المرور، استخدم Supabase Dashboard → Authentication → Users');
 }
 
 // ── Date Filter Helpers ──
@@ -1442,13 +1469,10 @@ async function chStatus(docId, newSt, cancelReason = '') {
 // ══════════════════════════════════
 async function tgSend(chatId, text) {
   try {
-    const res = await fetch(`https://api.telegram.org/bot${BOT_TOKEN}/sendMessage`, {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({chat_id:chatId, text, disable_web_page_preview:true})
+    const r = await sb.functions.invoke('send-tg', {
+      body: { chatId, message: text }
     });
-    const j = await res.json();
-    if (!j.ok) console.error('tgSend error:', j.description);
-    return j.ok;
+    return r.data?.ok || false;
   } catch(e) { return false; }
 }
 
@@ -1593,7 +1617,7 @@ async function createCoupon() {
     document.getElementById('cpn-max').value = '';
     showToast('✅ تم إنشاء الكوبون ' + code);
     loadCoupons();
-  } catch(e) { alert('❌ خطأ: ' + e.message); }
+  } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
 }
 
 async function toggleCoupon(id, active) {
@@ -1601,7 +1625,7 @@ async function toggleCoupon(id, active) {
     await sb.from('coupons').update({active}).eq('id', id);
     showToast(active ? '✅ تم تفعيل الكوبون' : '❌ تم تعطيل الكوبون');
     loadCoupons();
-  } catch(e) { alert('❌ خطأ: ' + e.message); }
+  } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
 }
 
 async function deleteCoupon(id) {
@@ -1610,8 +1634,9 @@ async function deleteCoupon(id) {
     await sb.from('coupons').delete().eq('id', id);
     showToast('🗑️ تم حذف الكوبون');
     loadCoupons();
-  } catch(e) { alert('❌ خطأ: ' + e.message); }
+  } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
 }
 </script>
 </body>
 </html>
+
