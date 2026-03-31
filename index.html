@@ -719,9 +719,13 @@ async function applyCoupon() {
       setCouponMsg('error', '❌ كود الخصم غير صالح'); appliedCoupon = null;
     } else if (data.max_uses > 0 && data.used_count >= data.max_uses) {
       setCouponMsg('warn', '❌ تم استنفاد هذا الكوبون'); appliedCoupon = null;
+    } else if (data.expires_at && new Date(data.expires_at) < new Date()) {
+      setCouponMsg('warn', '❌ انتهت صلاحية هذا الكوبون'); appliedCoupon = null;
     } else {
       appliedCoupon = data;
-      setCouponMsg('success', `✅ تم تطبيق الكوبون — خصم ${data.discount_type === 'percent' ? data.discount_value + '%' : data.discount_value.toLocaleString() + ' د.ع'}`);
+      const _minNote = (data.min_order_amount > 0) ? ` (حد أدنى: ${data.min_order_amount.toLocaleString()} د.ع)` : '';
+      const _discTxt = data.discount_type === 'percent' ? data.discount_value + '%' : data.discount_value.toLocaleString() + ' د.ع';
+      setCouponMsg('success', `✅ تم تطبيق الكوبون — خصم ${_discTxt}${_minNote}`);
     }
   } catch(e) {
     setCouponMsg('error', '❌ خطأ في التحقق من الكوبون'); appliedCoupon = null;
@@ -886,8 +890,15 @@ function calcUI() {
   // Coupon discount
   let couponDisc = 0;
   if (appliedCoupon && pp > 0) {
-    if (appliedCoupon.discount_type === 'percent') couponDisc = Math.round(pp * appliedCoupon.discount_value / 100);
-    else couponDisc = Math.min(appliedCoupon.discount_value, pp);
+    const _minOrd = appliedCoupon.min_order_amount || 0;
+    if (_minOrd > 0 && pp < _minOrd) {
+      // min order not met — show warning but don't apply
+      const _cmsg = document.getElementById('coupon-msg');
+      if (_cmsg) { _cmsg.style.display='block'; _cmsg.style.background='#fef2f2'; _cmsg.style.color='#991b1b'; _cmsg.style.border='1px solid #fecaca'; _cmsg.innerText=`⚠️ الحد الأدنى للكوبون ${_minOrd.toLocaleString()} د.ع — لم يُطبق بعد`; }
+    } else {
+      if (appliedCoupon.discount_type === 'percent') couponDisc = Math.round(pp * appliedCoupon.discount_value / 100);
+      else couponDisc = Math.min(appliedCoupon.discount_value, pp);
+    }
   }
 
   const pc = document.getElementById('ptscard');
@@ -1018,11 +1029,13 @@ async function sendOrder() {
     }
 
     const np = Math.max(0, (uDoc.loyalty_points||0) - pu);
-    await sb.from('users').update({
-      loyalty_points:np, total_orders:(uDoc.total_orders||0)+1,
-      total_spent:(uDoc.total_spent||0)+(tot||0),
-      first_order_done:true, name, phone
-    }).eq('id', userId);
+    try {
+      await sb.from('users').update({
+        loyalty_points:np, total_orders:(uDoc.total_orders||0)+1,
+        total_spent:(uDoc.total_spent||0)+(tot||0),
+        first_order_done:true, name, phone
+      }).eq('id', userId);
+    } catch(_uErr) { console.warn('Users update non-fatal:', _uErr); }
     uDoc.loyalty_points = np; uDoc.first_order_done = true;
 
     if (region) saveAddr(region);
@@ -1048,14 +1061,21 @@ async function sendOrder() {
 
   } catch(e) {
     console.error('Send order error:', e);
-    console.error('Order error:', e); showErr('❌ حدث خطأ. يرجى المحاولة مجدداً.');
+    const _em = e?.message || String(e);
+    let _eShow = 'حدث خطأ. يرجى المحاولة مجدداً.';
+    if (_em.includes('column') || _em.includes('schema'))
+      _eShow = 'خطأ في قاعدة البيانات — تواصل مع المطور: ' + _em;
+    else if (_em.includes('Failed to fetch') || _em.includes('NetworkError') || _em.includes('network'))
+      _eShow = 'تحقق من اتصالك بالإنترنت';
+    else if (_em.length < 200) _eShow = _em;
+    showErr('❌ ' + _eShow);
     btn.disabled = false; btn.innerText = '🚀 تأكيد وإرسال الطلب';
     stxt.style.display = 'none';
   }
 }
 
 // ══ SUCCESS SCREEN ═══════════════════════════════
-let _successOid = null, _successPe = 0, _successNp = 0, _successCancelReason = '';
+let _successOid = null, _successPe = 0, _successNp = 0, _successCancelReason = '', _successETA = '';
 const STATUS_STEPS = [
   { k:'received', icon:'📥', label:'تم الاستلام' },
   { k:'printing', icon:'🖨️', label:'قيد الطباعة' },
@@ -1113,6 +1133,7 @@ function _buildSuccessHTML(currentStatus) {
       <p style="color:var(--orange);margin:0 0 20px;font-weight:800;font-size:1.05rem;">طلب #${esc(_successOid)}</p>
 
       ${isPending ? `<p style="font-size:.82rem;color:var(--teal);font-weight:600;margin:0 0 16px;background:rgba(90,179,196,.1);padding:8px 14px;border-radius:10px;">📱 ستصلك إشعارات على تيليجرام عند كل تحديث</p>` : ''}
+      ${_successETA && isPending ? `<div style="background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;border-radius:14px;padding:12px 18px;margin-bottom:14px;font-size:.95rem;font-weight:800;text-align:center;box-shadow:0 4px 12px rgba(245,158,11,.25);">⏱️ الوقت المتوقع للتوصيل: ${esc(_successETA)}</div>` : ''}
 
       ${isCancelled ? `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:16px;padding:18px;margin-bottom:16px;text-align:right;">
         ${_successCancelReason ? `<div style="background:#fff;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:14px;">
@@ -1165,9 +1186,10 @@ function _refreshSuccessScreen(newStatus) {
 
 async function _refreshSuccessFromServer(oid) {
   try {
-    const {data:o} = await sb.from('orders').select('status,status_history,cancel_reason').eq('id', oid).maybeSingle();
+    const {data:o} = await sb.from('orders').select('status,status_history,cancel_reason,eta').eq('id', oid).maybeSingle();
     if (o && o.status) {
       if (o.status === 'cancelled') _successCancelReason = o.cancel_reason || '';
+      _successETA = o.eta || '';
       _updateSuccessScreen(o.status, o.status_history || []);
     }
   } catch {}
@@ -1461,3 +1483,4 @@ init();
 </script>
 </body>
 </html>
+
