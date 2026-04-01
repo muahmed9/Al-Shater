@@ -668,7 +668,27 @@ async function init() {
   startRT();
 }
 
-// ══ REAL-TIME ════════════════════════════════════
+ // ══ INIT ═════════════════════════════════════════
+async function init() {
+  try {
+    const initData = window.Telegram?.WebApp?.initData;
+    if (initData) {
+      try {
+        const { data: authData, error: authErr } = await sb.functions.invoke('telegram-auth', {
+          body: { initData }
+        });
+        
+        if (authData && authData.session) {
+          // تسجيل دخول صامت وناجح
+          await sb.auth.setSession(authData.session);
+        } else {
+          console.error("مشكلة في مصادقة تيليجرام: ", authErr || authData);
+        }
+      } catch (err) {
+        console.error("فشل الاتصال بخادم الأمان: ", err);
+      }
+    }
+
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
     if (data) { uDoc = data; }
     else {
@@ -678,21 +698,6 @@ async function init() {
     }
   } catch(e) { console.error('Init error:', e); }
   
-  await loadPricing();
-  if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
-  refreshPtsUI();
-  startRT();
-}
-
-    // نكمل الكود القديم لجلب بيانات المستخدم
-    const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
-    if (data) { uDoc = data; }
-    else {
-      uDoc = {id:userId, name:tgU?.first_name||'', username:tgU?.username||'',
-              loyalty_points:0, total_orders:0, total_spent:0, first_order_done:false};
-      await sb.from('users').insert(uDoc);
-    }
-  } catch(e) { console.error('Init error:', e); }
   await loadPricing();
   if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
   refreshPtsUI();
@@ -743,6 +748,8 @@ function startRT() {
 }
 
 // ══ RATING SYSTEM ════════════════════════════════
+
+
 function showRateModal(oid) {
   const rated = JSON.parse(localStorage.getItem('sh-rated') || '[]');
   if (rated.includes(oid)) return;
