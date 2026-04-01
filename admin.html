@@ -185,6 +185,7 @@ input:focus,textarea:focus,select:focus { border-color:var(--teal); }
       <button class="atab" id="tab-dash-btn"  onclick="switchPage('dash',this)"   style="display:none;">🏆 داشبورد</button>
       <button class="atab" id="tab-reports-btn" onclick="switchPage('reports',this)" style="display:none;">📥 تقارير Excel</button>
       <button class="atab" id="tab-coupons-btn" onclick="switchPage('coupons',this)" style="display:none;">🎟️ الكوبونات</button>
+      <button class="atab" id="tab-pricing-btn" onclick="switchPage('pricing',this)" style="display:none;">💰 التسعير</button>
     </div>
 
     <!-- Page: Orders -->
@@ -427,6 +428,108 @@ input:focus,textarea:focus,select:focus { border-color:var(--teal); }
       <!-- Coupon list -->
       <div id="coupon-list" style="color:var(--text-muted);text-align:center;padding:20px;">جاري التحميل...</div>
     </div>
+
+    <!-- Page: Pricing Management (manager only) -->
+    <div class="admin-page" id="page-pricing">
+      <h3 style="margin:0 0 6px;color:var(--navy);font-weight:800;">💰 إدارة التسعير</h3>
+      <p style="margin:0 0 20px;color:var(--text-muted);font-size:.88rem;">أي تغيير هنا يؤثر فوراً على ما يراه الزبون في التطبيق</p>
+
+      <!-- Print pricing -->
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);margin-bottom:16px;">
+        <h4 style="margin:0 0 16px;color:var(--navy);font-weight:800;">🖨️ أسعار الطباعة</h4>
+
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div>
+            <label style="font-size:.8rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:5px;">الحد الأدنى للصفحات (≤ X صفحة)</label>
+            <input type="number" id="pr-min-pages" value="5" min="1" style="margin-bottom:0;">
+          </div>
+          <div>
+            <label style="font-size:.8rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:5px;">سعر الحد الأدنى (د.ع)</label>
+            <input type="number" id="pr-min-price" value="1000" min="0" step="250" style="margin-bottom:0;">
+          </div>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:.85rem;font-weight:800;color:var(--navy);">🌈 شرائح الطباعة الملونة (سعر/صفحة):</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+          <div style="background:#fef9c3;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#854d0e;font-weight:800;display:block;margin-bottom:6px;">≤ 25 صفحة</label>
+            <input type="number" id="pr-c1" value="150" min="0" style="margin-bottom:0;background:#fffbeb;">
+          </div>
+          <div style="background:#fef9c3;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#854d0e;font-weight:800;display:block;margin-bottom:6px;">26 – 40 صفحة</label>
+            <input type="number" id="pr-c2" value="130" min="0" style="margin-bottom:0;background:#fffbeb;">
+          </div>
+          <div style="background:#fef9c3;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#854d0e;font-weight:800;display:block;margin-bottom:6px;">41 – 70 صفحة</label>
+            <input type="number" id="pr-c3" value="120" min="0" style="margin-bottom:0;background:#fffbeb;">
+          </div>
+          <div style="background:#fef9c3;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#854d0e;font-weight:800;display:block;margin-bottom:6px;">> 70 صفحة</label>
+            <input type="number" id="pr-c4" value="100" min="0" style="margin-bottom:0;background:#fffbeb;">
+          </div>
+        </div>
+
+        <p style="margin:0 0 10px;font-size:.85rem;font-weight:800;color:var(--navy);">⚪ الطباعة بالأبيض والأسود (سعر/صفحة):</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div style="background:#f1f5f9;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:6px;">📄 وجه واحد</label>
+            <input type="number" id="pr-bw1" value="90" min="0" style="margin-bottom:0;background:#f8fafc;">
+          </div>
+          <div style="background:#f1f5f9;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:6px;">📖 وجهين</label>
+            <input type="number" id="pr-bw2" value="75" min="0" style="margin-bottom:0;background:#f8fafc;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Delivery & fees -->
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);margin-bottom:16px;">
+        <h4 style="margin:0 0 16px;color:var(--navy);font-weight:800;">🚚 رسوم التوصيل والخدمات</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">
+          <div>
+            <label style="font-size:.8rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:5px;">رسوم التوصيل (د.ع)</label>
+            <input type="number" id="pr-del" value="1000" min="0" step="250" style="margin-bottom:0;">
+          </div>
+          <div>
+            <label style="font-size:.8rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:5px;">حد التوصيل المجاني (د.ع)</label>
+            <input type="number" id="pr-del-free" value="10000" min="0" step="500" style="margin-bottom:0;">
+          </div>
+          <div>
+            <label style="font-size:.8rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:5px;">⚡ رسوم الطلب العاجل (د.ع)</label>
+            <input type="number" id="pr-express" value="1500" min="0" step="250" style="margin-bottom:0;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Packaging fees -->
+      <div style="background:var(--card);border-radius:18px;padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.03);margin-bottom:20px;">
+        <h4 style="margin:0 0 16px;color:var(--navy);font-weight:800;">📦 رسوم التغليف</h4>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;">
+          <div style="background:#f0fdf4;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#166534;font-weight:800;display:block;margin-bottom:6px;">🗜️ كبس فقط</label>
+            <input type="number" id="pr-pkg-none" value="0" min="0" step="250" style="margin-bottom:0;background:#dcfce7;">
+          </div>
+          <div style="background:#fff7ed;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#9a3412;font-weight:800;display:block;margin-bottom:6px;">📦 مقوى ونايلون</label>
+            <input type="number" id="pr-pkg-cardboard" value="500" min="0" step="250" style="margin-bottom:0;background:#ffedd5;">
+          </div>
+          <div style="background:#faf5ff;border-radius:12px;padding:12px;">
+            <label style="font-size:.78rem;color:#6b21a8;font-weight:800;display:block;margin-bottom:6px;">🔩 سبايرول</label>
+            <input type="number" id="pr-pkg-spiral" value="1500" min="0" step="250" style="margin-bottom:0;background:#f3e8ff;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Preview & Save -->
+      <div style="background:linear-gradient(135deg,var(--navy),#1e40af);border-radius:18px;padding:20px;margin-bottom:16px;color:#fff;">
+        <h4 style="margin:0 0 14px;font-weight:800;font-size:.95rem;">👁️ معاينة مباشرة — مثال 30 صفحة ملون وجه واحد</h4>
+        <div id="pr-preview" style="font-size:.9rem;line-height:2;opacity:.9;">—</div>
+      </div>
+
+      <button class="bmain" style="background:var(--green);color:#fff;" onclick="savePricing()">💾 حفظ التسعير وتطبيقه فوراً</button>
+      <div id="pr-msg" style="display:none;margin-top:12px;padding:12px;border-radius:12px;font-weight:700;text-align:center;font-size:.9rem;"></div>
+    </div>
+
   </div>
 </div>
 <div class="detov" id="detov" onclick="closeDet()"></div>
@@ -656,10 +759,12 @@ function enterDashboard(profile) {
     const r = ROLES[currentRole] || ROLES.operator;
     document.getElementById('role-badge-top').innerText = `${profile?.emoji||r.emoji} ${profile?.name||r.label}`;
     if (r.mgr) {
-      document.getElementById('tab-staff-btn').style.display = '';
-      document.getElementById('tab-dash-btn').style.display  = '';
+      document.getElementById('tab-staff-btn').style.display   = '';
+      document.getElementById('tab-dash-btn').style.display    = '';
       document.getElementById('tab-reports-btn').style.display = '';
       document.getElementById('tab-coupons-btn').style.display = '';
+      document.getElementById('tab-pricing-btn').style.display = '';
+      loadPricingAdmin();
     }
   }
   renderStaffList();
@@ -966,11 +1071,12 @@ function switchPage(name, el) {
   document.querySelectorAll('.atab').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + name).classList.add('active');
   el.classList.add('active');
-  if (name === 'stats') calcStats();
-  if (name === 'dash') renderStaffDashboard();
-  if (name === 'staff') renderStaffList();
+  if (name === 'stats')   calcStats();
+  if (name === 'dash')    renderStaffDashboard();
+  if (name === 'staff')   renderStaffList();
   if (name === 'reports') renderReports();
   if (name === 'coupons') loadCoupons();
+  if (name === 'pricing') loadPricingAdmin();
 }
 
 // ══════════════════════════════════
@@ -1418,6 +1524,7 @@ function renderOrders() {
         <div class="ii">🏠 ${esc(o.region)}</div><div class="ii" style="color:var(--orange);font-weight:700;">💰 ${(o.total||0).toLocaleString()} د.ع</div>
         <div class="ii">🎨 ${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه':'وجهين'}</div>
         <div class="ii" style="color:var(--teal);">📋 ${o.files?.length||0} ملف</div>
+        ${o.packaging&&o.packaging!=='none'?`<div class="ii" style="color:#7c3aed;grid-column:span 2;">📦 ${({cardboard:'ورق مقوى ونايلون 📦',spiral:'سبايرول 🔩'})[o.packaging]||''}</div>`:''}
       </div>
       ${o.notes?`<div style="font-size:.78rem;color:var(--orange);background:rgba(232,107,36,.06);padding:5px 8px;border-radius:8px;margin-top:4px;">📝 ${esc(o.notes).substring(0,50)}${o.notes.length>50?'...':''}</div>`:''}
       ${o.rating?`<div style="font-size:.78rem;margin-top:4px;">⭐ تقييم: ${'⭐'.repeat(o.rating)}</div>`:''}
@@ -1591,6 +1698,7 @@ function openDet(docId) {
 
     <div style="background:#f8fafc;border-radius:16px;padding:16px;margin-bottom:14px;border:1px solid #f1f5f9;">
       <div class="irow"><span>🎨 الطباعة</span><b>${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه':'وجهين'}</b></div>
+      <div class="irow"><span>📦 التغليف</span><b style="color:#7c3aed;">${({none:'كبس فقط 🗜️',cardboard:'ورق مقوى ونايلون 📦',spiral:'سبايرول 🔩'})[o.packaging||'none']||'كبس فقط 🗜️'}${o.packaging_fee>0?' — '+o.packaging_fee.toLocaleString()+' د.ع':' — مجاني'}</b></div>
       ${o.express_fee?`<div class="irow"><span>⚡ رسوم الطلب العاجل</span><b style="color:#9333ea;">${(o.express_fee||0).toLocaleString()} د.ع</b></div>`:''}
       ${o.coupon_discount?`<div class="irow"><span>🎟️ خصم الكوبون</span><b style="color:var(--green);">−${(o.coupon_discount||0).toLocaleString()} د.ع</b></div>`:''}
       <div class="irow"><span>💰 الإجمالي</span><b style="color:var(--orange);font-size:1.15rem;">${(o.total||0).toLocaleString()} د.ع</b></div>
@@ -1729,7 +1837,154 @@ async function deleteCoupon(id) {
     loadCoupons();
   } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
 }
+
+// ══════════════════════════════════
+//  💰 PRICING MANAGEMENT
+// ══════════════════════════════════
+const PR_DEFAULTS = {
+  min_pages:5, min_price:1000,
+  color_tiers:[{max_pages:25,price:150},{max_pages:40,price:130},{max_pages:70,price:120},{max_pages:9999999,price:100}],
+  bw_single:90, bw_double:75,
+  delivery_fee:1000, delivery_free_threshold:10000,
+  express_fee:1500,
+  packaging:{ none:0, cardboard:500, spiral:1500 }
+};
+
+async function loadPricingAdmin() {
+  try {
+    const {data} = await sb.from('settings').select('value').eq('key','pricing').maybeSingle();
+    const p = data?.value ? {...PR_DEFAULTS, ...data.value} : PR_DEFAULTS;
+    const pkg = p.packaging || PR_DEFAULTS.packaging;
+    const tiers = p.color_tiers || PR_DEFAULTS.color_tiers;
+    // Populate fields
+    _setVal('pr-min-pages',  p.min_pages);
+    _setVal('pr-min-price',  p.min_price);
+    _setVal('pr-c1', tiers[0]?.price ?? 150);
+    _setVal('pr-c2', tiers[1]?.price ?? 130);
+    _setVal('pr-c3', tiers[2]?.price ?? 120);
+    _setVal('pr-c4', tiers[3]?.price ?? 100);
+    _setVal('pr-bw1', p.bw_single);
+    _setVal('pr-bw2', p.bw_double);
+    _setVal('pr-del',      p.delivery_fee);
+    _setVal('pr-del-free', p.delivery_free_threshold);
+    _setVal('pr-express',  p.express_fee);
+    _setVal('pr-pkg-none',      pkg.none      ?? 0);
+    _setVal('pr-pkg-cardboard', pkg.cardboard ?? 500);
+    _setVal('pr-pkg-spiral',    pkg.spiral    ?? 1500);
+    updatePricingPreview();
+    // Attach live preview update
+    ['pr-min-pages','pr-min-price','pr-c1','pr-c2','pr-c3','pr-c4',
+     'pr-bw1','pr-bw2','pr-del','pr-del-free','pr-express',
+     'pr-pkg-none','pr-pkg-cardboard','pr-pkg-spiral'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.oninput = updatePricingPreview;
+    });
+  } catch(e) { console.error('loadPricingAdmin:', e); }
+}
+
+function _setVal(id, v) {
+  const el = document.getElementById(id);
+  if (el && v != null) el.value = v;
+}
+function _getNum(id, fallback=0) {
+  return parseFloat(document.getElementById(id)?.value) || fallback;
+}
+
+function updatePricingPreview() {
+  const box = document.getElementById('pr-preview');
+  if (!box) return;
+  // Example: 30 colour pages, single-sided
+  const t = 30;
+  const c1 = _getNum('pr-c1',150), c2 = _getNum('pr-c2',130),
+        c3 = _getNum('pr-c3',120), c4 = _getNum('pr-c4',100);
+  const price = t <= 25 ? t*c1 : t <= 40 ? t*c2 : t <= 70 ? t*c3 : t*c4;
+  const rounded = Math.round(price/250)*250;
+  const del     = _getNum('pr-del', 1000);
+  const delFree = _getNum('pr-del-free', 10000);
+  const exp     = _getNum('pr-express', 1500);
+  const pkgC    = _getNum('pr-pkg-cardboard', 500);
+  const pkgS    = _getNum('pr-pkg-spiral', 1500);
+  box.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px;">
+        <div style="font-size:.72rem;opacity:.7;margin-bottom:3px;">طباعة 30 صفحة ملون</div>
+        <b style="font-size:1.1rem;">${rounded.toLocaleString()} د.ع</b>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px;">
+        <div style="font-size:.72rem;opacity:.7;margin-bottom:3px;">رسوم التوصيل</div>
+        <b style="font-size:1.1rem;">${del.toLocaleString()} د.ع</b>
+        <div style="font-size:.68rem;opacity:.65;">مجاني فوق ${delFree.toLocaleString()}</div>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px;">
+        <div style="font-size:.72rem;opacity:.7;margin-bottom:3px;">⚡ Express</div>
+        <b style="font-size:1.1rem;">+${exp.toLocaleString()} د.ع</b>
+      </div>
+      <div style="background:rgba(255,255,255,.1);border-radius:10px;padding:10px;">
+        <div style="font-size:.72rem;opacity:.7;margin-bottom:3px;">📦 مقوى / 🔩 سبايرول</div>
+        <b style="font-size:1rem;">${pkgC.toLocaleString()} / ${pkgS.toLocaleString()} د.ع</b>
+      </div>
+    </div>`;
+}
+
+async function savePricing() {
+  const pricing = {
+    min_pages:  _getNum('pr-min-pages', 5),
+    min_price:  _getNum('pr-min-price', 1000),
+    color_tiers: [
+      {max_pages:25,       price: _getNum('pr-c1',150)},
+      {max_pages:40,       price: _getNum('pr-c2',130)},
+      {max_pages:70,       price: _getNum('pr-c3',120)},
+      {max_pages:9999999,  price: _getNum('pr-c4',100)},
+    ],
+    bw_single:  _getNum('pr-bw1', 90),
+    bw_double:  _getNum('pr-bw2', 75),
+    delivery_fee:               _getNum('pr-del', 1000),
+    delivery_free_threshold:    _getNum('pr-del-free', 10000),
+    express_fee:                _getNum('pr-express', 1500),
+    packaging: {
+      none:      _getNum('pr-pkg-none', 0),
+      cardboard: _getNum('pr-pkg-cardboard', 500),
+      spiral:    _getNum('pr-pkg-spiral', 1500),
+    }
+  };
+
+  // Basic validation
+  if (pricing.color_tiers.some(t => t.price <= 0)) {
+    return _prMsg('❌ أسعار الشرائح يجب أن تكون أكبر من صفر', 'error');
+  }
+  if (pricing.bw_single <= 0 || pricing.bw_double <= 0) {
+    return _prMsg('❌ أسعار الأبيض والأسود يجب أن تكون أكبر من صفر', 'error');
+  }
+
+  const btn = document.querySelector('#page-pricing .bmain');
+  if (btn) { btn.disabled = true; btn.innerText = 'جاري الحفظ...'; }
+
+  try {
+    const {error} = await sb.from('settings')
+      .upsert({ key: 'pricing', value: pricing }, { onConflict: 'key' });
+    if (error) throw error;
+    _prMsg('✅ تم حفظ التسعير وسيظهر فوراً للزبائن!', 'success');
+    showToast('💰 تم تحديث التسعير بنجاح');
+  } catch(e) {
+    console.error('savePricing:', e);
+    _prMsg('❌ فشل الحفظ: ' + (e.message||e), 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = '💾 حفظ التسعير وتطبيقه فوراً'; }
+  }
+}
+
+function _prMsg(text, type) {
+  const el = document.getElementById('pr-msg');
+  if (!el) return;
+  el.style.display = 'block';
+  el.style.background = type==='success' ? '#dcfce7' : '#fef2f2';
+  el.style.color = type==='success' ? '#166534' : '#991b1b';
+  el.style.border = type==='success' ? '1px solid #86efac' : '1px solid #fecaca';
+  el.innerText = text;
+  setTimeout(() => { el.style.display='none'; }, 5000);
+}
 </script>
 </body>
 </html>
+
 
