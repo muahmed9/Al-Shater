@@ -631,7 +631,7 @@ function finishOB() {
 }
 if (localStorage.getItem('sh-ob') === '1') document.getElementById('onboarding').style.display = 'none';
 
-// ══ INIT ═════════════════════════════════════════
+ // ══ INIT ═════════════════════════════════════════
 async function init() {
   try {
     const initData = window.Telegram?.WebApp?.initData;
@@ -641,22 +641,32 @@ async function init() {
           body: { initData }
         });
         
-        if (authErr) {
-          alert("❌ خطأ من الخادم (تأكد من إغلاق JWT Verification): \n" + JSON.stringify(authErr));
-        } else if (authData && authData.error) {
-          alert("❌ خطأ في كود الدالة أو الـ Token: \n" + authData.error);
-        } else if (authData && authData.session) {
+        if (authData && authData.session) {
+          // تسجيل دخول صامت وناجح
           await sb.auth.setSession(authData.session);
-          // إذا ظهرت لك هذه الرسالة فهذا يعني أن الأمان يعمل بنجاح 100%
-          // alert("✅ تم تسجيل الدخول الآمن بنجاح!");
         } else {
-          alert("❌ استجابة فارغة وغير متوقعة.");
+          // في حال وجود خطأ سنعرضه باستخدام نظام التنبيهات الخاص بتطبيقك بدلاً من alert
+          showToast("⚠️ مشكلة في مصادقة تيليجرام: " + (authErr?.message || authData?.error || "مجهول"));
         }
       } catch (err) {
-        alert("❌ فشل الاتصال: " + err.message);
+        showToast("❌ فشل الاتصال بخادم الأمان");
       }
     }
 
+    const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
+    if (data) { uDoc = data; }
+    else {
+      uDoc = {id:userId, name:tgU?.first_name||'', username:tgU?.username||'',
+              loyalty_points:0, total_orders:0, total_spent:0, first_order_done:false};
+      await sb.from('users').insert(uDoc);
+    }
+  } catch(e) { console.error('Init error:', e); }
+  
+  await loadPricing();
+  if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
+  refreshPtsUI();
+  startRT();
+}
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
     if (data) { uDoc = data; }
     else {
