@@ -634,7 +634,6 @@ if (localStorage.getItem('sh-ob') === '1') document.getElementById('onboarding')
 // ══ INIT ═════════════════════════════════════════
 async function init() {
   try {
-    // 🔒 --- بداية كود التحقق الآمن عبر Edge Function --- 🔒
     const initData = window.Telegram?.WebApp?.initData;
     if (initData) {
       try {
@@ -642,17 +641,36 @@ async function init() {
           body: { initData }
         });
         
-        if (authData && authData.session) {
+        if (authErr) {
+          alert("❌ خطأ من الخادم (تأكد من إغلاق JWT Verification): \n" + JSON.stringify(authErr));
+        } else if (authData && authData.error) {
+          alert("❌ خطأ في كود الدالة أو الـ Token: \n" + authData.error);
+        } else if (authData && authData.session) {
           await sb.auth.setSession(authData.session);
-          console.log("✅ تم تسجيل الدخول الآمن بنجاح!");
+          // إذا ظهرت لك هذه الرسالة فهذا يعني أن الأمان يعمل بنجاح 100%
+          // alert("✅ تم تسجيل الدخول الآمن بنجاح!");
         } else {
-          console.error("❌ فشل التحقق:", authErr);
+          alert("❌ استجابة فارغة وغير متوقعة.");
         }
       } catch (err) {
-        console.error("❌ خطأ في الاتصال بالخادم الآمن:", err);
+        alert("❌ فشل الاتصال: " + err.message);
       }
     }
-    // 🔒 --- نهاية كود التحقق الآمن --- 🔒
+
+    const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
+    if (data) { uDoc = data; }
+    else {
+      uDoc = {id:userId, name:tgU?.first_name||'', username:tgU?.username||'',
+              loyalty_points:0, total_orders:0, total_spent:0, first_order_done:false};
+      await sb.from('users').insert(uDoc);
+    }
+  } catch(e) { console.error('Init error:', e); }
+  
+  await loadPricing();
+  if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
+  refreshPtsUI();
+  startRT();
+}
 
     // نكمل الكود القديم لجلب بيانات المستخدم
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
