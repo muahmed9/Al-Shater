@@ -634,6 +634,27 @@ if (localStorage.getItem('sh-ob') === '1') document.getElementById('onboarding')
 // ══ INIT ═════════════════════════════════════════
 async function init() {
   try {
+    // 🔒 --- بداية كود التحقق الآمن عبر Edge Function --- 🔒
+    const initData = window.Telegram?.WebApp?.initData;
+    if (initData) {
+      try {
+        const { data: authData, error: authErr } = await sb.functions.invoke('telegram-auth', {
+          body: { initData }
+        });
+        
+        if (authData && authData.session) {
+          await sb.auth.setSession(authData.session);
+          console.log("✅ تم تسجيل الدخول الآمن بنجاح!");
+        } else {
+          console.error("❌ فشل التحقق:", authErr);
+        }
+      } catch (err) {
+        console.error("❌ خطأ في الاتصال بالخادم الآمن:", err);
+      }
+    }
+    // 🔒 --- نهاية كود التحقق الآمن --- 🔒
+
+    // نكمل الكود القديم لجلب بيانات المستخدم
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
     if (data) { uDoc = data; }
     else {
