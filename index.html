@@ -330,6 +330,38 @@ input:checked+.togs:before{transform:translateX(-24px);}
       </div>
     </div>
 
+
+    <!-- 📦 Packaging -->
+    <div class="card">
+      <p style="margin:0 0 12px;color:var(--navy);font-weight:800;font-size:.97rem;">📦 طريقة التغليف:</p>
+      <div style="display:flex;flex-direction:column;gap:9px;">
+        <button id="pkg-none" onclick="setPkg('none')" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:14px;border:1.5px solid var(--navy);background:var(--navy);color:#fff;cursor:pointer;text-align:right;font-family:'Tajawal',sans-serif;transition:all .2s;">
+          <span style="font-size:1.4rem;">🗜️</span>
+          <div style="flex:1;">
+            <b style="font-size:.95rem;display:block;">كبس فقط</b>
+            <span style="font-size:.76rem;opacity:.8;font-weight:500;">تدبيس الورق — بدون تغليف إضافي</span>
+          </div>
+          <span id="pkg-none-price" style="font-weight:800;background:rgba(255,255,255,.2);padding:3px 9px;border-radius:8px;font-size:.85rem;">مجاني</span>
+        </button>
+        <button id="pkg-cardboard" onclick="setPkg('cardboard')" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:14px;border:1.5px solid #e2e8f0;background:var(--card);color:var(--text-muted);cursor:pointer;text-align:right;font-family:'Tajawal',sans-serif;transition:all .2s;">
+          <span style="font-size:1.4rem;">📦</span>
+          <div style="flex:1;">
+            <b style="font-size:.95rem;display:block;color:var(--text-main);">ورق مقوى ونايلون شفاف</b>
+            <span style="font-size:.76rem;font-weight:500;">حماية من الماء والانثناء</span>
+          </div>
+          <span id="pkg-cardboard-price" style="font-weight:800;color:var(--orange);font-size:.85rem;">500 د.ع</span>
+        </button>
+        <button id="pkg-spiral" onclick="setPkg('spiral')" style="display:flex;align-items:center;gap:11px;padding:13px 15px;border-radius:14px;border:1.5px solid #e2e8f0;background:var(--card);color:var(--text-muted);cursor:pointer;text-align:right;font-family:'Tajawal',sans-serif;transition:all .2s;">
+          <span style="font-size:1.4rem;">🔩</span>
+          <div style="flex:1;">
+            <b style="font-size:.95rem;display:block;color:var(--text-main);">سبايرول</b>
+            <span style="font-size:.76rem;font-weight:500;">تجليد حلزوني — مثالي للتقارير والمشاريع</span>
+          </div>
+          <span id="pkg-spiral-price" style="font-weight:800;color:var(--orange);font-size:.85rem;">1,500 د.ع</span>
+        </button>
+      </div>
+    </div>
+
     <!-- ⚡ Express Order -->
     <div class="card" id="express-card" style="border:2px solid var(--express);background:linear-gradient(135deg,rgba(147,51,234,.05),rgba(124,58,237,.08));transition:all .3s;">
       <div style="display:flex;justify-content:space-between;align-items:center;">
@@ -470,12 +502,36 @@ const tg  = window.Telegram?.WebApp; tg?.ready();
 const tgU = tg?.initDataUnsafe?.user;
 const userId = tgU?.id ? String(tgU.id) : 'guest_' + Date.now();
 
-let files=[], color='c', side='1', locUrl='', pendingR=null;
+let files=[], color='c', side='1', locUrl='', pendingR=null, packaging='none';
 let uDoc = {loyalty_points:0, first_order_done:false, total_orders:0, total_spent:0};
 let appliedCoupon = null;
 let ordFilter = 'all';
 let allUserOrders = [];
 let _rateOid = null, _rateStars = 0;
+
+// ══ PRICING CONFIG (افتراضي — يُحمَّل من Supabase) ══
+let PRICING = {
+  min_pages:5, min_price:1000,
+  color_tiers:[{max_pages:25,price:150},{max_pages:40,price:130},{max_pages:70,price:120},{max_pages:9999999,price:100}],
+  bw_single:90, bw_double:75,
+  delivery_fee:1000, delivery_free_threshold:10000,
+  express_fee:1500,
+  packaging:{ none:0, cardboard:500, spiral:1500 }
+};
+async function loadPricing() {
+  try {
+    const {data} = await sb.from('settings').select('value').eq('key','pricing').maybeSingle();
+    if (data?.value) {
+      PRICING = {...PRICING, ...data.value};
+      const p = PRICING.packaging||{};
+      const fmt = v => v===0?'مجاني':v.toLocaleString()+' د.ع';
+      ['none','cardboard','spiral'].forEach(k => {
+        const el = document.getElementById('pkg-'+k+'-price');
+        if (el && p[k]!=null) el.innerText = fmt(p[k]);
+      });
+    }
+  } catch(e) { /* use defaults */ }
+}
 
 // 🔒 Rate Limiting
 let lastOrderTime = 0;
@@ -586,6 +642,7 @@ async function init() {
       await sb.from('users').insert(uDoc);
     }
   } catch(e) { console.error('Init error:', e); }
+  await loadPricing();
   if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
   refreshPtsUI();
   startRT();
@@ -843,14 +900,49 @@ function getLoc() {
   );
 }
 
+// ══ PACKAGING ════════════════════════════════════
+function setPkg(v) {
+  packaging = v;
+  const styles = {
+    none: { border:'1.5px solid var(--navy)', background:'var(--navy)', color:'#fff' },
+    cardboard: { border:'1.5px solid var(--teal)', background:'var(--teal)', color:'#fff' },
+    spiral: { border:'1.5px solid var(--orange)', background:'var(--orange)', color:'#fff' }
+  };
+  const off = { border:'1.5px solid #e2e8f0', background:'var(--card)', color:'var(--text-muted)' };
+  ['none','cardboard','spiral'].forEach(k => {
+    const el = document.getElementById('pkg-'+k);
+    if (!el) return;
+    const s = k === v ? styles[k] : off;
+    el.style.border = s.border; el.style.background = s.background; el.style.color = s.color;
+    // Fix text colors inside unselected
+    const nameEl = el.querySelector('b'); const descEl = el.querySelector('span:not([id])');
+    if (nameEl) nameEl.style.color = k===v ? '#fff' : 'var(--text-main)';
+    if (descEl) descEl.style.color = k===v ? 'rgba(255,255,255,.8)' : 'var(--text-muted)';
+    // Fix price color
+    const priceEl = document.getElementById('pkg-'+k+'-price');
+    if (priceEl) {
+      priceEl.style.color = k===v ? '#fff' : 'var(--orange)';
+      priceEl.style.background = k===v ? 'rgba(255,255,255,.2)' : 'transparent';
+      priceEl.style.padding = k===v ? '3px 9px' : '0';
+      priceEl.style.borderRadius = k===v ? '8px' : '0';
+    }
+  });
+  calcUI();
+}
+
 // ══ PRICE CALCULATION ════════════════════════════
 function roundTo250(n) { return Math.round(n / 250) * 250; }
 function calcPrice(sh, im) {
   const t = sh + im; if (!t) return 0;
-  if (t <= 5) return roundTo250(1000);
+  if (t <= (PRICING.min_pages||5)) return roundTo250(PRICING.min_price||1000);
   let raw;
-  if (color === 'c') { if(t<=25) raw=t*150; else if(t<=40) raw=t*130; else if(t<=70) raw=t*120; else raw=t*100; }
-  else { raw = t * (side === '1' ? 90 : 75); }
+  if (color === 'c') {
+    const tiers = PRICING.color_tiers || [{max_pages:25,price:150},{max_pages:40,price:130},{max_pages:70,price:120},{max_pages:9999999,price:100}];
+    const tier = tiers.find(tr => t <= tr.max_pages) || tiers[tiers.length-1];
+    raw = t * tier.price;
+  } else {
+    raw = t * (side==='1' ? (PRICING.bw_single||90) : (PRICING.bw_double||75));
+  }
   return roundTo250(raw);
 }
 
@@ -879,13 +971,14 @@ function calcUI() {
 
   const pp = calcPrice(sh, im);
   const isFO = !uDoc.first_order_done;
-  const df = files.length===0 ? 0 : (pp>=10000||isFO ? 0 : 1000);
+  const df = files.length===0 ? 0 : (pp>=(PRICING.delivery_free_threshold||10000)||isFO ? 0 : (PRICING.delivery_fee||1000));
   const isG = (uDoc.loyalty_points||0) >= 1000;
   const td = isG ? Math.round(pp*.05) : 0;
   const useP = document.getElementById('ptstog')?.checked && pendingR;
   const pd = useP ? pendingR.disc : 0;
   const isExpress = document.getElementById('expressTog')?.checked;
-  const expressFee = isExpress ? 1500 : 0;
+  const expressFee = isExpress ? (PRICING.express_fee||1500) : 0;
+  const pkgFee = files.length ? ((PRICING.packaging||{})[packaging]||0) : 0;
 
   // Coupon discount
   let couponDisc = 0;
@@ -910,10 +1003,11 @@ function calcUI() {
     sl.innerText = `✨ سيُخصم ${pendingR.disc.toLocaleString()} د.ع من المجموع`;
   } else pc.style.display = 'none';
 
-  const tot = Math.max(0, pp - td - pd - couponDisc + df + expressFee);
+  const tot = Math.max(0, pp - td - pd - couponDisc + df + expressFee + pkgFee);
   const hasDiscount = (td > 0) || (pd > 0) || (couponDisc > 0);
   const pe = hasDiscount ? 0 : Math.floor(pp / 1000) * 10;
   const dtxt = isFO ? '<b style="color:#4eff4e;">مجاني 🎁</b>' : df===0 ? '<b style="color:#4eff4e;">مجاني ✨</b>' : df.toLocaleString()+' د.ع';
+  const pkgLabels = {none:'كبس فقط 🗜️', cardboard:'ورق مقوى ونايلون 📦', spiral:'سبايرول 🔩'};
 
   document.getElementById('invdet').innerHTML = `
     <div class="il"><span>إجمالي الصفحات:</span><b>${dp}</b></div>
@@ -923,13 +1017,14 @@ function calcUI() {
     ${pd>0&&useP?`<div class="il"><span>💎 خصم النقاط:</span><b style="color:#4eff4e;">−${pd.toLocaleString()} د.ع</b></div>`:''}
     ${couponDisc>0?`<div class="il"><span>🎟️ خصم الكوبون:</span><b style="color:#4eff4e;">−${couponDisc.toLocaleString()} د.ع</b></div>`:''}
     ${isExpress?`<div class="il"><span>⚡ رسوم الطلب العاجل:</span><b style="color:#e9d5ff;">${expressFee.toLocaleString()} د.ع</b></div>`:''}
-    <div class="il"><span>أجور التوصيل:</span><b>${dtxt}</b></div>
+    <div class="il"><span>📦 التغليف:</span><b style="color:${pkgFee>0?'#fbbf24':'#4eff4e'};">${pkgLabels[packaging]||'كبس فقط 🗜️'} ${pkgFee>0?'— '+pkgFee.toLocaleString()+' د.ع':'— مجاني'}</b></div>
+    <div class="il"><span>🚚 أجور التوصيل:</span><b>${dtxt}</b></div>
     <div class="il" style="background:rgba(0,0,0,.18);padding:10px;border-radius:10px;margin-top:8px;">
       <span>💎 نقاط ستكسبها (عند التسليم):</span>
       <b style="color:${hasDiscount?'#94a3b8':'#ffd700'};">${hasDiscount?'0 (خصم مطبّق)':'+'+pe}</b>
     </div>`;
   document.getElementById('totlbl').innerText = `المجموع النهائي: ${tot.toLocaleString()} د.ع`;
-  window._ord = {pp, df, td, pd, couponDisc, expressFee, tot, pe, isFO};
+  window._ord = {pp, df, td, pd, couponDisc, expressFee, pkgFee, packaging, tot, pe, isFO};
 }
 
 window.adjC = (i,d) => { files[i].c=Math.max(1,files[i].c+d); calcUI(); };
@@ -976,7 +1071,7 @@ async function sendOrder() {
 
   try {
     const oid = 'SH-' + Date.now().toString(36).toUpperCase();
-    const {pp, df, td, pd, couponDisc, expressFee, tot, pe, isFO} = window._ord || {};
+    const {pp, df, td, pd, couponDisc, expressFee, pkgFee, packaging:pkgType, tot, pe, isFO} = window._ord || {};
     const useP = document.getElementById('ptstog')?.checked && pendingR;
     const pu   = useP ? pendingR.pts : 0;
     const isExpress = document.getElementById('expressTog')?.checked;
@@ -1007,6 +1102,8 @@ async function sendOrder() {
       name, phone, region, loc_url:locUrl,
       files:meta, zip_url:zipUrl,
       color, side,
+      packaging: pkgType||'none',
+      packaging_fee: pkgFee||0,
       print_price:pp||0, delivery_fee:df||0,
       tier_discount:td||0, pts_discount:pd||0,
       coupon_discount:couponDisc||0,
@@ -1042,10 +1139,12 @@ async function sendOrder() {
     document.getElementById('pbar').style.width = '90%';
 
     const flist = meta.map(f=>`📄 ${f.name} (${f.pages}ص × ${f.copies}ن)`).join('\n');
+    const pkgLabelsMsg = {none:'كبس فقط 🗜️', cardboard:'ورق مقوى ونايلون 📦', spiral:'سبايرول 🔩'};
     await tgMsg(ADMIN,
       `🆕 طلب جديد #${oid}${isExpress?' ⚡عاجل':''}\n${isFO?'🚚 توصيل مجاني — أول طلب\n':''}` +
       `👤 ${name}\n📞 ${phone}\n🏠 ${region}\n` +
       `🎨 ${color==='c'?'ملون':'أسود'} — ${side==='1'?'وجه':'وجهين'}\n` +
+      `📦 التغليف: ${pkgLabelsMsg[pkgType||'none']}\n` +
       `💰 ${(tot||0).toLocaleString()} د.ع\n📍 ${locUrl}\n` +
       (appliedCoupon ? `🎟️ كوبون: ${appliedCoupon.code}\n` : '') +
       `\n📋 الملفات:\n${flist}\n\n📦 رابط التحميل:\n${zipUrl}`
@@ -1400,6 +1499,7 @@ async function showDet(oid) {
     ${tl}${cancelBox}${ratingHtml}
     <div style="background:var(--light-teal);border:1px solid rgba(90,179,196,.2);border-radius:16px;padding:16px;margin-bottom:16px;">
       <div class="il" style="color:var(--navy);"><span>الطباعة:</span><b>${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه واحد':'وجهين'}</b></div>
+      <div class="il" style="color:var(--navy);margin-top:8px;"><span>📦 التغليف:</span><b>${({none:'كبس فقط 🗜️',cardboard:'ورق مقوى ونايلون 📦',spiral:'سبايرول 🔩'})[o.packaging||'none']||'كبس فقط 🗜️'}</b></div>
       <div class="il" style="color:var(--navy);margin-top:8px;"><span>المجموع:</span><b style="font-size:1.15rem;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</b></div>
       <div class="il" style="color:var(--green);margin-top:8px;"><span>💎 نقاط:</span><b style="background:#dcfce7;padding:3px 10px;border-radius:8px;">${o.loyalty_points_earned||0} نقطة</b></div>
     </div>
@@ -1483,5 +1583,6 @@ init();
 </script>
 </body>
 </html>
+
 
 
