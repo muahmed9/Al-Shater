@@ -645,11 +645,11 @@ async function init() {
           // تسجيل دخول صامت وناجح
           await sb.auth.setSession(authData.session);
         } else {
-          // في حال وجود خطأ سنعرضه باستخدام نظام التنبيهات الخاص بتطبيقك بدلاً من alert
-          showToast("⚠️ مشكلة في مصادقة تيليجرام: " + (authErr?.message || authData?.error || "مجهول"));
+          // في حال وجود خطأ نعرضه بصمت دون تجميد التطبيق
+          console.error("مشكلة في مصادقة تيليجرام: ", authErr || authData);
         }
       } catch (err) {
-        showToast("❌ فشل الاتصال بخادم الأمان");
+        console.error("فشل الاتصال بخادم الأمان: ", err);
       }
     }
 
@@ -667,6 +667,8 @@ async function init() {
   refreshPtsUI();
   startRT();
 }
+
+// ══ REAL-TIME ════════════════════════════════════
     const {data} = await sb.from('users').select('*').eq('id', userId).maybeSingle();
     if (data) { uDoc = data; }
     else {
