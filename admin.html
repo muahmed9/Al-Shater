@@ -1800,8 +1800,23 @@ async function createCoupon() {
   if (isNaN(value) || value <= 0) { alert('يرجى إدخال قيمة صحيحة'); return; }
   if (type === 'percent' && value > 100) { alert('النسبة لا يمكن أن تتجاوز 100%'); return; }
 
-  const expiresAt  = document.getElementById('cpn-expires').value  || null;
+  // ✅ إصلاح Bug 1: إضافة وقت نهاية اليوم لتفادي انتهاء مبكر بسبب UTC
+  const expiresRaw = document.getElementById('cpn-expires').value;
+  const expiresAt  = expiresRaw ? (expiresRaw + 'T23:59:59') : null;
+
   const minOrderAmt = parseInt(document.getElementById('cpn-min-order').value) || 0;
+
+  // ✅ إصلاح Bug 2: فحص تكرار الكود قبل الإدراج
+  try {
+    const { data: existing } = await sb.from('coupons').select('id').eq('code', code).maybeSingle();
+    if (existing) {
+      showToast('⚠️ الكود "' + code + '" موجود مسبقاً — اختر كوداً مختلفاً');
+      return;
+    }
+  } catch(_) {}
+
+  const btn = document.querySelector('#page-coupons .bmain');
+  if (btn) { btn.disabled = true; btn.innerText = 'جاري الإنشاء...'; }
 
   try {
     const {error} = await sb.from('coupons').insert({
@@ -1810,15 +1825,28 @@ async function createCoupon() {
       expires_at: expiresAt,
       min_order_amount: minOrderAmt
     });
-    if (error) throw error;
-    document.getElementById('cpn-code').value = '';
-    document.getElementById('cpn-value').value = '';
-    document.getElementById('cpn-max').value = '';
+    if (error) {
+      // اكتشاف خطأ التكرار من قاعدة البيانات (unique constraint)
+      if (error.code === '23505') {
+        showToast('⚠️ الكود "' + code + '" موجود مسبقاً — اختر كوداً مختلفاً');
+      } else {
+        throw error;
+      }
+      return;
+    }
+    document.getElementById('cpn-code').value    = '';
+    document.getElementById('cpn-value').value   = '';
+    document.getElementById('cpn-max').value     = '';
     document.getElementById('cpn-expires').value = '';
     document.getElementById('cpn-min-order').value = '';
     showToast('✅ تم إنشاء الكوبون ' + code);
     loadCoupons();
-  } catch(e) { console.error(e); showToast('❌ حدث خطأ. يرجى المحاولة مجدداً.'); }
+  } catch(e) {
+    console.error(e);
+    showToast('❌ فشل إنشاء الكوبون: ' + (e.message || 'خطأ غير معروف'));
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerText = '✅ إنشاء الكوبون'; }
+  }
 }
 
 async function toggleCoupon(id, active) {
@@ -1986,5 +2014,6 @@ function _prMsg(text, type) {
 </script>
 </body>
 </html>
+
 
 
