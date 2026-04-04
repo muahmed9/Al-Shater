@@ -404,7 +404,7 @@ input:checked+.togs:before{transform:translateX(-24px);}
 
       <!-- 🎟️ Coupon Code -->
       <div style="display:flex;gap:8px;margin-bottom:14px;">
-        <input type="text" id="couponInput" placeholder="🎟️ كود الخصم (اختياري)" maxlength="20" style="margin-bottom:0;flex:1;" oninput="this.value=this.value.toUpperCase()">
+        <input type="text" id="couponInput" placeholder="🎟️ كود الخصم (اختياري)" maxlength="20" style="margin-bottom:0;flex:1;" oninput="this.value=this.value.toUpperCase();clearCouponIfChanged()">
         <button onclick="applyCoupon()" style="background:var(--teal);color:#fff;border:none;border-radius:14px;padding:0 18px;font-weight:800;cursor:pointer;font-family:'Tajawal',sans-serif;font-size:.88rem;white-space:nowrap;">تطبيق</button>
       </div>
       <div id="coupon-msg" style="display:none;padding:8px;border-radius:10px;font-size:.85rem;font-weight:700;margin-bottom:12px;text-align:center;"></div>
@@ -776,6 +776,19 @@ function toggleExpressStyle() {
 }
 
 // ══ COUPON SYSTEM ════════════════════════════════
+
+// مسح الكوبون تلقائياً عند تغيير الكود في الحقل
+function clearCouponIfChanged() {
+  if (!appliedCoupon) return;
+  const current = document.getElementById('couponInput').value.trim();
+  if (current !== appliedCoupon.code) {
+    appliedCoupon = null;
+    const msg = document.getElementById('coupon-msg');
+    if (msg) msg.style.display = 'none';
+    calcUI();
+  }
+}
+
 function setCouponMsg(type, text) {
   const styles = {
     error:   { background:'#fef2f2', color:'#991b1b', border:'1px solid #fecaca' },
@@ -1142,9 +1155,22 @@ async function sendOrder() {
     const {error:dbErr} = await sb.from('orders').insert(order);
     if (dbErr) throw dbErr;
 
-    // Update coupon usage
+    // Update coupon usage — نجلب القيمة الحالية من قاعدة البيانات لتفادي Race Condition
     if (appliedCoupon) {
-      await sb.from('coupons').update({used_count: (appliedCoupon.used_count||0) + 1}).eq('id', appliedCoupon.id);
+      try {
+        const {data: freshCoupon} = await sb.from('coupons')
+          .select('used_count, max_uses')
+          .eq('id', appliedCoupon.id)
+          .maybeSingle();
+        // تحقق أن الكوبون لم يُستنفد بين وقت التطبيق ووقت الإرسال
+        if (freshCoupon && freshCoupon.max_uses > 0 && freshCoupon.used_count >= freshCoupon.max_uses) {
+          console.warn('تحذير: تم استنفاد الكوبون بعد التطبيق — لن يُحتسب الخصم');
+        } else {
+          await sb.from('coupons')
+            .update({ used_count: (freshCoupon?.used_count || 0) + 1 })
+            .eq('id', appliedCoupon.id);
+        }
+      } catch(_cErr) { console.warn('Coupon update non-fatal:', _cErr); }
     }
 
     const np = Math.max(0, (uDoc.loyalty_points||0) - pu);
