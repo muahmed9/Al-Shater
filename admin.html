@@ -1138,7 +1138,7 @@ function renderReports() {
           </span>
         </td>
         <td style="padding:9px 10px;">${o.color==='c'?'🌈 ملون':'⚪ أسود'} · ${o.side==='1'?'وجه':'وجهين'}</td>
-        <td style="padding:9px 10px;text-align:center;">${o.files?.length||0}</td>
+        <td style="padding:9px 10px;text-align:center;">${o.files?.reduce((s,f)=>s+(f.copies||1),0)||0}</td>
         <td style="padding:9px 10px;font-weight:800;color:var(--orange);">${(o.total||0).toLocaleString()} د.ع</td>
         <td style="padding:9px 10px;color:var(--text-muted);">${dt}</td>
       </tr>`;
@@ -1263,7 +1263,7 @@ function exportOrdersExcel() {
     STATUS_AR[o.status]||o.status,
     o.color==='c'?'ملون':'أسود وأبيض',
     o.side==='1'?'وجه واحد':'وجهين',
-    o.files?.length||0,
+    o.files?.reduce((s,f)=>s+(f.copies||1),0)||0,
     o.print_price||0,
     o.delivery_fee||0,
     o.total||0,
@@ -1282,7 +1282,7 @@ function exportAnalysisExcel() {
     o.id, o.name||'', o.phone||'', o.region||'',
     STATUS_AR[o.status]||o.status,
     `${o.color==='c'?'ملون':'أسود'} · ${o.side==='1'?'وجه':'وجهين'}`,
-    o.files?.length||0, o.total||0,
+    o.files?.reduce((s,f)=>s+(f.copies||1),0)||0, o.total||0,
     new Date(o.created_at).toLocaleDateString('ar-IQ')
   ]);
 
@@ -1523,7 +1523,7 @@ function renderOrders() {
         <div class="ii">👤 ${esc(o.name)}</div><div class="ii">📞 ${esc(o.phone)}</div>
         <div class="ii">🏠 ${esc(o.region)}</div><div class="ii" style="color:var(--orange);font-weight:700;">💰 ${(o.total||0).toLocaleString()} د.ع</div>
         <div class="ii">🎨 ${o.color==='c'?'ملون':'أسود'} • ${o.side==='1'?'وجه':'وجهين'}</div>
-        <div class="ii" style="color:var(--teal);">📋 ${o.files?.length||0} ملف</div>
+        <div class="ii" style="color:var(--teal);">📋 ${o.files?.length||0} ملف · ${o.files?.reduce((s,f)=>s+(f.copies||1),0)||0} نسخة</div>
         ${o.packaging&&o.packaging!=='none'?`<div class="ii" style="color:#7c3aed;grid-column:span 2;">📦 ${({cardboard:'ورق مقوى ونايلون 📦',spiral:'سبايرول 🔩'})[o.packaging]||''}</div>`:''}
       </div>
       ${o.notes?`<div style="font-size:.78rem;color:var(--orange);background:rgba(232,107,36,.06);padding:5px 8px;border-radius:8px;margin-top:4px;">📝 ${esc(o.notes).substring(0,50)}${o.notes.length>50?'...':''}</div>`:''}
@@ -1652,7 +1652,13 @@ function openDet(docId) {
   document.getElementById('dettitle').innerText = 'طلب #' + o.id;
 
   const s    = SM[o.status] || SM.received;
-  const zip  = o.zip_url || '';
+  // إذا لم يُحفظ zip_url في قاعدة البيانات، نعيد توليده من المسار المعروف
+  let zip = o.zip_url || '';
+  if (!zip && o.id) {
+    const zpath = `orders/${o.id}/files_${o.id}.zip`;
+    const { data: _urlD } = sb.storage.from('order-files').getPublicUrl(zpath);
+    zip = _urlD?.publicUrl || '';
+  }
   const ph   = o.phone || '';
   const waN  = '964' + ph.replace(/^0/, '');
 
@@ -1679,6 +1685,7 @@ function openDet(docId) {
       <div class="irow"><span>👤 الاسم</span><b>${esc(o.name)}</b></div>
       <div class="irow"><span>📞 الهاتف</span><b>${esc(ph)}</b></div>
       <div class="irow"><span>🏠 المنطقة</span><b>${esc(o.region)}</b></div>
+      <div class="irow"><span>📅 وقت الاستلام</span><b style="color:var(--navy);">${o.created_at ? new Date(o.created_at).toLocaleString('ar-IQ', {year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '—'}</b></div>
       <div class="irow"><span>⏰ وقت التوصيل المتوقع</span><b style="color:var(--teal);">${o.eta ? esc(o.eta) : '—'}</b></div>
       <div class="irow"><span>📍 الموقع</span><a href="${o.loc_url||'#'}" target="_blank" style="color:#fff;background:var(--teal);padding:6px 14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:.82rem;">الخريطة 🗺️</a></div>
     </div>
@@ -1706,7 +1713,7 @@ function openDet(docId) {
     </div>
 
     ${(currentRole !== 'driver' && currentRole !== '__custom__' ? true : (currentCustomCan?.includes('received→printing')||currentCustomCan?.includes('printing→delivering'))) ? `
-    <h4 style="margin:0 0 10px;color:var(--navy);font-weight:800;">الملفات (${o.files?.length||0})</h4>
+    <h4 style="margin:0 0 10px;color:var(--navy);font-weight:800;">الملفات (${o.files?.length||0} ملف · ${o.files?.reduce((s,f)=>s+(f.copies||1),0)||0} نسخة)</h4>
     ${zip?'<a href="'+zip+'" target="_blank" style="display:flex;align-items:center;justify-content:center;gap:10px;background:var(--navy);color:#fff;padding:14px;border-radius:13px;font-weight:800;text-decoration:none;margin-bottom:12px;box-shadow:0 5px 14px rgba(13,59,102,.2);">📦 تحميل كل الملفات (ZIP)</a>':'<p style=\"color:var(--red);background:#fef2f2;padding:10px;border-radius:10px;text-align:center;font-weight:700;margin-bottom:12px;\">⚠️ لم يتم رفع الملفات</p>'}
     <div style="background:#fff;border-radius:13px;padding:8px 14px;border:1px solid #f1f5f9;margin-bottom:18px;">
       ${o.files?.map(f=>'<div style="font-size:.87rem;padding:8px 0;border-bottom:1px solid #f1f5f9;display:flex;justify-content:space-between;align-items:center;"><span>📄 '+f.name+'</span><span style="color:var(--text-muted);background:#f8fafc;padding:3px 8px;border-radius:6px;font-weight:700;font-size:.82rem;">'+f.pages+'ص × <b style=\"color:var(--navy);\">'+f.copies+'</b>ن</span></div>').join('')||''}
