@@ -669,14 +669,23 @@ async function init() {
 }
 
 // ══ REAL-TIME ════════════════════════════════════
+let _rtPollingTimer = null;
+
 function startRT() {
   try {
-    sb.channel('orders-user-' + userId)
+    // ملاحظة: تمّت إزالة filter من جانب الخادم لأنها تتطلب REPLICA IDENTITY FULL
+    // نقوم بالفلترة من جانب العميل بدلاً من ذلك
+    sb.channel('orders-rt-' + userId)
       .on('postgres_changes', {
-          event: 'UPDATE', schema: 'public', table: 'orders',
-          filter: `user_id=eq.${userId}`
+          event: 'UPDATE', schema: 'public', table: 'orders'
         }, p => {
           if (!p.new || !p.new.status) return;
+          // ── فلترة من جانب العميل: تأكد أن الطلب يخص هذا المستخدم ──
+          const rowUserId = String(p.new.user_id || '');
+          const rowTgId  = String(p.new.telegram_id || '');
+          const myId     = String(userId);
+          if (rowUserId !== myId && rowTgId !== myId) return;
+
           const st = p.new.status;
           const m = {received:'📥 تم الاستلام',printing:'🖨️ قيد الطباعة',delivering:'🛵 جاري التوصيل',delivered:'✅ تم التسليم'};
           if (st === 'cancelled') {
@@ -689,13 +698,14 @@ function startRT() {
           // ① حدّث قائمة الطلبات
           loadOrders();
 
-          // ② حدّث شاشة النجاح
+          // ② حدّث شاشة النجاح إذا كانت تخص هذا الطلب
           if (_successOid && p.new.id === _successOid) {
             if (st === 'cancelled') _successCancelReason = p.new.cancel_reason || '';
+            if (p.new.eta) _successETA = p.new.eta;   // ← تحديث ETA من RT
             _updateSuccessScreen(st, p.new.status_history || []);
           }
 
-          // ③ حدّث تفاصيل الطلب إذا مفتوحة
+          // ③ حدّث تفاصيل الطلب إذا كانت مفتوحة
           if (document.getElementById('det-ov').classList.contains('open') &&
               document.getElementById('det-title').innerText.includes(p.new.id)) {
               showDet(p.new.id);
@@ -707,8 +717,31 @@ function startRT() {
             setTimeout(() => showRateModal(p.new.id), 1500);
           }
         })
-      .subscribe();
-  } catch(e) { console.error('RT error:', e); }
+      .subscribe((status, err) => {
+          if (status === 'SUBSCRIBED') {
+            console.log('✅ RT subscription active');
+          } else if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT') {
+            console.warn('⚠️ RT subscription issue:', status, err);
+            _startSuccessPolling(); // fallback polling
+          }
+        });
+  } catch(e) {
+    console.error('RT error:', e);
+    _startSuccessPolling(); // fallback إذا فشل الاتصال كلياً
+  }
+}
+
+// ── Polling كـ fallback لشاشة النجاح عند تعذّر الـ realtime ──
+function _startSuccessPolling() {
+  if (_rtPollingTimer) return; // لا تشغّل أكثر من مرة
+  _rtPollingTimer = setInterval(async () => {
+    if (_successOid) {
+      await _refreshSuccessFromServer(_successOid);
+    }
+  }, 12000); // كل 12 ثانية
+}
+function _stopSuccessPolling() {
+  if (_rtPollingTimer) { clearInterval(_rtPollingTimer); _rtPollingTimer = null; }
 }
 
 // ══ RATING SYSTEM ════════════════════════════════
@@ -1323,6 +1356,8 @@ function _updateSuccessScreen(status, history) {
   if (!tab || !_successOid) return;
   // Simply rebuild the whole success screen with new status
   tab.innerHTML = _buildSuccessHTML(status);
+  // إيقاف الـ polling عند الوصول لحالة نهائية
+  if (status === 'delivered' || status === 'cancelled') _stopSuccessPolling();
 }
 
 function _refreshSuccessScreen(newStatus) {
@@ -1345,6 +1380,8 @@ async function _refreshSuccessFromServer(oid) {
 function showSuccessUI(oid, pe, np) {
   _successOid = oid; _successPe = pe; _successNp = np;
   document.getElementById('tab-order').innerHTML = _buildSuccessHTML('received');
+  // نبدأ polling خفيف كـ fallback في حال تعذّر الـ realtime
+  _startSuccessPolling();
 }
 
 // ══ TELEGRAM ═════════════════════════════════════
