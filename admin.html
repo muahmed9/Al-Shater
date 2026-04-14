@@ -691,6 +691,7 @@ const SM = {
 // Customer notification messages
 function custMsg(id, status, reason='') {
   const msgs = {
+    received:   `📥 تم استلام طلبك #${id} بنجاح!\nسنبدأ العمل عليه قريباً ✅`,
     printing:   `🖨️ طلبك #${id} قيد الطباعة الآن!\nسنُخطرك عند الإرسال للتوصيل.`,
     delivering: `🛵 طلبك #${id} في الطريق إليك!\nالمندوب متجه نحوك الآن 🏃`,
     delivered:  `✅ تم تسليم طلبك #${id} بنجاح!\nشكراً لتعاملك مع الشاطر 🌟\nتمت إضافة نقاط الولاء لرصيدك 💎`
@@ -1608,8 +1609,8 @@ async function chStatus(docId, newSt, cancelReason = '') {
   }).eq('id', docId);
   if (uErr) { alert('❌ فشل التحديث: ' + uErr.message); return; }
 
-  // Notify customer
-  const custTg  = order.telegram_id || '';
+  // Notify customer — telegram_id ثم user_id كـ fallback
+  const custTg  = order.telegram_id || order.user_id || '';
   const validTg = custTg && !custTg.startsWith('guest_');
   if (validTg) {
     const msg = custMsg(order.id, newSt, cancelReason);
@@ -2020,6 +2021,7 @@ function _prMsg(text, type) {
 </script>
 </body>
 </html>
+
 
 
 
