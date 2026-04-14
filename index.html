@@ -500,7 +500,13 @@ const ADMIN  = '7618746133';
 const sb  = window.supabase.createClient(SB_URL, SB_KEY);
 const tg  = window.Telegram?.WebApp; tg?.ready();
 const tgU = tg?.initDataUnsafe?.user;
-const userId = tgU?.id ? String(tgU.id) : 'guest_' + Date.now();
+// userId ثابت — إذا لم يكن من تليغرام نحفظه في localStorage
+const userId = (() => {
+  if (tgU?.id) return String(tgU.id);
+  let gid = localStorage.getItem('sh-uid');
+  if (!gid) { gid = 'guest_' + Date.now(); localStorage.setItem('sh-uid', gid); }
+  return gid;
+})();
 
 let files=[], color='c', side='1', locUrl='', pendingR=null, packaging='none';
 let uDoc = {loyalty_points:0, first_order_done:false, total_orders:0, total_spent:0};
@@ -714,12 +720,7 @@ function startRT() {
 }
 
 async function _pollOrderStatus() {
-  if (!_successOid && !document.getElementById('det-ov')?.classList.contains('open')) {
-    // فقط حدّث قائمة الطلبات إذا كانت مفتوحة
-    const ordTab = document.getElementById('tab-orders');
-    if (ordTab?.classList.contains('active')) await loadOrders();
-    return;
-  }
+  // دائماً اسحب الطلب النشط إن وُجد
   if (_successOid) {
     try {
       const {data:o} = await sb.from('orders')
@@ -727,7 +728,12 @@ async function _pollOrderStatus() {
         .eq('id', _successOid).maybeSingle();
       if (o) _handleStatusUpdate(o);
     } catch {}
+    return;
   }
+  // لا طلب نشط — حدّث قائمة الطلبات إن كانت مفتوحة
+  if (document.getElementById('det-ov')?.classList.contains('open')) return;
+  const ordTab = document.getElementById('tab-orders');
+  if (ordTab?.classList.contains('active')) await loadOrders();
 }
 
 function _handleStatusUpdate(row) {
@@ -1192,7 +1198,7 @@ async function sendOrder() {
 
     stxt.innerText = 'جاري تسجيل الطلب...';
     const order = {
-      id:oid, user_id:userId, telegram_id:userId,
+      id:oid, user_id:userId, telegram_id: tgU?.id ? String(tgU.id) : userId,
       name, phone, region, loc_url:locUrl,
       files:meta, zip_url:zipUrl,
       color, side,
