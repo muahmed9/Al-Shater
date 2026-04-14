@@ -665,6 +665,23 @@ async function init() {
   await loadPricing();
   if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
   refreshPtsUI();
+
+  // ── استعادة حالة الطلب النشط عند الريفريش ──
+  try {
+    const _saved = JSON.parse(localStorage.getItem('sh-active-order') || 'null');
+    if (_saved?.oid) {
+      _successOid = _saved.oid;
+      _successPe  = _saved.pe  || 0;
+      _successNp  = _saved.np  || 0;
+      const _cachedSt = _saved.status || 'received';
+      window._lastKnownStatus = _cachedSt;
+      // عرض شاشة النجاح فوراً بالحالة المحفوظة
+      document.getElementById('tab-order').innerHTML = _buildSuccessHTML(_cachedSt);
+      // ثم تحديثها من الخادم
+      _refreshSuccessFromServer(_saved.oid);
+    }
+  } catch {}
+
   startRT();
 }
 
@@ -718,6 +735,14 @@ function _handleStatusUpdate(row) {
   }
   window._lastKnownStatus = st;
 
+  // تحديث الحالة المحفوظة في localStorage
+  if (_successOid === row.id) {
+    try {
+      const _sv = JSON.parse(localStorage.getItem('sh-active-order') || 'null');
+      if (_sv?.oid === _successOid) { _sv.status = st; localStorage.setItem('sh-active-order', JSON.stringify(_sv)); }
+    } catch {}
+  }
+
   loadOrders();
 
   if (_successOid && row.id === _successOid) {
@@ -726,6 +751,7 @@ function _handleStatusUpdate(row) {
     _updateSuccessScreen(st, row.status_history || []);
     if (st === 'delivered' || st === 'cancelled') {
       clearInterval(_rtPollTimer); _rtPollTimer = null;
+      try { localStorage.removeItem('sh-active-order'); } catch {}
       if (st === 'delivered') { init(); setTimeout(() => showRateModal(row.id), 1500); }
     }
   }
@@ -1362,6 +1388,8 @@ async function _refreshSuccessFromServer(oid) {
     if (o && o.status) {
       if (o.status === 'cancelled') _successCancelReason = o.cancel_reason || '';
       _successETA = o.eta || '';
+      // تحديث الحالة المعروفة حتى تعمل الـ toast بشكل صحيح
+      if (!window._lastKnownStatus) window._lastKnownStatus = o.status;
       _updateSuccessScreen(o.status, o.status_history || []);
     }
   } catch {}
@@ -1370,6 +1398,8 @@ async function _refreshSuccessFromServer(oid) {
 function showSuccessUI(oid, pe, np) {
   _successOid = oid; _successPe = pe; _successNp = np;
   window._lastKnownStatus = 'received';
+  // حفظ الطلب النشط في localStorage حتى لا يُفقد عند الريفريش
+  try { localStorage.setItem('sh-active-order', JSON.stringify({oid, pe, np, status:'received'})); } catch {}
   document.getElementById('tab-order').innerHTML = _buildSuccessHTML('received');
 }
 
