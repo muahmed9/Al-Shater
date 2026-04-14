@@ -670,15 +670,23 @@ async function init() {
   try {
     const _saved = JSON.parse(localStorage.getItem('sh-active-order') || 'null');
     if (_saved?.oid) {
-      _successOid = _saved.oid;
-      _successPe  = _saved.pe  || 0;
-      _successNp  = _saved.np  || 0;
-      const _cachedSt = _saved.status || 'received';
-      window._lastKnownStatus = _cachedSt;
-      // عرض شاشة النجاح فوراً بالحالة المحفوظة
-      document.getElementById('tab-order').innerHTML = _buildSuccessHTML(_cachedSt);
-      // ثم تحديثها من الخادم
-      _refreshSuccessFromServer(_saved.oid);
+      // تحقق من الخادم أولاً — لا تعرض إلا إذا كان الطلب فعلاً نشطاً
+      const {data:_chk} = await sb.from('orders')
+        .select('id,status,status_history,cancel_reason,eta,loyalty_points_earned')
+        .eq('id', _saved.oid).maybeSingle();
+      if (!_chk || ['delivered','cancelled'].includes(_chk.status)) {
+        // الطلب منتهي أو غير موجود — امسح وأظهر الفورم الطبيعي
+        localStorage.removeItem('sh-active-order');
+      } else {
+        _successOid = _saved.oid;
+        _successPe  = _saved.pe || _chk.loyalty_points_earned || 0;
+        _successNp  = _saved.np || 0;
+        const _activeSt = _chk.status || _saved.status || 'received';
+        window._lastKnownStatus = _activeSt;
+        if (_chk.cancel_reason) _successCancelReason = _chk.cancel_reason;
+        if (_chk.eta) _successETA = _chk.eta;
+        document.getElementById('tab-order').innerHTML = _buildSuccessHTML(_activeSt);
+      }
     }
   } catch {}
 
@@ -1357,14 +1365,14 @@ function _buildSuccessHTML(currentStatus) {
       <div id="suc-thx" style="display:none;"></div>
 
       ${isDelivered ? `
-        <button onclick="location.reload()" class="bmain btn-action" style="margin-bottom:10px;">🖨️ اطلب مرة أخرى</button>
+        <button onclick="clearAndReload()" class="bmain btn-action" style="margin-bottom:10px;">🖨️ اطلب مرة أخرى</button>
         <button onclick="goTab('orders')" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">📋 طلباتي</button>
       ` : isCancelled ? `
-        <button onclick="location.reload()" class="bmain btn-action" style="margin-bottom:10px;">🔄 إنشاء طلب جديد</button>
+        <button onclick="clearAndReload()" class="bmain btn-action" style="margin-bottom:10px;">🔄 إنشاء طلب جديد</button>
         <button onclick="goTab('orders')" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">📋 طلباتي</button>
       ` : `
         <button onclick="goTab('orders')" class="bmain btn-action" style="margin-bottom:10px;">📋 تتبع طلبي</button>
-        <button onclick="location.reload()" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">🆕 طلب جديد</button>
+        <button onclick="clearAndReload()" class="bmain" style="background:var(--card);color:var(--text-muted);border:1.5px solid var(--border);">🆕 طلب جديد</button>
       `}
     </div>`;
 }
