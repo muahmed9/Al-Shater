@@ -59,6 +59,7 @@ body{background:var(--bg);direction:rtl;margin:0;padding:0 0 85px;color:var(--te
 @keyframes pulseGlow{0%,100%{box-shadow:0 0 0 0 rgba(232,107,36,.45)}60%{box-shadow:0 0 0 9px rgba(232,107,36,0)}}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+@keyframes pulseGlowTeal{0%,100%{box-shadow:0 0 0 0 rgba(90,179,196,.4)}60%{box-shadow:0 0 0 8px rgba(90,179,196,0)}}
 
 /* ONBOARDING */
 #onboarding{position:fixed;inset:0;background:rgba(13,59,102,.93);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500;}
@@ -212,6 +213,9 @@ input:checked+.togs:before{transform:translateX(-24px);}
 .orders-fbar::-webkit-scrollbar{display:none;}
 .ofbtn{padding:7px 14px;border-radius:20px;border:1.5px solid #e2e8f0;background:var(--card);cursor:pointer;font-size:.8rem;white-space:nowrap;font-weight:700;color:var(--text-muted);font-family:'Tajawal',sans-serif;}
 .ofbtn.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+
+/* ── NOTIFY CARD ── */
+.notify-card-pulse { animation: pulseGlowTeal 2.5s infinite; }
 </style>
 </head>
 <body>
@@ -312,6 +316,28 @@ input:checked+.togs:before{transform:translateX(-24px);}
     </div>
     <input type="file" id="fileinp" multiple style="display:none">
   </div>
+
+  <!-- ══ كارد تفعيل إشعارات تيليجرام ══ -->
+  <div id="notify-card" class="card notify-card-pulse" style="border:2px solid var(--teal);background:var(--light-teal);display:none;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span style="font-size:2.2rem;">🔔</span>
+      <div style="flex:1;">
+        <b style="color:var(--navy);display:block;margin-bottom:3px;font-size:1rem;">فعّل إشعارات تيليجرام</b>
+        <p style="margin:0;font-size:.82rem;color:var(--text-muted);font-weight:500;line-height:1.5;">لتصلك تحديثات طلبك لحظة بلحظة على تيليجرام</p>
+      </div>
+      <a id="notify-btn" href="#" target="_blank"
+         style="background:var(--teal);color:#fff;padding:10px 16px;border-radius:12px;font-weight:800;font-size:.88rem;text-decoration:none;white-space:nowrap;box-shadow:0 4px 10px rgba(90,179,196,.3);">
+        ابدأ البوت →
+      </a>
+    </div>
+    <div id="notify-done" style="display:none;background:#dcfce7;border:1px solid #86efac;border-radius:10px;padding:10px;margin-top:12px;text-align:center;font-size:.88rem;font-weight:700;color:#166534;">
+      ✅ تم! ستصلك الإشعارات على تيليجرام
+    </div>
+    <div id="notify-checking" style="display:none;text-align:center;padding:8px;margin-top:10px;font-size:.83rem;color:var(--teal);font-weight:700;">
+      ⏳ جاري التحقق...
+    </div>
+  </div>
+
   <div id="flist" style="display:none;"></div>
   <div id="opts" style="display:none;">
     <div class="card">
@@ -329,7 +355,6 @@ input:checked+.togs:before{transform:translateX(-24px);}
         </div>
       </div>
     </div>
-
 
     <!-- 📦 Packaging -->
     <div class="card">
@@ -450,7 +475,7 @@ input:checked+.togs:before{transform:translateX(-24px);}
     <div class="rcard"><div><b style="color:var(--navy);">خصم 500 د.ع</b><p style="margin:4px 0 0;font-size:.85rem;color:var(--teal);font-weight:700;">100 نقطة</p></div><button class="rbtn" id="rb100" onclick="redeemPts(100,500)">استبدال</button></div>
     <div class="rcard"><div><b style="color:var(--navy);">خصم 1,500 د.ع</b><p style="margin:4px 0 0;font-size:.85rem;color:var(--teal);font-weight:700;">300 نقطة</p></div><button class="rbtn" id="rb300" onclick="redeemPts(300,1500)">استبدال</button></div>
     <div class="rcard"><div><b style="color:var(--navy);">خصم 3,500 د.ع</b><p style="margin:4px 0 0;font-size:.85rem;color:var(--teal);font-weight:700;">700 نقطة</p></div><button class="rbtn" id="rb700" onclick="redeemPts(700,3500)">استبدال</button></div>
-    <div id="redeembanner" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px;margin-top:12px;font-size:.9rem;font-weight:700;color:#166534;text-align:center;"></div>
+    <div id="redeembanner" style="display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:12px;margin-top:12px;font-size:.9rem;font-weight:700;color:#166634;text-align:center;"></div>
   </div>
   <div class="card">
     <h3 style="margin:0 0 12px;color:var(--navy);font-weight:800;">📊 كيف تكسب النقاط؟</h3>
@@ -494,13 +519,15 @@ function esc(s) {
 // ══ CONFIG ════════════════════════════════════════
 const SB_URL = 'https://zeacprjusqhtoktbrtpy.supabase.co';
 const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InplYWNwcmp1c3FodG9rdGJydHB5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzYzNDE5MzcsImV4cCI6MjA5MTkxNzkzN30._q7g0sslRVrYX-9Qkkhc0WHuCbu-KRekXRCgRAsAnpo';
-// BOT token removed — sending handled by Edge Function
 const ADMIN  = '7618746133';
+
+// ✅ ضع هنا username البوت الخاص بك بدون علامة @
+// مثال: إذا كان رابط البوت t.me/ShaterBot اكتب 'ShaterBot'
+const BOT_USERNAME = 'YourBotUsername';
 
 const sb  = window.supabase.createClient(SB_URL, SB_KEY);
 const tg  = window.Telegram?.WebApp; tg?.ready();
 const tgU = tg?.initDataUnsafe?.user;
-// userId ثابت — إذا لم يكن من تليغرام نحفظه في localStorage
 const userId = (() => {
   if (tgU?.id) return String(tgU.id);
   let gid = localStorage.getItem('sh-uid');
@@ -515,7 +542,7 @@ let ordFilter = 'all';
 let allUserOrders = [];
 let _rateOid = null, _rateStars = 0;
 
-// ══ PRICING CONFIG (افتراضي — يُحمَّل من Supabase) ══
+// ══ PRICING CONFIG ════════════════════════════════
 let PRICING = {
   min_pages:5, min_price:1000,
   color_tiers:[{max_pages:25,price:150},{max_pages:40,price:130},{max_pages:70,price:120},{max_pages:9999999,price:100}],
@@ -541,10 +568,9 @@ async function loadPricing() {
 
 // 🔒 Rate Limiting
 let lastOrderTime = 0;
-const ORDER_COOLDOWN = 60000; // 1 minute between orders
+const ORDER_COOLDOWN = 60000;
 
-// ══ SOUND NOTIFICATION ═══════════════════════════
-// AudioContext مشترك لتجنب إنشاء context جديد في كل مرة
+// ══ SOUND NOTIFICATION ════════════════════════════
 const _audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
 function _playNote(freq, startTime, duration, volume = 0.3) {
@@ -566,30 +592,25 @@ function playStatusSound(status) {
     const t = _audioCtx.currentTime;
     switch (status) {
       case 'received':
-        // نغمة هادئة صاعدة — تأكيد الاستلام
         _playNote(220, t,        0.2, 0.25);
         _playNote(440, t + 0.22, 0.35, 0.3);
         break;
       case 'printing':
-        // نغمتان متتاليتان — بدء الطباعة
         _playNote(440, t,        0.18, 0.3);
         _playNote(550, t + 0.22, 0.22, 0.3);
         break;
       case 'delivering':
-        // ثلاث نبضات سريعة تصاعدية — المندوب في الطريق
         _playNote(440, t,        0.13, 0.28);
         _playNote(550, t + 0.17, 0.13, 0.28);
         _playNote(660, t + 0.34, 0.18, 0.3);
         break;
       case 'delivered':
-        // لحن احتفالي أربع نغمات — تم التسليم 🎉
         _playNote(523,  t,        0.16, 0.35);
         _playNote(659,  t + 0.19, 0.16, 0.35);
         _playNote(784,  t + 0.38, 0.16, 0.35);
         _playNote(1047, t + 0.57, 0.28, 0.4);
         break;
       case 'cancelled':
-        // نغمتان هابطتان — إلغاء
         _playNote(440, t,        0.32, 0.28);
         _playNote(330, t + 0.38, 0.38, 0.25);
         break;
@@ -599,7 +620,7 @@ function playStatusSound(status) {
   } catch(e) {}
 }
 
-// ══ DARK MODE ════════════════════════════════════
+// ══ DARK MODE ═════════════════════════════════════
 function applyTheme(dark) {
   document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
   document.getElementById('dm-icon').innerText = dark ? '☀️' : '🌙';
@@ -612,7 +633,7 @@ function toggleDark() {
 }
 applyTheme(localStorage.getItem('sh-dark') === 'true');
 
-// ══ ONBOARDING ═══════════════════════════════════
+// ══ ONBOARDING ════════════════════════════════════
 let obIdx = 0; const OB_TOTAL = 3;
 let _tx = 0, _ty = 0;
 const obTrack = document.getElementById('ob-track');
@@ -637,7 +658,80 @@ function finishOB() {
 }
 if (localStorage.getItem('sh-ob') === '1') document.getElementById('onboarding').style.display = 'none';
 
- // ══ INIT ═════════════════════════════════════════
+// ══════════════════════════════════════════════════
+//  🔔 BOT NOTIFICATION SYSTEM
+//  السبب: البوت لا يستطيع إرسال رسائل للمستخدم
+//  إلا بعد أن يضغط /start أولاً
+// ══════════════════════════════════════════════════
+async function checkBotStarted() {
+  const card = document.getElementById('notify-card');
+  if (!card) return;
+
+  // إذا لم يكن من تيليجرام — لا داعي للكارد
+  if (!tgU?.id) return;
+
+  const storageKey = 'sh-bot-started-' + userId;
+  const alreadyStarted = localStorage.getItem(storageKey);
+
+  // إذا سبق وتحقق من البوت — تحقق مجدداً من الخادم للتأكد
+  if (alreadyStarted === '1') {
+    const confirmed = await verifyBotStarted(true); // silent = true
+    if (confirmed) return; // كل شيء تمام — أخفِ الكارد
+    // لم يتحقق — أعد عرض الكارد
+  }
+
+  // اضبط رابط البوت مع deep link يحمل userId
+  const notifyBtn = document.getElementById('notify-btn');
+  const startParam = 'n' + String(userId).substring(0, 15);
+  notifyBtn.href = `https://t.me/${BOT_USERNAME}?start=${startParam}`;
+
+  card.style.display = 'block';
+
+  // عند الضغط على زر "ابدأ البوت"
+  notifyBtn.addEventListener('click', () => {
+    const checkEl   = document.getElementById('notify-checking');
+    const doneEl    = document.getElementById('notify-done');
+    if (checkEl) checkEl.style.display = 'block';
+
+    // انتظر 4 ثواني ثم تحقق (وقت كافٍ لفتح تيليجرام والضغط start)
+    setTimeout(async () => {
+      const ok = await verifyBotStarted(false);
+      if (checkEl) checkEl.style.display = 'none';
+      if (ok) {
+        if (doneEl) doneEl.style.display = 'block';
+        notifyBtn.style.display = 'none';
+        localStorage.setItem(storageKey, '1');
+        // أخفِ الكارد بعد ثانيتين
+        setTimeout(() => { card.style.display = 'none'; }, 2000);
+        showToast('✅ تم تفعيل الإشعارات بنجاح!');
+      } else {
+        showToast('⚠️ لم يتم التحقق بعد — تأكد من الضغط على Start في البوت ثم حاول مجدداً');
+      }
+    }, 4000);
+  }, { once: true });
+}
+
+// يحاول إرسال رسالة تأكيد للزبون
+// إذا نجحت = البوت مفعّل ✅ | إذا فشلت = لم يبدأ بعد ❌
+async function verifyBotStarted(silent = false) {
+  if (!tgU?.id) return false;
+  try {
+    const r = await sb.functions.invoke('send-tg', {
+      body: {
+        chatId: String(tgU.id),
+        message: silent
+          ? null  // سنتعامل مع null في الـ Edge Function — لا نرسل رسالة فعلية
+          : '🔔 تم تفعيل إشعارات خدمات الشاطر الطلابية بنجاح!\n\nستصلك تحديثات طلباتك هنا مباشرةً ✅',
+        checkOnly: silent  // ← معامل جديد للتحقق بدون إرسال
+      }
+    });
+    return r.data?.ok === true;
+  } catch {
+    return false;
+  }
+}
+
+// ══ INIT ══════════════════════════════════════════
 async function init() {
   try {
     const initData = window.Telegram?.WebApp?.initData;
@@ -646,12 +740,9 @@ async function init() {
         const { data: authData, error: authErr } = await sb.functions.invoke('telegram-auth', {
           body: { initData }
         });
-        
         if (authData && authData.session) {
-          // تسجيل دخول صامت وناجح
           await sb.auth.setSession(authData.session);
         } else {
-          // في حال وجود خطأ نعرضه بصمت دون تجميد التطبيق
           console.error("مشكلة في مصادقة تيليجرام: ", authErr || authData);
         }
       } catch (err) {
@@ -667,8 +758,12 @@ async function init() {
       await sb.from('users').insert(uDoc);
     }
   } catch(e) { console.error('Init error:', e); }
-  
+
   await loadPricing();
+
+  // ✅ التحقق من تفعيل البوت
+  await checkBotStarted();
+
   if (!uDoc.first_order_done) document.getElementById('fo-gift').style.display = 'block';
   refreshPtsUI();
 
@@ -676,12 +771,10 @@ async function init() {
   try {
     const _saved = JSON.parse(localStorage.getItem('sh-active-order') || 'null');
     if (_saved?.oid) {
-      // تحقق من الخادم أولاً — لا تعرض إلا إذا كان الطلب فعلاً نشطاً
       const {data:_chk} = await sb.from('orders')
         .select('id,status,status_history,cancel_reason,eta,loyalty_points_earned')
         .eq('id', _saved.oid).maybeSingle();
       if (!_chk || ['delivered','cancelled'].includes(_chk.status)) {
-        // الطلب منتهي أو غير موجود — امسح وأظهر الفورم الطبيعي
         localStorage.removeItem('sh-active-order');
       } else {
         _successOid = _saved.oid;
@@ -699,14 +792,11 @@ async function init() {
   startRT();
 }
 
-// ══ REAL-TIME + POLLING ══════════════════════════
+// ══ REAL-TIME + POLLING ═══════════════════════════
 let _rtPollTimer = null;
 
 function startRT() {
-  // ── Polling كل 10 ثواني (الأضمن) ──
   _rtPollTimer = setInterval(() => _pollOrderStatus(), 10000);
-
-  // ── Realtime كـ bonus (بدون filter من الخادم) ──
   try {
     sb.channel('orders-rt-' + userId)
       .on('postgres_changes', { event:'UPDATE', schema:'public', table:'orders' }, p => {
@@ -720,7 +810,6 @@ function startRT() {
 }
 
 async function _pollOrderStatus() {
-  // دائماً اسحب الطلب النشط إن وُجد
   if (_successOid) {
     try {
       const {data:o} = await sb.from('orders')
@@ -730,7 +819,6 @@ async function _pollOrderStatus() {
     } catch {}
     return;
   }
-  // لا طلب نشط — حدّث قائمة الطلبات إن كانت مفتوحة
   if (document.getElementById('det-ov')?.classList.contains('open')) return;
   const ordTab = document.getElementById('tab-orders');
   if (ordTab?.classList.contains('active')) await loadOrders();
@@ -741,7 +829,6 @@ function _handleStatusUpdate(row) {
   if (!st) return;
   const m = {received:'📥 تم الاستلام',printing:'🖨️ قيد الطباعة',delivering:'🛵 جاري التوصيل',delivered:'✅ تم التسليم'};
 
-  // Toast فقط عند تغيير الحالة الفعلي (تجنّب التكرار)
   if (_successOid === row.id && window._lastKnownStatus && window._lastKnownStatus !== st) {
     if (st === 'cancelled') showToast('❌ تم إلغاء الطلب' + (row.cancel_reason ? ': ' + row.cancel_reason : ''));
     else showToast('🔔 ' + (m[st] || st));
@@ -749,7 +836,6 @@ function _handleStatusUpdate(row) {
   }
   window._lastKnownStatus = st;
 
-  // تحديث الحالة المحفوظة في localStorage
   if (_successOid === row.id) {
     try {
       const _sv = JSON.parse(localStorage.getItem('sh-active-order') || 'null');
@@ -776,9 +862,7 @@ function _handleStatusUpdate(row) {
   }
 }
 
-// ══ RATING SYSTEM ════════════════════════════════
-
-
+// ══ RATING SYSTEM ═════════════════════════════════
 function showRateModal(oid) {
   const rated = JSON.parse(localStorage.getItem('sh-rated') || '[]');
   if (rated.includes(oid)) return;
@@ -810,7 +894,7 @@ async function submitRating() {
   closeRateModal();
 }
 
-// ══ TABS ═════════════════════════════════════════
+// ══ TABS ══════════════════════════════════════════
 function goTab(t) {
   document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
   document.querySelectorAll('.nbtn').forEach(x => x.classList.remove('active'));
@@ -840,9 +924,7 @@ function toggleExpressStyle() {
   }
 }
 
-// ══ COUPON SYSTEM ════════════════════════════════
-
-// مسح الكوبون تلقائياً عند تغيير الكود في الحقل
+// ══ COUPON SYSTEM ═════════════════════════════════
 function clearCouponIfChanged() {
   if (!appliedCoupon) return;
   const current = document.getElementById('couponInput').value.trim();
@@ -890,7 +972,7 @@ async function applyCoupon() {
   calcUI();
 }
 
-// ══ SAVED ADDRESSES ══════════════════════════════
+// ══ SAVED ADDRESSES ═══════════════════════════════
 function getSavedAddrs() { return JSON.parse(localStorage.getItem('sh-addrs') || '[]'); }
 function saveAddr(r) {
   let a = getSavedAddrs();
@@ -914,7 +996,7 @@ document.addEventListener('click', e => {
     document.getElementById('addr-sug').style.display = 'none';
 });
 
-// ══ FILE INPUT ═══════════════════════════════════
+// ══ FILE INPUT ════════════════════════════════════
 const FILE_TYPE_INFO = {
   pdf:{icon:'📕',bg:'#fee2e2',label:'PDF'},docx:{icon:'📘',bg:'#dbeafe',label:'Word'},
   doc:{icon:'📘',bg:'#dbeafe',label:'Word'},xlsx:{icon:'📗',bg:'#dcfce7',label:'Excel'},
@@ -925,21 +1007,15 @@ const FILE_TYPE_INFO = {
 };
 function fmtSize(b) { if(b<1024)return b+' B';if(b<1048576)return(b/1024).toFixed(1)+' KB';return(b/1048576).toFixed(1)+' MB'; }
 
-// ══ FILE MAGIC BYTES VALIDATOR ═══════════════════
 async function validateFileMagic(file) {
   const buf = await file.slice(0, 8).arrayBuffer();
   const b = new Uint8Array(buf);
   const nm = file.name.toLowerCase();
-  // PDF: %PDF
   if (nm.endsWith('.pdf')) return b[0]===0x25&&b[1]===0x50&&b[2]===0x44&&b[3]===0x46;
-  // ZIP-based (docx, xlsx, pptx)
   if (['.docx','.xlsx','.pptx','.doc','.xls','.ppt'].some(e=>nm.endsWith(e)))
     return b[0]===0x50&&b[1]===0x4B;
-  // JPEG
   if (nm.endsWith('.jpg')||nm.endsWith('.jpeg')) return b[0]===0xFF&&b[1]===0xD8;
-  // PNG
   if (nm.endsWith('.png')) return b[0]===0x89&&b[1]===0x50&&b[2]===0x4E&&b[3]===0x47;
-  // WEBP
   if (nm.endsWith('.webp')) return b[0]===0x52&&b[1]===0x49&&b[2]===0x46&&b[3]===0x46;
   return true;
 }
@@ -950,7 +1026,6 @@ document.getElementById('fileinp').onchange = async e => {
     if (f.size > 50 * 1024 * 1024) { showToast('❌ ' + f.name + ' يتجاوز 50MB'); continue; }
     const nm = f.name.toLowerCase(), ext = nm.substring(nm.lastIndexOf('.'));
     if (!okExts.includes(ext) && !f.type.startsWith('image/')) continue;
-    // فحص magic bytes
     const isValid = await validateFileMagic(f);
     if (!isValid) { showToast('❌ ' + f.name + ' — الملف تالف أو نوعه غير صحيح'); continue; }
     const raw_ext = ext.replace('.','');
@@ -977,7 +1052,7 @@ document.getElementById('fileinp').onchange = async e => {
   calcUI(); e.target.value = '';
 };
 
-// ══ PRINT CONFIG ═════════════════════════════════
+// ══ PRINT CONFIG ══════════════════════════════════
 function setC(v) {
   color = v;
   document.getElementById('cbtn').className = v==='c' ? 'obtn on' : 'obtn off';
@@ -992,7 +1067,7 @@ function setS(v) {
   calcUI();
 }
 
-// ══ LOCATION ═════════════════════════════════════
+// ══ LOCATION ══════════════════════════════════════
 function getLoc() {
   navigator.geolocation.getCurrentPosition(
     p => { locUrl = `https://www.google.com/maps?q=${p.coords.latitude},${p.coords.longitude}`; const b=document.getElementById('locbtn'); b.innerText='✅ تم حفظ الموقع بنجاح';b.style.background='var(--green)';hideErr(); },
@@ -1000,7 +1075,7 @@ function getLoc() {
   );
 }
 
-// ══ PACKAGING ════════════════════════════════════
+// ══ PACKAGING ═════════════════════════════════════
 function setPkg(v) {
   packaging = v;
   const styles = {
@@ -1014,11 +1089,9 @@ function setPkg(v) {
     if (!el) return;
     const s = k === v ? styles[k] : off;
     el.style.border = s.border; el.style.background = s.background; el.style.color = s.color;
-    // Fix text colors inside unselected
     const nameEl = el.querySelector('b'); const descEl = el.querySelector('span:not([id])');
     if (nameEl) nameEl.style.color = k===v ? '#fff' : 'var(--text-main)';
     if (descEl) descEl.style.color = k===v ? 'rgba(255,255,255,.8)' : 'var(--text-muted)';
-    // Fix price color
     const priceEl = document.getElementById('pkg-'+k+'-price');
     if (priceEl) {
       priceEl.style.color = k===v ? '#fff' : 'var(--orange)';
@@ -1030,7 +1103,7 @@ function setPkg(v) {
   calcUI();
 }
 
-// ══ PRICE CALCULATION ════════════════════════════
+// ══ PRICE CALCULATION ═════════════════════════════
 function roundTo250(n) { return Math.round(n / 250) * 250; }
 function calcPrice(sh, im) {
   const t = sh + im; if (!t) return 0;
@@ -1046,7 +1119,7 @@ function calcPrice(sh, im) {
   return roundTo250(raw);
 }
 
-// ══ UI UPDATE ════════════════════════════════════
+// ══ UI UPDATE ═════════════════════════════════════
 function calcUI() {
   let sh=0, im=0, dp=0, hasD=false, hasI=false;
   const fl = document.getElementById('flist');
@@ -1080,12 +1153,10 @@ function calcUI() {
   const expressFee = isExpress ? (PRICING.express_fee||1500) : 0;
   const pkgFee = files.length ? ((PRICING.packaging||{})[packaging]||0) : 0;
 
-  // Coupon discount
   let couponDisc = 0;
   if (appliedCoupon && pp > 0) {
     const _minOrd = appliedCoupon.min_order_amount || 0;
     if (_minOrd > 0 && pp < _minOrd) {
-      // min order not met — show warning but don't apply
       const _cmsg = document.getElementById('coupon-msg');
       if (_cmsg) { _cmsg.style.display='block'; _cmsg.style.background='#fef2f2'; _cmsg.style.color='#991b1b'; _cmsg.style.border='1px solid #fecaca'; _cmsg.innerText=`⚠️ الحد الأدنى للكوبون ${_minOrd.toLocaleString()} د.ع — لم يُطبق بعد`; }
     } else {
@@ -1130,7 +1201,7 @@ function calcUI() {
 window.adjC = (i,d) => { files[i].c=Math.max(1,files[i].c+d); calcUI(); };
 window.rmF  = i => { files.splice(i,1); calcUI(); };
 
-// ══ REDEEM POINTS ════════════════════════════════
+// ══ REDEEM POINTS ═════════════════════════════════
 function redeemPts(pts, disc) {
   if ((uDoc.loyalty_points||0) < pts) { alert('عذراً، نقاطك غير كافية!'); return; }
   pendingR = {pts, disc};
@@ -1140,13 +1211,12 @@ function redeemPts(pts, disc) {
   goTab('order'); calcUI();
 }
 
-// ══ SEND ORDER ═══════════════════════════════════
+// ══ SEND ORDER ════════════════════════════════════
 async function sendOrder() {
   const name   = document.getElementById('uName').value.trim();
   const phone  = document.getElementById('uPhone').value.trim();
   const region = document.getElementById('uRegion').value.trim();
 
-  // 🔒 Input validation
   if (!name)                               return showErr('❌ يرجى كتابة الاسم');
   if (name.length < 3)                     return showErr('❌ الاسم يجب أن يكون 3 أحرف على الأقل');
   if (phone.length!==11 || isNaN(+phone)) return showErr('❌ رقم الهاتف يجب أن يكون 11 رقمًا');
@@ -1154,14 +1224,11 @@ async function sendOrder() {
   if (!locUrl)                              return showErr('❌ يرجى تحديد موقعك على الخريطة');
   if (!files.length)                        return showErr('❌ يرجى رفع ملف واحد على الأقل');
 
-  // 🔒 Rate limiting
   const now = Date.now();
   if (now - lastOrderTime < ORDER_COOLDOWN) {
     return showErr('❌ يرجى الانتظار قليلاً قبل إرسال طلب جديد');
   }
   hideErr();
-
-  // تحديث الحساب قبل قراءة البيانات
   calcUI();
 
   const btn = document.getElementById('sendbtn');
@@ -1220,16 +1287,14 @@ async function sendOrder() {
     const {error:dbErr} = await sb.from('orders').insert(order);
     if (dbErr) throw dbErr;
 
-    // Update coupon usage — نجلب القيمة الحالية من قاعدة البيانات لتفادي Race Condition
     if (appliedCoupon) {
       try {
         const {data: freshCoupon} = await sb.from('coupons')
           .select('used_count, max_uses')
           .eq('id', appliedCoupon.id)
           .maybeSingle();
-        // تحقق أن الكوبون لم يُستنفد بين وقت التطبيق ووقت الإرسال
         if (freshCoupon && freshCoupon.max_uses > 0 && freshCoupon.used_count >= freshCoupon.max_uses) {
-          console.warn('تحذير: تم استنفاد الكوبون بعد التطبيق — لن يُحتسب الخصم');
+          console.warn('تحذير: تم استنفاد الكوبون بعد التطبيق');
         } else {
           await sb.from('coupons')
             .update({ used_count: (freshCoupon?.used_count || 0) + 1 })
@@ -1262,9 +1327,13 @@ async function sendOrder() {
       (appliedCoupon ? `🎟️ كوبون: ${appliedCoupon.code}\n` : '') +
       `\n📋 الملفات:\n${flist}\n\n📦 رابط التحميل:\n${zipUrl}`
     );
-    if (tgU?.id) await tgMsg(String(tgU.id),
-      `✅ تم استلام طلبك #${oid} بنجاح!\n💰 ${(tot||0).toLocaleString()} د.ع\n\n${pe>0?`💎 ستكسب ${pe} نقطة ولاء عند التسليم!\n`:''}سنُخطرك بكل تحديث 🔔`
-    );
+
+    // ✅ إشعار الزبون — يعمل فقط إذا كان قد ضغط /start في البوت
+    if (tgU?.id) {
+      await tgMsg(String(tgU.id),
+        `✅ تم استلام طلبك #${oid} بنجاح!\n💰 ${(tot||0).toLocaleString()} د.ع\n\n${pe>0?`💎 ستكسب ${pe} نقطة ولاء عند التسليم!\n`:''}سنُخطرك بكل تحديث 🔔`
+      );
+    }
 
     document.getElementById('pbar').style.width = '100%';
     lastOrderTime = Date.now();
@@ -1286,7 +1355,7 @@ async function sendOrder() {
   }
 }
 
-// ══ SUCCESS SCREEN ═══════════════════════════════
+// ══ SUCCESS SCREEN ════════════════════════════════
 let _successOid = null, _successPe = 0, _successNp = 0, _successCancelReason = '', _successETA = '';
 const STATUS_STEPS = [
   { k:'received', icon:'📥', label:'تم الاستلام' },
@@ -1312,17 +1381,15 @@ function _buildSuccessHTML(currentStatus) {
     return `<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:${i < 3 ? '1px solid var(--border)' : 'none'};opacity:${opacity};transition:opacity .4s;">${iconEl}<b style="color:${lc};font-size:.97rem;">${s.label}</b></div>`;
   }).join('');
 
-  // Dynamic header based on status
   const headerMap = {
-    received:   { icon:'📥', title:'تم استلام طلبك',       sub:'سنبدأ بالعمل عليه قريباً' },
-    printing:   { icon:'🖨️', title:'جاري طباعة ملفاتك',   sub:'سنُخطرك عند الانتهاء' },
+    received:   { icon:'📥', title:'تم استلام طلبك',        sub:'سنبدأ بالعمل عليه قريباً' },
+    printing:   { icon:'🖨️', title:'جاري طباعة ملفاتك',    sub:'سنُخطرك عند الانتهاء' },
     delivering: { icon:'🛵', title:'المندوب في الطريق إليك', sub:'سيصلك طلبك قريباً' },
-    delivered:  { icon:'🎉', title:'تم تسليم طلبك بنجاح!', sub:'شكراً لتعاملك مع الشاطر 💚' },
-    cancelled:  { icon:'❌', title:'تم إلغاء الطلب',        sub:'للاستفسار تواصل معنا' },
+    delivered:  { icon:'🎉', title:'تم تسليم طلبك بنجاح!',  sub:'شكراً لتعاملك مع الشاطر 💚' },
+    cancelled:  { icon:'❌', title:'تم إلغاء الطلب',         sub:'للاستفسار تواصل معنا' },
   };
   const hdr = headerMap[currentStatus] || headerMap.received;
 
-  // Points message based on status
   let ptsHtml = '';
   if (_successPe > 0) {
     if (isDelivered) {
@@ -1363,11 +1430,8 @@ function _buildSuccessHTML(currentStatus) {
       </div>` : ''}
 
       <div id="suc-banner" style="display:none;"></div>
-
       <div id="suc-steps" style="background:var(--card);border:1px solid var(--border);border-radius:18px;padding:16px;margin-bottom:16px;text-align:right;">${stepsHTML}</div>
-
       ${ptsHtml}
-
       <div id="suc-thx" style="display:none;"></div>
 
       ${isDelivered ? `
@@ -1386,7 +1450,6 @@ function _buildSuccessHTML(currentStatus) {
 function _updateSuccessScreen(status, history) {
   const tab = document.getElementById('tab-order');
   if (!tab || !_successOid) return;
-  // Simply rebuild the whole success screen with new status
   tab.innerHTML = _buildSuccessHTML(status);
 }
 
@@ -1402,7 +1465,6 @@ async function _refreshSuccessFromServer(oid) {
     if (o && o.status) {
       if (o.status === 'cancelled') _successCancelReason = o.cancel_reason || '';
       _successETA = o.eta || '';
-      // تحديث الحالة المعروفة حتى تعمل الـ toast بشكل صحيح
       if (!window._lastKnownStatus) window._lastKnownStatus = o.status;
       _updateSuccessScreen(o.status, o.status_history || []);
     }
@@ -1412,12 +1474,17 @@ async function _refreshSuccessFromServer(oid) {
 function showSuccessUI(oid, pe, np) {
   _successOid = oid; _successPe = pe; _successNp = np;
   window._lastKnownStatus = 'received';
-  // حفظ الطلب النشط في localStorage حتى لا يُفقد عند الريفريش
   try { localStorage.setItem('sh-active-order', JSON.stringify({oid, pe, np, status:'received'})); } catch {}
   document.getElementById('tab-order').innerHTML = _buildSuccessHTML('received');
 }
 
-// ══ TELEGRAM ═════════════════════════════════════
+function clearAndReload() {
+  _successOid = null;
+  try { localStorage.removeItem('sh-active-order'); } catch {}
+  location.reload();
+}
+
+// ══ TELEGRAM ══════════════════════════════════════
 async function tgMsg(cid, txt) {
   try {
     const r = await sb.functions.invoke('send-tg', {
@@ -1427,7 +1494,7 @@ async function tgMsg(cid, txt) {
   } catch(e) { console.error('TG send error:', e); return false; }
 }
 
-// ══ ORDERS LIST ══════════════════════════════════
+// ══ ORDERS LIST ═══════════════════════════════════
 function setOrdFilter(f, el) {
   ordFilter = f;
   document.querySelectorAll('.ofbtn').forEach(b => b.classList.remove('active'));
@@ -1515,7 +1582,7 @@ function renderUserOrders() {
   if (totalActive > 0) { b.innerText=totalActive; b.style.display='inline'; } else b.style.display='none';
 }
 
-// ══ ORDER DETAIL ═════════════════════════════════
+// ══ ORDER DETAIL ══════════════════════════════════
 async function showDet(oid) {
   document.getElementById('det-ov').classList.add('open');
   document.getElementById('det-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--teal);"><b>جاري جلب التفاصيل...</b></div>';
@@ -1541,7 +1608,6 @@ async function showDet(oid) {
 
   let cancelBox = '';
   if (o.status === 'cancelled') {
-    // ── Cancelled: show reason + contact ──
     cancelBox = `
     <div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:18px;padding:18px;margin-bottom:18px;">
       <div style="text-align:center;margin-bottom:14px;">
@@ -1573,28 +1639,8 @@ async function showDet(oid) {
         </div>
       </div>
     </div>`;
-  } else if (o.status === 'cancelled') {
-    cancelBox = `<div style="background:#fef2f2;border:1.5px solid #fecaca;border-radius:16px;padding:18px;margin-bottom:18px;">
-      <div style="text-align:center;margin-bottom:12px;">
-        <div style="font-size:2.5rem;margin-bottom:6px;">❌</div>
-        <b style="color:#991b1b;font-size:1.05rem;">تم إلغاء هذا الطلب</b>
-      </div>
-      ${o.cancel_reason ? `<div style="background:#fff;border:1px solid #fecaca;border-radius:12px;padding:12px;margin-bottom:14px;">
-        <p style="margin:0 0 4px;font-size:.82rem;color:#94a3b8;font-weight:700;">📋 سبب الإلغاء:</p>
-        <p style="margin:0;font-size:.95rem;color:#991b1b;font-weight:800;line-height:1.6;">${esc(o.cancel_reason)}</p>
-      </div>` : ''}
-      <p style="margin:0 0 10px;font-size:.88rem;color:#78350f;font-weight:700;text-align:center;">📞 للاستفسار أو إعادة الطلب تواصل معنا:</p>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <a href="tel:07752564099" style="display:block;background:#ef4444;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.9rem;text-align:center;">📞 اتصل بنا (07752564099)</a>
-        <div style="display:flex;gap:8px;">
-          <a href="https://wa.me/9647752564099" target="_blank" style="flex:1;background:#25D366;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">💬 واتساب</a>
-          <a href="https://t.me/+9647752564099" target="_blank" style="flex:1;background:#0088cc;color:#fff;text-decoration:none;padding:10px;border-radius:12px;font-weight:700;font-size:.88rem;display:flex;align-items:center;justify-content:center;gap:5px;">✈️ تيليجرام</a>
-        </div>
-      </div>
-    </div>`;
   }
 
-  // Rating display
   let ratingHtml = '';
   if (o.rating) {
     ratingHtml = `<div style="background:var(--light-teal);border-radius:14px;padding:12px;margin-bottom:16px;text-align:center;">
@@ -1606,7 +1652,6 @@ async function showDet(oid) {
     ratingHtml = `<button onclick="showRateModal('${esc(o.id)}')" class="bmain" style="background:var(--teal);color:#fff;margin-bottom:16px;font-size:.95rem;">⭐ قيّم هذا الطلب</button>`;
   }
 
-  // Re-order button
   let reorderBtn = '';
   if (o.status === 'delivered' || o.status === 'cancelled') {
     reorderBtn = `<button onclick="reOrder('${esc(o.id)}')" class="bmain" style="background:var(--navy);color:#fff;margin-bottom:14px;font-size:.95rem;">🔄 أعد هذا الطلب</button>`;
@@ -1629,16 +1674,14 @@ async function showDet(oid) {
 }
 function closeDet() { document.getElementById('det-ov').classList.remove('open'); }
 
-// ══ RE-ORDER ═════════════════════════════════════
+// ══ RE-ORDER ══════════════════════════════════════
 async function reOrder(oid) {
   const {data:o} = await sb.from('orders').select('*').eq('id', oid).maybeSingle();
   if (!o) return;
   closeDet();
-  // حفظ البيانات أولاً ثم إعادة التحميل
   localStorage.setItem('sh-reorder', JSON.stringify({name:o.name, phone:o.phone, region:o.region, color:o.color, side:o.side}));
   location.reload();
 }
-// Check for reorder data on load
 (function() {
   try {
     const ro = JSON.parse(localStorage.getItem('sh-reorder'));
@@ -1656,7 +1699,7 @@ async function reOrder(oid) {
   } catch {}
 })();
 
-// ══ POINTS UI ════════════════════════════════════
+// ══ POINTS UI ═════════════════════════════════════
 function refreshPtsUI() {
   const p = uDoc?.loyalty_points || 0;
   document.getElementById('ptsnum').innerText = p.toLocaleString();
@@ -1691,12 +1734,12 @@ async function loadPtsTab() {
   } catch(e) { console.error('Points load error:', e); }
 }
 
-// ══ HELPERS ══════════════════════════════════════
+// ══ HELPERS ═══════════════════════════════════════
 function showErr(m) { const e=document.getElementById('errbox'); e.innerText=m; e.style.display='block'; }
 function hideErr()  { document.getElementById('errbox').style.display='none'; }
 function showToast(m) { const t=document.getElementById('toast'); t.innerText=m; t.style.display='block'; clearTimeout(t._t); t._t=setTimeout(()=>t.style.display='none',4000); }
 
-// ══ START ════════════════════════════════════════
+// ══ START ═════════════════════════════════════════
 init();
 </script>
 </body>
