@@ -174,7 +174,13 @@ async function init() {
 
   await authenticateTelegramUser();
 
-  const userId = tgU?.id ? String(tgU.id) : 'guest_' + Date.now();
+  // Stable ID for tracking: use Telegram ID if available, otherwise persist a guest ID
+  let userId = tgU?.id ? String(tgU.id) : localStorage.getItem('shater_guest_id');
+  if (!userId) {
+    userId = 'guest_' + Date.now() + Math.random().toString(36).substring(2, 6);
+    localStorage.setItem('shater_guest_id', userId);
+  }
+
   customerState.merge('user', { id: userId, name: tgU?.first_name ?? '', username: tgU?.username ?? '' });
 
   try {

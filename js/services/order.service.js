@@ -70,11 +70,22 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
 }
 
 export async function fetchUserOrders(userId) {
-  const { data, error } = await sb.from(T.ORDERS)
-    .select('id,status,total,created_at,cancel_reason,rating,files_data,cart_items')
-    .eq('user_id', userId).order('created_at', { ascending: false }).limit(50);
-  if (error) throw error;
-  return data ?? [];
+  try {
+    const { data, error } = await sb.from(T.ORDERS)
+      .select('id,status,total,created_at,cancel_reason,rating,files_data,cart_items')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false })
+      .limit(50);
+    
+    if (error) {
+      console.error('[Supabase Fetch Error]', error);
+      throw new Error(`تعذر تحميل البيانات من قاعدة البيانات (كود: ${error.code})`);
+    }
+    return data ?? [];
+  } catch (err) {
+    console.error('[fetchUserOrders Exception]', err);
+    throw err;
+  }
 }
 
 export async function fetchOrderById(orderId) {
