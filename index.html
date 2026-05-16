@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>مطبعة الشاطر | حلول الطباعة الذكية</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <style>
+    body {
+      background-color: var(--bg);
+      color: var(--text-main);
+      overflow-x: hidden;
+    }
+
+    .hero {
+      position: relative;
+      height: 90vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: url('hero.png') no-repeat center center/cover;
+      overflow: hidden;
+    }
+
+    .hero::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(13, 59, 102, 0.8) 0%, rgba(90, 179, 196, 0.4) 100%);
+    }
+
+    .hero-content {
+      position: relative;
+      z-index: 2;
+      text-align: center;
+      color: white;
+      padding: 2rem;
+      max-width: 800px;
+    }
+
+    .glass-hero-card {
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: var(--radius-lg);
+      padding: 3rem;
+      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      animation: fadeInUp 1s ease-out;
+    }
+
+    @keyframes fadeInUp {
+      from { opacity: 0; transform: translateY(30px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    h1 {
+      font-size: 3.5rem;
+      margin-bottom: 1.5rem;
+      font-weight: 700;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    }
+
+    .hero-subtitle {
+      font-size: 1.25rem;
+      margin-bottom: 2.5rem;
+      opacity: 0.9;
+      line-height: 1.6;
+    }
+
+    .btn-primary-lg {
+      background: var(--orange);
+      color: white;
+      padding: 1rem 2.5rem;
+      border-radius: 50px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.75rem;
+      box-shadow: 0 4px 15px rgba(232, 107, 36, 0.3);
+    }
+
+    .btn-primary-lg:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 6px 20px rgba(232, 107, 36, 0.5);
+      background: #f17b3d;
+    }
+
+    .features {
+      padding: 5rem 2rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 2.5rem;
+      max-width: 1200px;
+      margin: -100px auto 0;
+      position: relative;
+      z-index: 10;
+    }
+
+    .feature-card {
+      background: var(--card);
+      padding: 2.5rem;
+      border-radius: var(--radius-lg);
+      box-shadow: var(--glass-shadow);
+      text-align: center;
+      transition: all 0.3s ease;
+      border: 1px solid var(--border-soft);
+    }
+
+    .feature-card:hover {
+      transform: translateY(-10px);
+      border-color: var(--teal);
+    }
+
+    .feature-icon {
+      font-size: 2.5rem;
+      color: var(--teal);
+      margin-bottom: 1.5rem;
+    }
+
+    .feature-card h3 {
+      margin-bottom: 1rem;
+      font-size: 1.4rem;
+      color: var(--navy);
+    }
+
+    .feature-card p {
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+
+    .cta-section {
+      padding: 5rem 2rem;
+      text-align: center;
+      background: var(--navy);
+      color: white;
+      margin-top: 4rem;
+    }
+
+    .cta-section h2 {
+      font-size: 2.5rem;
+      margin-bottom: 1.5rem;
+    }
+
+    footer {
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+      border-top: 1px solid var(--border-soft);
+    }
+
+    @media (max-width: 768px) {
+      h1 { font-size: 2.5rem; }
+      .hero { height: auto; padding: 6rem 0; }
+      .features { margin-top: 2rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <section class="hero">
+    <div class="hero-content">
+      <div class="glass-hero-card">
+        <h1>مطبعة الشاطر</h1>
+        <p class="hero-subtitle">
+          نقدم لكم أجود خدمات الطباعة والتصوير بأحدث التقنيات. 
+          سرعة، دقة، واحترافية في كل ورقة.
+        </p>
+        <div class="hero-actions">
+          <a href="customer.html" class="btn-primary-lg">
+            اطلب الآن
+            <i class="fas fa-arrow-left"></i>
+          </a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-print"></i></div>
+      <h3>طباعة وتصوير</h3>
+      <p>خدمات طباعة المستندات والبحوث والكتب بجودة استثنائية وألوان زاهية.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-bolt"></i></div>
+      <h3>خدمة إكسبريس</h3>
+      <p>هل أنت في عجلة؟ نوفر خدمات الطباعة الفورية والتسليم في وقت قياسي.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-pen-nib"></i></div>
+      <h3>أدوات مكتبية</h3>
+      <p>تشكيلة واسعة من القرطاسية والأدوات المكتبية والمدرسية المتكاملة.</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon"><i class="fas fa-truck-fast"></i></div>
+      <h3>توصيل ذكي</h3>
+      <p>اطلب من خلال التطبيق وسنقوم بتوصيل طلبك أينما كنت بكل سهولة.</p>
+    </div>
+  </section>
+
+  <section class="cta-section">
+    <h2>ابدأ طلبك اليوم</h2>
+    <p style="margin-bottom: 2rem; opacity: 0.8;">انضم إلى آلاف العملاء الراضين عن خدماتنا</p>
+    <a href="customer.html" class="btn-primary-lg" style="background: white; color: var(--navy);">
+      ابدأ من هنا
+    </a>
+  </section>
+
+  <footer>
+    <p>جميع الحقوق محفوظة &copy; 2026 مطبعة الشاطر</p>
+  </footer>
+
+</body>
+</html>

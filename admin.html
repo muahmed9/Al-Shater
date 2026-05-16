@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl" data-theme="light">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>لوحة تحكم الشاطر</title>
+  <link rel="stylesheet" href="css/variables.css">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/components.css">
+  <link rel="stylesheet" href="css/admin.css">
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body>
+
+  <div id="toast" role="alert" aria-live="polite"></div>
+  <div id="conn-badge"></div>
+  <div id="new-order-banner">
+    <div id="new-order-banner-text">🆕 طلب جديد وصل!</div>
+  </div>
+
+  <div id="login-screen" class="login-wrap">
+    <div class="login-card">
+      <div style="font-size:3rem;margin-bottom:10px;">🖨️</div>
+      <h2 style="color:var(--navy);margin-bottom:6px;">لوحة التحكم</h2>
+      <p class="text-muted" style="margin-bottom:24px;">خدمات الشاطر الطلابية</p>
+      <div id="loginerr" class="error-box"></div>
+      <input type="email" id="adm-user" placeholder="📧 البريد الإلكتروني" autocomplete="email">
+      <input type="password" id="adm-pass" placeholder="🔑 كلمة المرور" autocomplete="current-password">
+      <button id="login-btn" class="btn-primary btn-action" data-loading-text="جاري التحقق ⏳..."
+        style="background:var(--navy);color:#fff;">
+        تسجيل الدخول
+      </button>
+    </div>
+  </div>
+
+  <div id="dashboard" style="display:none;">
+    <div id="sidebar-overlay" class="sidebar-overlay"></div>
+    <aside id="sidebar" class="sidebar" role="navigation" aria-label="القائمة الرئيسية"></aside>
+
+    <div class="admin-content" id="admin-content">
+      <header class="admin-topbar">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة">☰</button>
+          <div>
+            <div style="font-weight:800;font-size:1.05rem;" id="page-title">الطلبات</div>
+            <div style="font-size:.75rem;opacity:.75;" id="role-badge-top"></div>
+          </div>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;">
+          <div
+            style="background:rgba(255,255,255,.15);padding:6px 14px;border-radius:var(--radius-full);font-size:.82rem;">
+            <span
+              style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4eff4e;margin-left:6px;"></span>
+            <span id="pcnt">0</span> معلق
+          </div>
+          <button id="dm-toggle-btn"
+            style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);color:#fff;padding:7px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;">
+            <span id="dm-icon-adm">🌙</span><span id="dm-lbl-adm">ليلي</span>
+          </button>
+        </div>
+      </header>
+
+      <!-- صفحة: الطلبات -->
+      <div class="admin-page active" id="page-orders">
+        <div style="margin-bottom:14px;">
+          <input type="text" id="order-search" placeholder="🔍 بحث برقم الطلب، اسم الزبون، أو الهاتف..."
+            style="margin-bottom:0;">
+        </div>
+        <div class="filter-bar" id="type-filter-bar">
+          <button class="filter-tab active" data-type="all">الكل</button>
+          <button class="filter-tab" data-type="print">🖨️ استنساخ</button>
+          <button class="filter-tab" data-type="market">📦 قرطاسية</button>
+          <button class="filter-tab" data-type="combined">🔀 مشترك</button>
+        </div>
+        <div class="filter-bar" id="filter-bar">
+          <button class="filter-tab active" data-status="all">الكل</button>
+          <button class="filter-tab" data-status="received">📥 مستلم</button>
+          <button class="filter-tab" data-status="printing">🖨️ طباعة</button>
+          <button class="filter-tab" data-status="delivering">🛵 توصيل</button>
+          <button class="filter-tab" data-status="delivered">✅ مسلَّم</button>
+          <button class="filter-tab" data-status="cancelled">❌ ملغى</button>
+        </div>
+        <div class="filter-bar" id="mkt-filter-bar" style="display:none;">
+          <button class="filter-tab active" data-mkt-status="all">الكل</button>
+          <button class="filter-tab" data-mkt-status="pending">🕐 معلق</button>
+          <button class="filter-tab" data-mkt-status="ready">✅ جاهز</button>
+          <button class="filter-tab" data-mkt-status="delivering">🛵 توصيل</button>
+          <button class="filter-tab" data-mkt-status="delivered">✔ مسلّم</button>
+          <button class="filter-tab" data-mkt-status="cancelled">❌ ملغى</button>
+        </div>
+        <div id="olist">
+          <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+        </div>
+      </div>
+
+      <!-- صفحة: الإحصائيات -->
+      <div class="admin-page" id="page-stats">
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-num" id="s-today" style="color:var(--navy);">—</div>
+            <div class="stat-lbl">طلبات اليوم</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-pending" style="color:var(--orange);">—</div>
+            <div class="stat-lbl">قيد التنفيذ</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-revenue" style="color:var(--green);">—</div>
+            <div class="stat-lbl">إيرادات اليوم</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-total" style="color:var(--teal);">—</div>
+            <div class="stat-lbl">إجمالي الطلبات</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-market" style="color:var(--green);">—</div>
+            <div class="stat-lbl">طلبات القرطاسية</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-combined" style="color:#7c3aed;">—</div>
+            <div class="stat-lbl">الطلبات المشتركة</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-delivered" style="color:var(--green);">—</div>
+            <div class="stat-lbl">تم التسليم</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-num" id="s-cancelled" style="color:var(--red);">—</div>
+            <div class="stat-lbl">ملغاة</div>
+          </div>
+        </div>
+        <div id="stats-chart-area"
+          style="background:var(--card);border-radius:var(--radius-lg);padding:20px;box-shadow:0 4px 12px rgba(0,0,0,.04);">
+          <div style="text-align:center;padding:30px;color:var(--text-muted);">جاري تحميل البيانات...</div>
+        </div>
+      </div>
+
+      <!-- صفحة: داشبورد الموظفين -->
+      <div class="admin-page" id="page-dash">
+        <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+      </div>
+
+      <!-- صفحة: قرطاسية الشاطر -->
+      <div class="admin-page" id="page-market">
+        <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+      </div>
+
+      <!-- صفحة: المخزن -->
+      <div class="admin-page" id="page-supplies">
+        <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+      </div>
+
+      <!-- صفحة: التقارير -->
+      <div class="admin-page" id="page-reports">
+        <h2 style="color:var(--navy);margin:0 0 20px;">📥 مركز التقارير</h2>
+        <div class="report-section">
+          <div
+            style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:8px;">
+            <h4 style="margin:0;color:var(--navy);">📋 تقرير الطلبات</h4>
+            <div style="display:flex;gap:8px;">
+              <button id="export-orders-csv" class="report-export-btn">⬇️ CSV</button>
+              <button id="export-orders-excel" class="report-export-btn" style="background:var(--teal);">⬇️
+                Excel</button>
+            </div>
+          </div>
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px;">
+            <input type="date" id="rep-from" style="flex:1;min-width:120px;margin-bottom:0;">
+            <input type="date" id="rep-to" style="flex:1;min-width:120px;margin-bottom:0;">
+          </div>
+          <div id="orders-report-preview" style="overflow-x:auto;"></div>
+        </div>
+        <div class="report-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h4 style="margin:0;color:var(--navy);">📦 تقرير مخزون القرطاسية</h4>
+            <button id="export-market-csv" class="report-export-btn">⬇️ CSV</button>
+          </div>
+          <div id="market-report-preview" style="overflow-x:auto;"></div>
+        </div>
+        <div class="report-section">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h4 style="margin:0;color:var(--navy);">🗄️ تقرير مخزن المواد</h4>
+            <button id="export-supplies-csv" class="report-export-btn">⬇️ CSV</button>
+          </div>
+          <div id="supplies-report-preview" style="overflow-x:auto;"></div>
+        </div>
+      </div>
+
+      <!-- صفحة: الإعدادات -->
+      <div class="admin-page" id="page-settings">
+        <h2 style="color:var(--navy);margin:0 0 20px;">⚙️ الإعدادات</h2>
+
+        <div class="acc-section">
+          <button class="acc-header" data-acc="staff">
+            <span>👥 إدارة الموظفين والصلاحيات</span><span class="acc-icon">▼</span>
+          </button>
+          <div class="acc-body" id="acc-staff" style="display:none;">
+            <div id="staff-list"></div>
+            <hr style="border:none;border-top:1px solid var(--border-soft);margin:16px 0;">
+            <h4 style="margin:0 0 12px;color:var(--navy);">➕ إنشاء حساب موظف</h4>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+              <input type="text" id="new-staff-name" placeholder="الاسم الكامل" style="margin-bottom:0;">
+              <input type="text" id="new-staff-emoji" placeholder="الإيموجي (اختياري)" style="margin-bottom:0;">
+              <input type="email" id="new-staff-user" placeholder="البريد الإلكتروني" style="margin-bottom:0;">
+              <input type="password" id="new-staff-pass" placeholder="كلمة المرور (6+ أحرف)" style="margin-bottom:0;">
+            </div>
+            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:10px 0 8px;">الصلاحيات:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;">
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-rp" value="received→printing"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">استلام → طباعة</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-pd" value="printing→delivering"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">طباعة → توصيل</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-dd" value="delivering→delivered"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">توصيل → مسلَّم</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-canc" value="any→cancelled"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">إلغاء الطلبات</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-market" value="manage_market"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">إدارة القرطاسية</label>
+              <label style="display:flex;align-items:center;gap:8px;font-size:.85rem;cursor:pointer;"><input
+                  type="checkbox" id="perm-supplies" value="manage_supplies"
+                  style="width:auto;margin:0;padding:0;accent-color:var(--teal);">إدارة المخزن</label>
+            </div>
+            <button id="create-staff-btn" class="btn-primary btn-action" style="background:var(--navy);color:#fff;"
+              data-loading-text="جاري الإنشاء ⏳...">✅ إنشاء الحساب</button>
+            <div id="custom-accounts-list" style="margin-top:16px;"></div>
+          </div>
+        </div>
+
+        <div class="acc-section">
+          <button class="acc-header" data-acc="pricing"><span>💰 إدارة التسعير</span><span
+              class="acc-icon">▼</span></button>
+          <div class="acc-body" id="acc-pricing" style="display:none;">
+            <p class="text-muted" style="margin:0 0 14px;font-size:.85rem;">أي تغيير يؤثر فوراً على ما يراه الزبون</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;">
+              <div><label
+                  style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">الحد
+                  الأدنى للصفحات</label><input type="number" id="pr-min-pages" value="5" min="1"
+                  style="margin-bottom:0;"></div>
+              <div><label
+                  style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">سعر
+                  الحد الأدنى</label><input type="number" id="pr-min-price" value="1000" min="0"
+                  style="margin-bottom:0;"></div>
+            </div>
+            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:0 0 8px;">🌈 ملون:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div style="background:#fef9c3;border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.72rem;color:#854d0e;font-weight:800;display:block;margin-bottom:4px;">وجه واحد</label><input
+                  type="number" id="pr-c1" value="150" style="margin-bottom:0;background:#fffbeb;"></div>
+              <div style="background:#fef9c3;border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.72rem;color:#854d0e;font-weight:800;display:block;margin-bottom:4px;">وجهين</label><input
+                  type="number" id="pr-c2" value="130" style="margin-bottom:0;background:#fffbeb;"></div>
+            </div>
+            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:0 0 8px;">⚪ أبيض وأسود:</p>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
+              <div style="background:var(--input-bg);border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.72rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:4px;">وجه
+                  واحد</label><input type="number" id="pr-bw1" value="90" style="margin-bottom:0;"></div>
+              <div style="background:var(--input-bg);border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.72rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:4px;">وجهين</label><input
+                  type="number" id="pr-bw2" value="75" style="margin-bottom:0;"></div>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
+              <div><label
+                  style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">🚚
+                  رسوم التوصيل</label><input type="number" id="pr-del" value="1000" style="margin-bottom:0;"></div>
+              <div><label
+                  style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">حد
+                  التوصيل المجاني</label><input type="number" id="pr-del-free" value="10000" style="margin-bottom:0;">
+              </div>
+              <div><label
+                  style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">⚡
+                  رسوم العاجل</label><input type="number" id="pr-express" value="1500" style="margin-bottom:0;"></div>
+            </div>
+            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:0 0 8px;">📦 رسوم التغليف:</p>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px;">
+              <div style="background:#f0fdf4;border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.7rem;color:#166534;font-weight:800;display:block;margin-bottom:4px;">كبس</label><input
+                  type="number" id="pr-pkg-none" value="0" style="margin-bottom:0;background:#dcfce7;"></div>
+              <div style="background:#fff7ed;border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.7rem;color:#9a3412;font-weight:800;display:block;margin-bottom:4px;">مقوى+نايلون</label><input
+                  type="number" id="pr-pkg-cardboard" value="500" style="margin-bottom:0;background:#ffedd5;"></div>
+              <div style="background:#faf5ff;border-radius:var(--radius-sm);padding:10px;"><label
+                  style="font-size:.7rem;color:#6b21a8;font-weight:800;display:block;margin-bottom:4px;">سبايرول</label><input
+                  type="number" id="pr-pkg-spiral" value="1500" style="margin-bottom:0;background:#f3e8ff;"></div>
+            </div>
+            <button id="save-pricing-btn" class="btn-primary btn-action" style="background:var(--green);color:#fff;"
+              data-loading-text="جاري الحفظ ⏳...">💾 حفظ التسعير فوراً</button>
+            <div id="pr-msg"
+              style="display:none;margin-top:10px;padding:10px;border-radius:var(--radius-sm);font-weight:700;text-align:center;font-size:.88rem;">
+            </div>
+          </div>
+        </div>
+
+        <div class="acc-section">
+          <button class="acc-header" data-acc="coupons"><span>🎟️ إدارة الكوبونات</span><span
+              class="acc-icon">▼</span></button>
+          <div class="acc-body" id="acc-coupons" style="display:none;">
+            <h4 style="margin:0 0 12px;color:var(--navy);">➕ إنشاء كوبون جديد</h4>
+            <input type="text" id="cpn-code" placeholder="🎟️ كود الكوبون (مثل: WELCOME50)"
+              style="text-transform:uppercase;">
+            <div style="display:flex;gap:8px;margin-bottom:12px;">
+              <select id="cpn-type" style="flex:1;">
+                <option value="percent">خصم نسبة %</option>
+                <option value="fixed">خصم مبلغ ثابت</option>
+              </select>
+              <input type="number" id="cpn-value" placeholder="القيمة" style="flex:1;margin-bottom:0;">
+            </div>
+            <input type="number" id="cpn-max" placeholder="الحد الأقصى للاستخدام (0=غير محدود)">
+            <input type="number" id="cpn-min-order" placeholder="الحد الأدنى للطلب (0=بدون حد)">
+            <input type="date" id="cpn-expires">
+            <button id="create-coupon-btn" class="btn-primary btn-action" style="background:var(--teal);color:#fff;"
+              data-loading-text="جاري الإنشاء ⏳...">✅ إنشاء الكوبون</button>
+            <div id="coupon-list-s" style="margin-top:16px;"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- لوحة تفاصيل الطلب -->
+  <div class="detail-overlay" id="detov"></div>
+  <div class="detail-panel" id="detpan">
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;border-bottom:2px solid var(--border-soft);padding-bottom:15px;">
+      <h3 style="color:var(--navy);font-size:1.2rem;" id="dettitle">تفاصيل الطلب</h3>
+      <button id="det-close-btn"
+        style="border:none;background:var(--input-bg);width:38px;height:38px;border-radius:50%;cursor:pointer;font-size:1.2rem;color:var(--text-muted);">✕</button>
+    </div>
+    <div id="detbody"></div>
+  </div>
+
+  <!-- Modal: سبب الإلغاء -->
+  <div id="cancel-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="color:var(--navy);">❌ سبب إلغاء الطلب</h3>
+      <p class="text-muted" style="font-size:.88rem;margin:0 0 14px;">اختر سبباً أو اكتب سبباً مخصصاً:</p>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px;" id="cancel-reasons-grid">
+        <button class="reason-btn" data-reason="طلب الزبون الإلغاء">طلب الزبون الإلغاء</button>
+        <button class="reason-btn" data-reason="عدم الرد على الهاتف">عدم الرد على الهاتف</button>
+        <button class="reason-btn" data-reason="عنوان التوصيل خاطئ">عنوان خاطئ</button>
+        <button class="reason-btn" data-reason="خارج منطقة التوصيل">خارج المنطقة</button>
+        <button class="reason-btn" data-reason="ملف تالف أو غير قابل للطباعة">ملف تالف</button>
+        <button class="reason-btn" data-reason="الزبون لا يستجيب للتأكيد">لا يستجيب</button>
+      </div>
+      <textarea id="custom-reason" placeholder="أو اكتب سبباً آخر..." rows="3"></textarea>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button id="confirm-cancel-btn" class="btn-primary btn-action" style="background:var(--red);color:#fff;flex:2;"
+          data-loading-text="جاري الإلغاء ⏳...">تأكيد الإلغاء</button>
+        <button id="close-cancel-modal" class="btn-primary"
+          style="background:var(--input-bg);color:var(--text-muted);flex:1;">رجوع</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: مخزن المواد -->
+  <div id="supply-tx-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 id="tx-type-label">➕ إضافة مخزون</h3>
+      <p class="text-muted" style="margin:0 0 16px;">المادة: <b id="tx-supply-name" style="color:var(--navy);"></b></p>
+      <label
+        style="font-size:.82rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">الكمية</label>
+      <input type="number" id="tx-qty" placeholder="أدخل الكمية..." min="0.1" step="0.5">
+      <label style="font-size:.82rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:6px;">ملاحظة
+        (اختياري)</label>
+      <textarea id="tx-notes" placeholder="مثال: فاتورة رقم 123..." rows="2"></textarea>
+      <div style="display:flex;gap:10px;margin-top:4px;">
+        <button id="tx-confirm-btn" class="btn-primary btn-action" style="background:var(--green);color:#fff;flex:2;"
+          data-loading-text="جاري الحفظ ⏳...">✅ تأكيد</button>
+        <button id="tx-cancel-btn" class="btn-primary"
+          style="background:var(--input-bg);color:var(--text-muted);flex:1;">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: إضافة / تعديل منتج -->
+  <div id="product-modal" class="modal-overlay">
+    <div class="modal-box" style="max-width:520px;">
+      <h3 id="prod-modal-title" style="color:var(--navy);margin:0 0 16px;">➕ إضافة منتج جديد</h3>
+      <input type="hidden" id="prod-edit-id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">اسم
+            المنتج *</label>
+          <input type="text" id="prod-name" placeholder="اسم المنتج..." style="margin-bottom:0;">
+        </div>
+        <div>
+          <label
+            style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">التصنيف</label>
+          <select id="prod-category" style="margin-bottom:0;">
+            <option value="notebooks">📓 دفاتر</option>
+            <option value="books">📚 كتب</option>
+            <option value="stationery">✏️ قرطاسية</option>
+            <option value="other">📦 أخرى</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">السعر
+            (د.ع) *</label>
+          <input type="number" id="prod-price" placeholder="السعر" min="0" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">الخصم
+            (د.ع)</label>
+          <input type="number" id="prod-discount" placeholder="0" min="0" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label
+            style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">الوحدة</label>
+          <input type="text" id="prod-unit" placeholder="قطعة" style="margin-bottom:0;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div>
+          <label
+            style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">المخزون
+            *</label>
+          <input type="number" id="prod-stock" placeholder="الكمية" min="0" style="margin-bottom:0;">
+        </div>
+        <div>
+          <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">حد
+            التنبيه</label>
+          <input type="number" id="prod-min-stock" placeholder="حد أدنى" min="0" style="margin-bottom:0;">
+        </div>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label
+          style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">الوصف</label>
+        <textarea id="prod-description" placeholder="وصف قصير للمنتج..." rows="2" style="margin-bottom:0;"></textarea>
+      </div>
+      <div style="margin-bottom:10px;">
+        <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">رابط
+          الصور (مفصولة بفاصلة)</label>
+        <input type="text" id="prod-image-url" placeholder="https://url1.jpg,https://url2.jpg" style="margin-bottom:0;">
+        <div id="prod-image-preview" style="margin-top:8px;text-align:center;display:flex;gap:4px;flex-wrap:wrap;justify-content:center;">
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;">
+        <div style="margin-bottom:10px;">
+          <label style="font-size:.75rem;color:var(--text-muted);font-weight:700;display:block;margin-bottom:4px;">رفع
+            صور من الجهاز (يمكن اختيار أكثر من صورة)</label>
+          <input type="file" id="prod-image-file" accept="image/*" multiple style="margin-bottom:0;font-size:.82rem;">
+        </div>
+      </div>
+      <div style="display:flex;gap:16px;margin-bottom:14px;">
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;font-weight:700;">
+          <input type="checkbox" id="prod-is-suggested" style="width:auto;margin:0;accent-color:var(--teal);">
+          🌟 منتج مقترح
+        </label>
+        <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;font-weight:700;">
+          <input type="checkbox" id="prod-active" checked style="width:auto;margin:0;accent-color:var(--green);">
+          ✅ فعّال
+        </label>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button id="prod-save-btn" class="btn-primary btn-action" style="background:var(--green);color:#fff;flex:2;"
+          data-loading-text="جاري الحفظ ⏳...">✅ حفظ المنتج</button>
+        <button id="prod-delete-btn" class="btn-primary"
+          style="background:var(--red);color:#fff;flex:1;display:none;">🗑️ حذف</button>
+        <button id="prod-cancel-btn" class="btn-primary"
+          style="background:var(--input-bg);color:var(--text-muted);flex:1;">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: تعديل مخزون المنتج -->
+  <div id="prod-stock-modal" class="modal-overlay">
+    <div class="modal-box">
+      <h3 style="color:var(--navy);margin:0 0 12px;">📦 تعديل مخزون المنتج</h3>
+      <p class="text-muted" style="margin:0 0 16px;">المنتج: <b id="adj-prod-name" style="color:var(--navy);"></b></p>
+      <p style="margin:0 0 12px;font-size:.88rem;">المخزون الحالي: <b id="adj-prod-current"
+          style="color:var(--teal);"></b></p>
+      <div style="display:flex;gap:8px;margin-bottom:12px;">
+        <button class="adj-type-btn active" data-adj-type="add"
+          style="flex:1;padding:10px;border:2px solid var(--green);background:#f0fdf4;color:#166534;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);">➕
+          إضافة</button>
+        <button class="adj-type-btn" data-adj-type="sub"
+          style="flex:1;padding:10px;border:2px solid var(--red);background:#fef2f2;color:#991b1b;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);">➖
+          خصم</button>
+        <button class="adj-type-btn" data-adj-type="set"
+          style="flex:1;padding:10px;border:2px solid var(--navy);background:#dbeafe;color:#1e40af;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);">📝
+          تحديد</button>
+      </div>
+      <input type="number" id="adj-prod-qty" placeholder="الكمية..." min="0" style="margin-bottom:10px;">
+      <div style="display:flex;gap:10px;">
+        <button id="adj-prod-confirm" class="btn-primary btn-action" style="background:var(--green);color:#fff;flex:2;"
+          data-loading-text="جاري التحديث ⏳...">✅ تحديث المخزون</button>
+        <button id="adj-prod-cancel" class="btn-primary"
+          style="background:var(--input-bg);color:var(--text-muted);flex:1;">إلغاء</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/admin.main.js"></script>
+</body>
+
+</html>
