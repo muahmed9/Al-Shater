@@ -402,6 +402,23 @@ function renderFileList() {
     </div>`;
   }).join('');
 
+  // Restore Counters Summary Box
+  const sumBox = document.getElementById('upload-summary-box');
+  if (files.length && sumBox) {
+    let imgs = 0, pages = 0;
+    files.forEach(f => {
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { imgs++; pages += (f.copies ?? 1); }
+      else { pages += (f.pages ?? 1) * (f.copies ?? 1); }
+    });
+    document.getElementById('s1-tot-files').textContent = files.length;
+    document.getElementById('s1-tot-imgs').textContent = imgs;
+    document.getElementById('s1-tot-pages').textContent = pages;
+    sumBox.style.display = 'block';
+  } else if (sumBox) {
+    sumBox.style.display = 'none';
+  }
+
   document.getElementById('step1-next').textContent =
     files.length ? `التالي: خيارات الطباعة (${files.length} ملف) ←` : 'التالي: خيارات الطباعة ←';
 
@@ -702,8 +719,8 @@ async function sendOrder() {
 }
 
 function bindCart() {
-  document.getElementById('cart-fab').addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
-  document.getElementById('open-cart-btn').addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
+  document.getElementById('cart-fab')?.addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
+  document.getElementById('open-cart-btn')?.addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
   document.getElementById('cart-close').addEventListener('click', () => document.getElementById('cart-drawer').classList.remove('open'));
   document.getElementById('add-more-market-btn').addEventListener('click', () => goTab('market'));
   document.getElementById('checkout-btn').addEventListener('click', () => withLoading('checkout-btn', checkoutMarket));

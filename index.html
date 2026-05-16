@@ -10,155 +10,224 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <style>
     body {
-      background-color: var(--bg);
-      color: var(--text-main);
+      background-color: #fff;
+      color: var(--navy);
       overflow-x: hidden;
     }
 
     .hero {
       position: relative;
-      height: 90vh;
+      min-height: 80vh;
       display: flex;
       align-items: center;
       justify-content: center;
-      background: url('hero.png') no-repeat center center/cover;
+      background: #f8fafc;
+      padding: 4rem 2rem;
       overflow: hidden;
     }
 
     .hero::before {
       content: '';
       position: absolute;
-      inset: 0;
-      background: linear-gradient(135deg, rgba(13, 59, 102, 0.8) 0%, rgba(90, 179, 196, 0.4) 100%);
+      top: -10%;
+      left: -10%;
+      width: 40%;
+      height: 40%;
+      background: radial-gradient(circle, rgba(90, 179, 196, 0.15) 0%, transparent 70%);
+      z-index: 0;
+    }
+
+    .hero::after {
+      content: '';
+      position: absolute;
+      bottom: -10%;
+      right: -10%;
+      width: 40%;
+      height: 40%;
+      background: radial-gradient(circle, rgba(232, 107, 36, 0.1) 0%, transparent 70%);
+      z-index: 0;
     }
 
     .hero-content {
       position: relative;
       z-index: 2;
       text-align: center;
-      color: white;
-      padding: 2rem;
-      max-width: 800px;
+      max-width: 900px;
     }
 
-    .glass-hero-card {
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
-      -webkit-backdrop-filter: blur(10px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: var(--radius-lg);
-      padding: 3rem;
-      box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
-      animation: fadeInUp 1s ease-out;
-    }
-
-    @keyframes fadeInUp {
-      from { opacity: 0; transform: translateY(30px); }
-      to { opacity: 1; transform: translateY(0); }
+    .hero-logo {
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      margin-bottom: 2rem;
+      box-shadow: 0 10px 30px rgba(13, 59, 102, 0.15);
+      border: 3px solid #fff;
+      animation: popIn 0.8s ease;
     }
 
     h1 {
-      font-size: 3.5rem;
+      font-size: 4rem;
       margin-bottom: 1.5rem;
-      font-weight: 700;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.2);
+      font-weight: 900;
+      color: var(--navy);
+      line-height: 1.1;
     }
 
     .hero-subtitle {
-      font-size: 1.25rem;
-      margin-bottom: 2.5rem;
-      opacity: 0.9;
-      line-height: 1.6;
+      font-size: 1.4rem;
+      margin-bottom: 3rem;
+      color: var(--text-muted);
+      max-width: 650px;
+      margin-left: auto;
+      margin-right: auto;
+      line-height: 1.7;
     }
 
     .btn-primary-lg {
-      background: var(--orange);
+      background: var(--navy);
       color: white;
-      padding: 1rem 2.5rem;
-      border-radius: 50px;
-      font-size: 1.2rem;
-      font-weight: 600;
+      padding: 1.2rem 3rem;
+      border-radius: 20px;
+      font-size: 1.3rem;
+      font-weight: 800;
       text-decoration: none;
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
       display: inline-flex;
       align-items: center;
-      gap: 0.75rem;
-      box-shadow: 0 4px 15px rgba(232, 107, 36, 0.3);
+      gap: 1rem;
+      box-shadow: 0 10px 25px rgba(13, 59, 102, 0.2);
     }
 
     .btn-primary-lg:hover {
-      transform: translateY(-3px);
-      box-shadow: 0 6px 20px rgba(232, 107, 36, 0.5);
-      background: #f17b3d;
+      transform: translateY(-5px);
+      box-shadow: 0 15px 35px rgba(13, 59, 102, 0.3);
+      background: var(--teal);
     }
 
     .features {
-      padding: 5rem 2rem;
+      padding: 6rem 2rem;
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
       gap: 2.5rem;
       max-width: 1200px;
-      margin: -100px auto 0;
-      position: relative;
-      z-index: 10;
+      margin: 0 auto;
     }
 
     .feature-card {
-      background: var(--card);
-      padding: 2.5rem;
-      border-radius: var(--radius-lg);
-      box-shadow: var(--glass-shadow);
+      background: #fff;
+      padding: 3rem 2rem;
+      border-radius: 30px;
+      border: 1px solid #f1f5f9;
       text-align: center;
-      transition: all 0.3s ease;
-      border: 1px solid var(--border-soft);
+      transition: all 0.4s ease;
+      position: relative;
     }
 
     .feature-card:hover {
       transform: translateY(-10px);
+      box-shadow: 0 20px 40px rgba(13, 59, 102, 0.08);
       border-color: var(--teal);
     }
 
     .feature-icon {
-      font-size: 2.5rem;
+      width: 70px;
+      height: 70px;
+      background: var(--light-teal);
       color: var(--teal);
-      margin-bottom: 1.5rem;
+      font-size: 2rem;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 2rem;
+      transition: all 0.3s ease;
+    }
+
+    .feature-card:hover .feature-icon {
+      background: var(--teal);
+      color: #fff;
+      transform: rotate(-10deg);
     }
 
     .feature-card h3 {
-      margin-bottom: 1rem;
-      font-size: 1.4rem;
+      margin-bottom: 1.2rem;
+      font-size: 1.5rem;
       color: var(--navy);
+      font-weight: 800;
     }
 
     .feature-card p {
       color: var(--text-muted);
-      line-height: 1.6;
+      line-height: 1.8;
+      font-size: 1rem;
     }
 
     .cta-section {
-      padding: 5rem 2rem;
+      padding: 8rem 2rem;
       text-align: center;
-      background: var(--navy);
+      background: linear-gradient(135deg, var(--navy), #1e40af);
       color: white;
-      margin-top: 4rem;
+      margin: 4rem 2rem;
+      border-radius: 50px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-section::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: url('Logo.jpg') no-repeat center center/cover;
+      opacity: 0.05;
+      filter: grayscale(1);
     }
 
     .cta-section h2 {
-      font-size: 2.5rem;
+      font-size: 3rem;
       margin-bottom: 1.5rem;
+      font-weight: 900;
+      position: relative;
+    }
+
+    .cta-section p {
+      font-size: 1.2rem;
+      margin-bottom: 3rem;
+      opacity: 0.9;
+      position: relative;
+    }
+
+    .btn-white {
+      background: #fff;
+      color: var(--navy);
+      padding: 1.2rem 3.5rem;
+      border-radius: 20px;
+      font-size: 1.3rem;
+      font-weight: 800;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      display: inline-block;
+      position: relative;
+    }
+
+    .btn-white:hover {
+      transform: scale(1.05);
+      background: var(--teal);
+      color: #fff;
     }
 
     footer {
-      padding: 2rem;
+      padding: 4rem 2rem;
       text-align: center;
       color: var(--text-muted);
-      border-top: 1px solid var(--border-soft);
+      background: #f8fafc;
+      font-weight: 600;
     }
 
     @media (max-width: 768px) {
-      h1 { font-size: 2.5rem; }
-      .hero { height: auto; padding: 6rem 0; }
-      .features { margin-top: 2rem; }
+      h1 { font-size: 2.8rem; }
+      .hero-subtitle { font-size: 1.1rem; }
+      .cta-section { margin: 4rem 1rem; border-radius: 30px; padding: 5rem 1.5rem; }
+      .cta-section h2 { font-size: 2.2rem; }
     }
   </style>
 </head>
@@ -166,18 +235,16 @@
 
   <section class="hero">
     <div class="hero-content">
-      <div class="glass-hero-card">
-        <h1>مطبعة الشاطر</h1>
-        <p class="hero-subtitle">
-          نقدم لكم أجود خدمات الطباعة والتصوير بأحدث التقنيات. 
-          سرعة، دقة، واحترافية في كل ورقة.
-        </p>
-        <div class="hero-actions">
-          <a href="customer.html" class="btn-primary-lg">
-            اطلب الآن
-            <i class="fas fa-arrow-left"></i>
-          </a>
-        </div>
+      <img src="Logo.jpg" alt="Logo" class="hero-logo">
+      <h1>خدمات الشاطر الطلابية</h1>
+      <p class="hero-subtitle">
+        بوابتكم المتكاملة لخدمات الطباعة، البحوث، والقرطاسية. 
+        نجمع بين الجودة العالية، السرعة الفائقة، والأسعار المنافسة.
+      </p>
+      <div class="hero-actions">
+        <a href="customer.html" class="btn-primary-lg">
+          🚀 ابدأ طلبك الآن
+        </a>
       </div>
     </div>
   </section>
@@ -185,36 +252,36 @@
   <section class="features">
     <div class="feature-card">
       <div class="feature-icon"><i class="fas fa-print"></i></div>
-      <h3>طباعة وتصوير</h3>
-      <p>خدمات طباعة المستندات والبحوث والكتب بجودة استثنائية وألوان زاهية.</p>
+      <h3>طباعة احترافية</h3>
+      <p>طباعة ليزرية فائقة الدقة للملازم والبحوث مع خيارات تغليف متنوعة تناسب احتياجاتك.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon"><i class="fas fa-bolt"></i></div>
-      <h3>خدمة إكسبريس</h3>
-      <p>هل أنت في عجلة؟ نوفر خدمات الطباعة الفورية والتسليم في وقت قياسي.</p>
+      <div class="feature-icon"><i class="fas fa-book-open"></i></div>
+      <h3>إعداد البحوث</h3>
+      <p>فريق متخصص لمساعدتك في إعداد البحوث والتقارير الأكاديمية وفق أعلى المعايير.</p>
     </div>
     <div class="feature-card">
-      <div class="feature-icon"><i class="fas fa-pen-nib"></i></div>
-      <h3>أدوات مكتبية</h3>
-      <p>تشكيلة واسعة من القرطاسية والأدوات المكتبية والمدرسية المتكاملة.</p>
+      <div class="feature-icon"><i class="fas fa-box-open"></i></div>
+      <h3>قرطاسية متكاملة</h3>
+      <p>نوفر لك كل ما تحتاجه من مستلزمات مكتبية ودراسية بجودة أصلية وتوصيل سريع.</p>
     </div>
     <div class="feature-card">
       <div class="feature-icon"><i class="fas fa-truck-fast"></i></div>
-      <h3>توصيل ذكي</h3>
-      <p>اطلب من خلال التطبيق وسنقوم بتوصيل طلبك أينما كنت بكل سهولة.</p>
+      <h3>توصيل لباب البيت</h3>
+      <p>لا تتعب نفسك، اطلب من خلال تطبيقنا وسنقوم بتوصيل طلبك لموقعك بأسرع وقت.</p>
     </div>
   </section>
 
   <section class="cta-section">
-    <h2>ابدأ طلبك اليوم</h2>
-    <p style="margin-bottom: 2rem; opacity: 0.8;">انضم إلى آلاف العملاء الراضين عن خدماتنا</p>
-    <a href="customer.html" class="btn-primary-lg" style="background: white; color: var(--navy);">
-      ابدأ من هنا
+    <h2>هل أنت مستعد للدراسة؟</h2>
+    <p>دعنا نهتم بجميع احتياجاتك الطباعية والمكتبية لتركز أنت على نجاحك.</p>
+    <a href="customer.html" class="btn-white">
+      دخول التطبيق ✨
     </a>
   </section>
 
   <footer>
-    <p>جميع الحقوق محفوظة &copy; 2026 مطبعة الشاطر</p>
+    <p>جميع الحقوق محفوظة &copy; 2026 خدمات الشاطر الطلابية</p>
   </footer>
 
 </body>

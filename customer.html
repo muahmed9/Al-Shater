@@ -104,8 +104,7 @@
     </div>
   </div>
 
-  <!-- سلة المشتريات -->
-  <button id="cart-fab" aria-label="فتح السلة">🛒<span id="cart-count"></span></button>
+  <!-- سلة المشتريات (تمت الإزالة بناءً على طلب المستخدم) -->
   <div class="shov" id="cart-drawer">
     <div class="sheet">
       <div class="handle"></div>
@@ -179,7 +178,7 @@
   <!-- TAB 1 — الرئيسية -->
   <div class="tab active" id="tab-order">
     <div class="hdr">
-      <img src="Logo.jpg" alt="شعار الشاطر" class="app-logo" onerror="this.style.display='none'">
+      <img src="Logo.jpg" alt="شعار الشاطر" class="app-logo-hdr" onerror="this.style.display='none'">
       <h1 style="margin:0;color:var(--navy);font-size:1.4rem;">خدمات الشاطر الطلابية</h1>
     </div>
 
@@ -220,6 +219,13 @@
         <input type="file" id="fileinp" multiple
           accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.jpg,.jpeg,.png,.webp,image/*" style="display:none"
           aria-hidden="true">
+      </div>
+      <div id="upload-summary-box" style="display:none;margin-top:15px;background:linear-gradient(135deg, var(--navy), #1e40af);color:#fff;border-radius:var(--radius-lg);padding:18px;box-shadow:0 8px 20px var(--shadow);">
+        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;text-align:center;">
+          <div><div style="font-size:1.3rem;font-weight:900;" id="s1-tot-files">0</div><div style="font-size:.65rem;opacity:.8;font-weight:700;">الملفات</div></div>
+          <div style="border-right:1px solid rgba(255,255,255,.2);border-left:1px solid rgba(255,255,255,.2);"><div style="font-size:1.3rem;font-weight:900;" id="s1-tot-pages">0</div><div style="font-size:.65rem;opacity:.8;font-weight:700;">الصفحات</div></div>
+          <div><div style="font-size:1.3rem;font-weight:900;" id="s1-tot-imgs">0</div><div style="font-size:.65rem;opacity:.8;font-weight:700;">الصور</div></div>
+        </div>
       </div>
       <div id="flist"></div>
       <div class="stepper-nav">
@@ -445,10 +451,6 @@
   <div class="tab" id="tab-market">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
       <h2 style="color:var(--navy);margin:0;">📦 قرطاسية الشاطر</h2>
-      <button id="open-cart-btn"
-        style="position:relative;border:none;background:var(--teal);color:#fff;padding:10px 16px;border-radius:var(--radius-md);cursor:pointer;font-weight:800;font-size:.88rem;display:flex;align-items:center;gap:6px;">
-        🛒 سلتي<span id="nav-cart-badge" class="nav-badge" style="display:none;position:static;margin:0;"></span>
-      </button>
     </div>
     <p class="text-muted" style="margin:0 0 14px;font-size:.88rem;">قرطاسية ومستلزمات دراسية توصل لبابك 📦</p>
     <div class="filter-bar scrollbar-hidden" id="mkt-cat-bar">
