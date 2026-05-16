@@ -65,6 +65,7 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
     await sb.from(T.COUPONS).update({ used_count: (coupon.used_count ?? 0) + 1 }).eq('id', coupon.id);
   }
   _notifyAdmin(data.id, orderPayload).catch(() => {});
+  _notifyCustomer(data.id, orderPayload.user_id).catch(() => {});
   return data.id;
 }
 
@@ -101,19 +102,50 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   const P = pricing ?? Config.DEFAULT_PRICING;
 
   // طباعة
+  let totalPrintPages = 0;
   let printSubtotal = 0;
+  const isColor = customerState.get('printColor') === 'c';
+  const isDouble = customerState.get('printSide') === '2';
+
   for (const f of files) {
-    const pages    = (f.pages ?? 1) * (f.copies ?? 1);
-    const isColor  = customerState.get('printColor') === 'c';
-    const isDouble = customerState.get('printSide') === '2';
-    let pricePerPage;
-    if (isColor) {
-      pricePerPage = isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150);
-    } else {
-      pricePerPage = isDouble ? P.bw_double : P.bw_single;
-    }
-    printSubtotal += Math.max(pages * pricePerPage, P.min_price);
+    totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
   }
+
+  // Determine price per page based on tiers (Color or BW)
+  const tiers = isColor ? P.color_tiers : P.bw_tiers;
+  
+  if (tiers && tiers.length > 0) {
+    // Find the tier that matches the total volume
+    const matchingTier = tiers.find(t => totalPrintPages >= t.min && (t.max ? totalPrintPages <= t.max : true));
+    
+    if (matchingTier) {
+      const rate = isDouble ? (matchingTier.double ?? matchingTier.price) : (matchingTier.single ?? matchingTier.price);
+      printSubtotal = totalPrintPages * rate;
+      console.log(`[Pricing] Volume matched tier ${matchingTier.min}-${matchingTier.max || '+'}. Rate: ${rate}, Total: ${printSubtotal}`);
+    } else {
+      // Fallback to default or the highest tier if over limit
+      const highestTier = [...tiers].sort((a,b) => b.min - a.min)[0];
+      const rate = isDouble ? (highestTier.double ?? highestTier.price) : (highestTier.single ?? highestTier.price);
+      printSubtotal = totalPrintPages * rate;
+    }
+  } else {
+    // Fallback to legacy pricing
+    const pricePerPage = isColor 
+      ? (isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150))
+      : (isDouble ? (P.bw_double ?? 75) : (P.bw_single ?? 90));
+    
+    for (const f of files) {
+      const pages = (f.pages ?? 1) * (f.copies ?? 1);
+      printSubtotal += pages * pricePerPage;
+    }
+  }
+  
+  // Apply min_price at total print level
+  if (files.length > 0 && printSubtotal < P.min_price) {
+    console.log(`[Pricing] Print subtotal ${printSubtotal} < min_price ${P.min_price}. Adjusting.`);
+    printSubtotal = P.min_price;
+  }
+
   const pkgKey = customerState.get('packaging') ?? 'none';
   printSubtotal += P.packaging?.[pkgKey] ?? 0;
   if (customerState.get('express')) printSubtotal += P.express_fee;
@@ -168,15 +200,70 @@ function _buildCartItems(cart, sugCart) {
 }
 
 async function _notifyAdmin(orderId, payload) {
-  const msg = `🆕 طلب جديد #${orderId}\n👤 ${payload.customer_name}\n📞 ${payload.phone}\n🏠 ${payload.region}\n💰 ${payload.total?.toLocaleString()} د.ع`;
+  let fileList = payload.files_data.map(f => `📄 ${f.name} (${f.pages} ص × ${f.copies})`).join('\n');
+  let cartList = payload.cart_items.map(i => `📦 ${i.name} × ${i.qty}`).join('\n');
   
+  let msg = `🆕 *طلب جديد #${orderId}*\n\n`;
+  msg += `👤 *العميل:* ${payload.customer_name}\n`;
+  msg += `📞 *الهاتف:* ${payload.phone}\n`;
+  msg += `🏠 *المنطقة:* ${payload.region}\n`;
+  if (payload.location_url) msg += `📍 [موقع العميل](${payload.location_url})\n`;
+  msg += `\n⚙️ *خيارات:* ${payload.color === 'c' ? '🌈 ملون' : '⚪ أبيض وأسود'} • ${payload.sides === '2' ? 'وجهين' : 'وجه واحد'} • ${payload.packaging}\n`;
+  if (payload.express) msg += `⚡ *طلب عاجل*\n`;
+  
+  if (fileList) msg += `\n📂 *الملفات:*\n${fileList}\n`;
+  if (cartList) msg += `\n🛒 *القرطاسية:*\n${cartList}\n`;
+  if (payload.notes) msg += `\n📝 *ملاحظات:* ${payload.notes}\n`;
+  
+  msg += `\n💰 *الإجمالي:* ${payload.total?.toLocaleString()} د.ع`;
+
   for (let i = 0; i < 3; i++) {
     try {
-      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { body: { chat_id: Config.TELEGRAM.ADMIN_TG_ID, text: msg } });
+      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { body: { chat_id: Config.TELEGRAM.ADMIN_TG_ID, text: msg, parse_mode: 'Markdown' } });
       if (!error) return;
       if (i === 2) throw error;
     } catch (e) {
       if (i === 2) console.warn('[TG Admin Notify Failed]', e);
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+    }
+  }
+}
+
+async function _notifyCustomer(orderId, userId) {
+  if (!userId || String(userId).startsWith('guest_')) {
+    console.log('[NotifyCustomer] Skipped for guest user:', userId);
+    return;
+  }
+  const msg = Config.customerMessage(orderId, 'received');
+  if (!msg) return;
+  
+  const cleanUserId = String(userId).trim();
+  const chatId = !isNaN(cleanUserId) ? Number(cleanUserId) : cleanUserId;
+
+  console.log(`[NotifyCustomer] Attempting to send notification to #${orderId} (chatId: ${chatId})...`);
+
+  for (let i = 0; i < 3; i++) {
+    try {
+      const response = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
+        body: { chat_id: chatId, text: msg, parse_mode: 'Markdown' } 
+      });
+
+      if (response.error) {
+        console.error(`[TG Customer Notify Failed - Attempt ${i+1}] Error:`, response.error);
+        console.error(`[TG Customer Notify Failed - Details]`, {
+          status: response.status,
+          statusText: response.statusText,
+          orderId,
+          chatId
+        });
+        if (i === 2) throw response.error;
+      } else {
+        console.log('[TG Customer Notify Success] Data:', response.data);
+        return;
+      }
+    } catch (e) {
+      console.error(`[TG Customer Notify Exception - Attempt ${i+1}]`, e);
+      if (i === 2) console.warn('[TG Customer Notify Final Failure]', e);
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }

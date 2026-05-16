@@ -30,6 +30,21 @@ export const Config = Object.freeze({
     c_double: 130,
     bw_single: 90,
     bw_double: 75,
+    // Tiered color pricing (e.g. 1-20 pages: 150, 21-50: 125, etc.)
+    color_tiers: [
+      { min: 1, max: 10, single: 150, double: 130 },
+      { min: 11, max: 30, single: 125, double: 110 },
+      { min: 31, max: 70, single: 100, double: 90 },
+      { min: 71, max: 150, single: 85, double: 75 },
+      { min: 151, max: 99999, single: 65, double: 55 }
+    ],
+    // Tiered Black & White pricing
+    bw_tiers: [
+      { min: 1, max: 20, single: 90, double: 75 },
+      { min: 21, max: 50, single: 75, double: 60 },
+      { min: 51, max: 100, single: 60, double: 50 },
+      { min: 101, max: 99999, single: 50, double: 40 }
+    ],
     delivery_fee: 1000,
     delivery_free_threshold: 10000,
     express_fee: 1500,
@@ -71,6 +86,7 @@ export const Config = Object.freeze({
   },
   customerMessage(orderId, status, cancelReason = '') {
     const msgs = {
+      received: `✨ *تم استلام طلبك بنجاح* ✨\n\n📦 رقم الطلب: #${orderId}\n\nشكراً لاختيارك "الشاطر". فريقنا سيبدأ بتجهيز طلبك قريباً جداً. 🚀`,
       printing: `✨ *تحديث طلبك من الشاطر* ✨\n\n🖨️ طلبك #${orderId} قيد الطباعة الآن!\n\nنحن نهتم بأدق التفاصيل لضمان أفضل جودة لك. سنُخطرك فور إرساله مع المندوب. 💫`,
       delivering: `✨ *تحديث طلبك من الشاطر* ✨\n\n🛵 طلبك #${orderId} في الطريق إليك!\n\nالمندوب متجه نحوك الآن، يرجى البقاء على مقربة من هاتفك. 🏃‍♂️💨`,
       delivered: `✨ *تحديث طلبك من الشاطر* ✨\n\n✅ تم تسليم طلبك #${orderId} بنجاح!\n\nشكراً لثقتك بنا. نتمنى أن تنال خدمتنا رضاك. 🌟\n💎 تمت إضافة نقاط الولاء لرصيدك!`,

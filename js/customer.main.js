@@ -22,25 +22,98 @@ const tgU = tg?.initDataUnsafe?.user;
 tg?.ready();
 tg?.expand();
 
+// Summary bar removed as per user request
 function updateSummaryBar() {
-  const step = customerState.get('currentStep') ?? 1;
-  const bar = document.getElementById('order-summary-bar');
-  if (!bar || step === 1) { if (bar) bar.style.display = 'none'; return; }
+  return;
+}
 
-  const files = customerState.get('files') ?? [];
-  const cart = customerState.get('cart') ?? [];
-  const color = customerState.get('printColor') === 'c' ? '🌈 ملون' : '⚪ أبيض وأسود';
-  const side = customerState.get('printSide') === '2' ? 'وجهين' : 'وجه واحد';
-  const pkg = { none: '📎 كبس', cardboard: '📋 مقوى+نايلون', spiral: '🔩 سبايرول' }[customerState.get('packaging') ?? 'none'];
-  const express = customerState.get('express') ? ' ⚡ عاجل' : '';
+async function countPptxSlides(file) {
+  try {
+    if (!window.JSZip) {
+      console.warn('JSZip not found, defaulting to 1 slide');
+      return 1;
+    }
+    const zip = await JSZip.loadAsync(file);
+    
+    // Attempt to read from metadata for most accurate count
+    const appXml = await zip.file("docProps/app.xml")?.async("string");
+    if (appXml) {
+      const match = appXml.match(/<Slides>(\d+)<\/Slides>/);
+      if (match && match[1]) {
+        const count = parseInt(match[1]);
+        console.log(`[PPTX] Metadata detected ${count} slides for ${file.name}`);
+        return count;
+      }
+    }
 
-  const filesText = files.length ? `📁 ${files.length} ملف (${color} • ${side})` : '';
-  const cartText = cart.length ? `🛒 ${cart.length} منتج` : '';
-  const optText = files.length ? `${pkg}${express}` : '';
+    // Fallback: slides are in ppt/slides/ and match slideN.xml
+    const files = Object.keys(zip.files);
+    const actualSlides = files.filter(name => 
+      name.toLowerCase().startsWith('ppt/slides/slide') && 
+      name.toLowerCase().endsWith('.xml') &&
+      !name.includes('_rels')
+    );
+    
+    console.log(`[PPTX] Fallback detected ${actualSlides.length} slides in ${file.name}`);
+    return actualSlides.length || 1;
+  } catch (e) {
+    console.error('Error counting PPTX slides:', e);
+    return 1;
+  }
+}
 
-  document.getElementById('summary-files').textContent = [filesText, cartText].filter(Boolean).join(' + ');
-  document.getElementById('summary-options').textContent = optText;
-  bar.style.display = 'block';
+async function countDocxPages(file) {
+  try {
+    if (!window.JSZip) return 1;
+    const zip = await JSZip.loadAsync(file);
+    const appXml = await zip.file("docProps/app.xml")?.async("string");
+    if (appXml) {
+      const match = appXml.match(/<Pages>(\d+)<\/Pages>/);
+      if (match && match[1]) {
+        const count = parseInt(match[1]);
+        console.log(`[DOCX] Metadata detected ${count} pages for ${file.name}`);
+        return count;
+      }
+    }
+
+    // Fallback to mammoth estimation
+    if (!window.mammoth) return 1;
+    const arrayBuffer = await file.arrayBuffer();
+    const result = await mammoth.extractRawText({ arrayBuffer });
+    const text = result.value || '';
+    const est = Math.ceil(text.length / 1200);
+    console.log(`[DOCX] Fallback estimated ${est} pages for ${file.name}`);
+    return est || 1;
+  } catch (e) {
+    console.error('Error counting DOCX pages:', e);
+    return 1;
+  }
+}
+
+async function countPdfPages(file) {
+  try {
+    if (!window.pdfjsLib) {
+      console.warn('pdfjsLib not found, defaulting to 1 page');
+      return 1;
+    }
+    const arrayBuffer = await file.arrayBuffer();
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    console.log(`[PDF] Found ${pdf.numPages} pages in ${file.name}`);
+    return pdf.numPages;
+  } catch (e) {
+    console.error('Error counting PDF pages:', e);
+    return 1;
+  }
+}
+
+async function processFilePages(f) {
+  const ext = f.name.split('.').pop().toLowerCase();
+  console.log(`[Process] Counting pages for ${f.name} (ext: ${ext})`);
+  if (ext === 'pdf')  return await countPdfPages(f);
+  if (['pptx', 'ppt'].includes(ext)) return await countPptxSlides(f);
+  if (['docx', 'doc'].includes(ext)) return await countDocxPages(f);
+  return 1; 
 }
 
 function _getFilePreviewHTML(f) {
@@ -57,24 +130,15 @@ function _getFilePreviewHTML(f) {
     const previewId = 'pdf-prev-' + f.id;
     setTimeout(async () => {
       try {
-        pdfjsLib.GlobalWorkerOptions.workerSrc =
-          'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js';
         const pdf = await pdfjsLib.getDocument(url).promise;
         const page = await pdf.getPage(1);
-        const vp = page.getViewport({ scale: 0.5 });
+        const vp = page.getViewport({ scale: 0.3 });
         const canvas = document.getElementById(previewId);
         if (!canvas) { URL.revokeObjectURL(url); return; }
         canvas.width = vp.width;
         canvas.height = vp.height;
         await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
-        const files = customerState.get('files') ?? [];
-        const fi = files.find(x => x.id === f.id);
-        if (fi && fi.pages !== pdf.numPages) {
-          fi.pages = pdf.numPages;
-          customerState.set('files', [...files]);
-          const metaEl = document.querySelector(`#fc-${f.id} .file-meta`);
-          if (metaEl) metaEl.textContent = `${pdf.numPages} صفحة • ${(f.size / 1024).toFixed(0)} KB`;
-        }
         URL.revokeObjectURL(url);
       } catch { URL.revokeObjectURL(url); }
     }, 50);
@@ -84,6 +148,7 @@ function _getFilePreviewHTML(f) {
   const icons = { doc: '📝', docx: '📝', xls: '📊', xlsx: '📊', ppt: '📰', pptx: '📰' };
   return `<div style="width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:2rem;background:var(--input-bg);">${icons[ext] ?? '📄'}${badge}</div>`;
 }
+
 
 async function init() {
   const dark = localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER) === 'true';
@@ -115,16 +180,30 @@ async function init() {
   try {
     const { data } = await sb.from(Config.TABLES.USERS).select('*').eq('id', userId).maybeSingle();
     if (data) {
-      customerState.set('user', data);
+      // Update info if changed
+      if (tgU && (data.telegram_id !== String(tgU.id) || data.name !== tgU.first_name)) {
+        await sb.from(Config.TABLES.USERS).update({ 
+          telegram_id: String(tgU.id), 
+          name: tgU.first_name, 
+          username: tgU.username 
+        }).eq('id', userId);
+      }
+      customerState.set('user', { ...data, telegram_id: data.telegram_id || (tgU ? String(tgU.id) : null) });
     } else {
       const newUser = {
-        id: userId, name: tgU?.first_name ?? '', username: tgU?.username ?? '',
-        loyalty_points: 0, total_orders: 0, total_spent: 0, first_order_done: false
+        id: userId, 
+        telegram_id: tgU ? String(tgU.id) : null,
+        name: tgU?.first_name ?? 'ضيف', 
+        username: tgU?.username ?? '',
+        loyalty_points: 0, 
+        total_orders: 0, 
+        total_spent: 0, 
+        first_order_done: false
       };
       await sb.from(Config.TABLES.USERS).insert(newUser);
       customerState.set('user', newUser);
     }
-  } catch { }
+  } catch (e) { console.warn('[Auth]', e.message); }
 
   const pricing = await loadPricing();
   if (pricing) customerState.set('pricing', pricing);
@@ -175,7 +254,7 @@ function goTab(t) {
 
 function bindOnboarding() {
   let idx = 0;
-  const TOTAL = 3;
+  const TOTAL = 4;
   const track = document.getElementById('ob-track');
 
   const goTo = n => {
@@ -272,13 +351,20 @@ async function handleFiles(newFiles) {
   if (!allowed.length) { showToast('❌ نوع الملف غير مدعوم', 'error'); return; }
 
   const files = [...(customerState.get('files') ?? [])];
+  
+  // Show a loading toast if many files
+  if (allowed.length > 2) showToast('⏳ جاري معالجة الملفات وحساب الصفحات...', 'info');
+
   for (const f of allowed) {
     const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
-    files.push({ id, name: f.name, size: f.size, pages: 1, copies: 1, file: f });
+    const pages = await processFilePages(f);
+    files.push({ id, name: f.name, size: f.size, pages: pages, copies: 1, file: f });
   }
+  
   customerState.set('files', files);
   renderFileList();
 }
+
 
 function removeFile(id) {
   const files = (customerState.get('files') ?? []).filter(f => f.id !== id);
@@ -287,11 +373,8 @@ function removeFile(id) {
 }
 
 function adjustFileCopies(id, delta) {
-  const files = customerState.get('files') ?? [];
-  const f = files.find(x => x.id === id);
-  if (!f) return;
-  f.copies = Math.max(1, (f.copies ?? 1) + delta);
-  customerState.set('files', [...files]);
+  const files = (customerState.get('files') ?? []).map(f => f.id === id ? { ...f, copies: Math.max(1, (f.copies ?? 1) + delta) } : f);
+  customerState.set('files', files);
   renderFileList();
 }
 
@@ -300,39 +383,27 @@ function renderFileList() {
   const flist = document.getElementById('flist');
   const isColor = customerState.get('printColor') === 'c';
 
-  flist.innerHTML = files.map(f => `
+  flist.innerHTML = files.map(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const unitName = (['pptx', 'ppt'].includes(ext)) ? 'شريحة' : 'صفحة';
+    return `
     <div class="file-card" id="fc-${esc(f.id)}">
       <div class="file-preview${isColor ? '' : ' bw'}" id="prev-${esc(f.id)}">
         ${_getFilePreviewHTML(f)}
       </div>
       <div class="file-info">
         <span class="file-name">${esc(f.name)}</span>
-        <span class="file-meta">${f.pages > 1 ? f.pages + ' صفحة • ' : ''}${(f.size / 1024).toFixed(0)} KB</span>
+        <span class="file-meta">${f.pages > 0 ? f.pages + ' ' + unitName + ' • ' : ''}${(f.size / 1024).toFixed(0)} KB</span>
         <div style="display:flex;align-items:center;gap:6px;margin-top:auto;">
           ${QtyControl.html({ id: f.id, value: f.copies ?? 1, min: 1, max: 99 })}
           <button class="file-del-btn" data-del-file="${esc(f.id)}">🗑️ حذف</button>
         </div>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   document.getElementById('step1-next').textContent =
     files.length ? `التالي: خيارات الطباعة (${files.length} ملف) ←` : 'التالي: خيارات الطباعة ←';
-
-  const sumBox = document.getElementById('upload-summary-box');
-  if (files.length) {
-    let imgs = 0, pages = 0;
-    files.forEach(f => {
-      const ext = f.name.split('.').pop().toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { imgs++; pages += (f.copies ?? 1); }
-      else { pages += (f.pages ?? 1) * (f.copies ?? 1); }
-    });
-    document.getElementById('s1-tot-files').textContent = files.length;
-    document.getElementById('s1-tot-imgs').textContent = imgs;
-    document.getElementById('s1-tot-pages').textContent = pages;
-    sumBox.style.display = 'block';
-  } else {
-    sumBox.style.display = 'none';
-  }
 
   renderPrintSummary();
 }
@@ -386,38 +457,13 @@ function bindPrintOptions() {
 
 function renderPrintSummary() {
   const files = customerState.get('files') ?? [];
-  const pBox = document.getElementById('print-summary-box');
-  if (!files.length) { pBox.style.display = 'none'; return; }
-  pBox.style.display = 'block';
-
   const isColor = customerState.get('printColor') === 'c';
   const isDouble = customerState.get('printSide') === '2';
   const pkgKey = customerState.get('packaging') ?? 'none';
   const express = customerState.get('express');
   const P = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
 
-  let printSubtotal = 0;
-  for (const f of files) {
-    const pages = (f.pages ?? 1) * (f.copies ?? 1);
-    let pricePerPage = isColor ? (isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150)) : (isDouble ? P.bw_double : P.bw_single);
-    printSubtotal += Math.max(pages * pricePerPage, P.min_price);
-  }
-
-  const pkgCost = P.packaging?.[pkgKey] ?? 0;
-
-  document.getElementById('s2-tot-files').textContent = files.length;
-  document.getElementById('s2-print-type').textContent = isColor ? 'ملون' : 'أبيض وأسود';
-  document.getElementById('s2-print-cost').textContent = formatPrice(printSubtotal);
-  document.getElementById('s2-pkg-cost').textContent = formatPrice(pkgCost);
-
-  if (express) {
-    document.getElementById('s2-express-row').style.display = 'flex';
-    document.getElementById('s2-express-cost').textContent = formatPrice(P.express_fee);
-  } else {
-    document.getElementById('s2-express-row').style.display = 'none';
-  }
-
-  document.getElementById('s2-total-cost').textContent = formatPrice(printSubtotal + pkgCost + (express ? P.express_fee : 0));
+  // intermediate summary bar removed as per user request
 }
 
 function bindOrderForm() {
@@ -571,7 +617,6 @@ async function sendOrder() {
   errEl.style.display = 'none';
 
   try {
-    // Upload files to Supabase storage before submitting the order
     const files = customerState.get('files') ?? [];
     const userId = customerState.get('user')?.id ?? 'guest';
     const pcon = document.getElementById('pcon');
@@ -583,7 +628,7 @@ async function sendOrder() {
       stxt.style.display = 'block';
       for (let i = 0; i < files.length; i++) {
         const f = files[i];
-        if (f.uploadedUrl) continue; // already uploaded
+        if (f.uploadedUrl) continue;
         stxt.textContent = `جاري رفع ${f.name} (${i + 1}/${files.length})...`;
         pbar.style.width = `${((i) / files.length) * 100}%`;
         try {
@@ -599,6 +644,15 @@ async function sendOrder() {
       stxt.textContent = '✅ تم رفع جميع الملفات';
       customerState.set('files', [...files]);
     }
+
+    const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
+    const totals = calcOrderTotals({
+      files: customerState.get('files') ?? [],
+      cart: customerState.get('cart') ?? [],
+      sugCart: customerState.get('suggestedCart') ?? {},
+      pricing, coupon: customerState.get('appliedCoupon'),
+      user: customerState.get('user'),
+    });
 
     const orderId = await submitOrder({
       name: document.getElementById('uName').value,
@@ -630,10 +684,13 @@ async function sendOrder() {
     updateSummaryBar();
     stepper.reset();
 
-    showToast('✅ تم إرسال طلبك بنجاح! رقم الطلب: ' + orderId, 'success', 5000);
-    goTab('orders');
-    await loadOrders();
-    showOrderDetail(orderId);
+    // Show Success Overlay
+    document.getElementById('success-order-id').textContent = '#' + orderId;
+    document.getElementById('success-order-total').textContent = formatPrice(totals.total);
+    document.getElementById('success-overlay').classList.add('open');
+    
+    // Refresh orders in background
+    loadOrders();
   } catch (e) {
     const pcon = document.getElementById('pcon');
     const stxt = document.getElementById('statustxt');
@@ -771,10 +828,22 @@ async function checkoutMarket() {
   try {
     const orderId = await submitOrder({ name, phone, region, notes: document.getElementById('cart-notes').value });
     document.getElementById('cart-drawer').classList.remove('open');
+    
+    const cart = customerState.get('cart') ?? [];
+    const sub = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
+    const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
+    const del = sub >= pricing.delivery_free_threshold ? 0 : pricing.delivery_fee;
+
     customerState.set('cart', []);
     renderCart();
     updateCartBadge();
-    showToast('✅ تم إرسال طلب القرطاسية! #' + orderId, 'success', 5000);
+
+    // Show Success Screen
+    document.getElementById('success-order-id').textContent = '#' + orderId.slice(0, 8);
+    document.getElementById('success-order-total').textContent = formatPrice(sub + del);
+    document.getElementById('success-overlay').classList.add('open');
+
+    await loadOrders();
   } catch (e) {
     errEl.textContent = '❌ ' + e.message;
     errEl.style.display = 'block';
@@ -1051,6 +1120,14 @@ function bindModals() {
   document.getElementById('wmodal-close').addEventListener('click', () => document.getElementById('wmodal').classList.remove('open'));
   document.getElementById('det-close').addEventListener('click', () => document.getElementById('det-ov').classList.remove('open'));
   document.getElementById('det-ov').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+
+  document.getElementById('success-view-orders').addEventListener('click', () => {
+    document.getElementById('success-overlay').classList.remove('open');
+    goTab('orders');
+  });
+  document.getElementById('success-close').addEventListener('click', () => {
+    document.getElementById('success-overlay').classList.remove('open');
+  });
 
   document.getElementById('rate-stars').addEventListener('click', e => {
     const star = e.target.closest('.rate-star');

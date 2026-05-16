@@ -55,7 +55,7 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
       const { data: userData } = await sb.from(T.USERS).select('telegram_id').eq('id', order.user_id).maybeSingle();
       const chatId = userData?.telegram_id || order.user_id;
       
-      _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: chatId, text: msg })
+      _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: chatId, text: msg, parse_mode: 'Markdown' })
         .catch(err => console.warn('Telegram notification failed after retries:', err));
     }
   }
