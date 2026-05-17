@@ -74,11 +74,18 @@ body{padding-bottom:80px}
 .success-screen{text-align:center;padding:20px 0}
 .success-icon{font-size:4rem;display:block;margin:0 auto 16px;animation:popIn .5s ease}
 #onboarding{position:fixed;inset:0;background:rgba(13,59,102,.93);backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;z-index:500}
-.ob-wrap{background:var(--card);border-radius:32px;width:90%;max-width:380px;padding:40px 24px 28px;overflow:hidden;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.3);animation:popIn .5s cubic-bezier(0.175, 0.885, 0.32, 1.275);border:1px solid rgba(255,255,255,.1)}
+.ob-wrap{background:var(--card);border-radius:32px;width:90%;max-width:380px;padding:48px 24px 28px;overflow:hidden;position:relative;box-shadow:0 20px 50px rgba(0,0,0,.3);animation:popIn .5s cubic-bezier(0.175, 0.885, 0.32, 1.275);border:1px solid rgba(255,255,255,.1);direction:ltr}
+.ob-skip{position:absolute;top:18px;right:22px;background:none;border:none;color:var(--text-muted);font-size:0.9rem;font-weight:700;cursor:pointer;transition:color var(--transition-fast);z-index:10;direction:rtl}
+.ob-skip:hover{color:var(--orange)}
+.ob-track{display:flex;transition:transform 0.4s cubic-bezier(0.25, 1, 0.5, 1);width:100%}
+.ob-slide{flex:0 0 100%;width:100%;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center;direction:rtl;box-sizing:border-box;padding:10px 4px}
 .ob-icon-circle{width:90px;height:90px;background:linear-gradient(135deg,var(--teal),var(--navy));border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:3rem;margin:0 auto 24px;box-shadow:0 10px 25px rgba(13,59,102,.3);animation:float 3s ease-in-out infinite}
 .ob-title{color:var(--navy);margin:0 0 12px;font-size:1.4rem;font-weight:900}
 .ob-desc{color:var(--text-muted);font-size:.95rem;line-height:1.7;margin:0;font-weight:500}
-.ob-btn{margin-top:10px;background:var(--navy);color:#fff;padding:16px;border-radius:var(--radius-lg);font-size:1.1rem;box-shadow:0 4px 15px rgba(13,59,102,0.2)}
+.ob-dots{display:flex;align-items:center;justify-content:center;gap:8px;margin:20px 0 24px}
+.ob-dot{width:8px;height:8px;border-radius:50%;background:var(--border-soft);transition:all 0.3s ease;cursor:pointer}
+.ob-dot.active{width:24px;background:var(--orange);border-radius:4px}
+.ob-btn{margin-top:10px;background:var(--navy);color:#fff;padding:16px;border-radius:var(--radius-lg);font-size:1.1rem;box-shadow:0 4px 15px rgba(13,59,102,0.2);width:100%}
 [data-theme="dark"] .ob-wrap{background:#1e293b;border-color:rgba(255,255,255,0.05)}
 [data-theme="dark"] .ob-title{color:var(--teal)}
 
