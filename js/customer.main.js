@@ -219,8 +219,9 @@ async function init() {
   const obDone = localStorage.getItem(Config.APP.STORAGE_KEYS.ONBOARDING_DONE) === '1';
   const obHidden = document.getElementById('onboarding').style.display === 'none';
   if (!user.first_order_done && obDone && obHidden) {
-    document.getElementById('fo-gift').style.display = 'block';
-    document.getElementById('wmodal').classList.add('open');
+    const foGift = document.getElementById('fo-gift');
+    if (foGift) foGift.style.display = 'block';
+    document.getElementById('wmodal')?.classList.add('open');
   }
 
   customerState.subscribe('user', refreshPtsUI);
@@ -416,7 +417,7 @@ function bindOnboarding() {
     document.getElementById('onboarding').style.display = 'none';
     localStorage.setItem(Config.APP.STORAGE_KEYS.ONBOARDING_DONE, '1');
     const user = customerState.get('user');
-    if (!user?.first_order_done) document.getElementById('wmodal').classList.add('open');
+    if (!user?.first_order_done) document.getElementById('wmodal')?.classList.add('open');
   };
 
   document.getElementById('ob-btn').addEventListener('click', () => idx >= TOTAL - 1 ? finish() : goTo(idx + 1));
@@ -1400,28 +1401,58 @@ function showOrderDetail(orderId) {
 }
 
 function bindModals() {
-  document.getElementById('wmodal-close').addEventListener('click', () => document.getElementById('wmodal').classList.remove('open'));
-  document.getElementById('det-close').addEventListener('click', () => document.getElementById('det-ov').classList.remove('open'));
-  document.getElementById('det-ov').addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+  const wmodalClose = document.getElementById('wmodal-close');
+  if (wmodalClose) {
+    wmodalClose.addEventListener('click', () => document.getElementById('wmodal')?.classList.remove('open'));
+  }
+  
+  const detClose = document.getElementById('det-close');
+  if (detClose) {
+    detClose.addEventListener('click', () => document.getElementById('det-ov')?.classList.remove('open'));
+  }
+  
+  const detOv = document.getElementById('det-ov');
+  if (detOv) {
+    detOv.addEventListener('click', e => { if (e.target === e.currentTarget) e.currentTarget.classList.remove('open'); });
+  }
 
-  document.getElementById('success-view-orders').addEventListener('click', () => {
-    document.getElementById('success-overlay').classList.remove('open');
-    goTab('orders');
-  });
-  document.getElementById('success-close').addEventListener('click', () => {
-    document.getElementById('success-overlay').classList.remove('open');
-  });
+  const successViewOrders = document.getElementById('success-view-orders');
+  if (successViewOrders) {
+    successViewOrders.addEventListener('click', () => {
+      document.getElementById('success-overlay')?.classList.remove('open');
+      goTab('orders');
+    });
+  }
+  
+  const successClose = document.getElementById('success-close');
+  if (successClose) {
+    successClose.addEventListener('click', () => {
+      document.getElementById('success-overlay')?.classList.remove('open');
+    });
+  }
 
-  document.getElementById('rate-stars').addEventListener('click', e => {
-    const star = e.target.closest('.rate-star');
-    if (!star) return;
-    const v = Number(star.dataset.v);
-    customerState.set('rateStars', v);
-    document.querySelectorAll('.rate-star').forEach(s => s.classList.toggle('active', Number(s.dataset.v) <= v));
-    document.getElementById('rate-submit-btn').disabled = false;
-  });
-  document.getElementById('rate-submit-btn').addEventListener('click', () => withLoading('rate-submit-btn', submitRating));
-  document.getElementById('rate-cancel-btn').addEventListener('click', () => document.getElementById('rate-modal').classList.remove('open'));
+  const rateStars = document.getElementById('rate-stars');
+  if (rateStars) {
+    rateStars.addEventListener('click', e => {
+      const star = e.target.closest('.rate-star');
+      if (!star) return;
+      const v = Number(star.dataset.v);
+      customerState.set('rateStars', v);
+      document.querySelectorAll('.rate-star').forEach(s => s.classList.toggle('active', Number(s.dataset.v) <= v));
+      const submitBtn = document.getElementById('rate-submit-btn');
+      if (submitBtn) submitBtn.disabled = false;
+    });
+  }
+  
+  const rateSubmitBtn = document.getElementById('rate-submit-btn');
+  if (rateSubmitBtn) {
+    rateSubmitBtn.addEventListener('click', () => withLoading('rate-submit-btn', submitRating));
+  }
+  
+  const rateCancelBtn = document.getElementById('rate-cancel-btn');
+  if (rateCancelBtn) {
+    rateCancelBtn.addEventListener('click', () => document.getElementById('rate-modal')?.classList.remove('open'));
+  }
 }
 
 // ═══════════════════════════════════════
@@ -1547,8 +1578,9 @@ async function submitRating() {
   const stars = customerState.get('rateStars');
   if (!oid || !stars) return;
   const { submitRating: doRating } = await import('./services/order.service.js');
-  await doRating(oid, stars, document.getElementById('rate-comment').value);
-  document.getElementById('rate-modal').classList.remove('open');
+  const commentVal = document.getElementById('rate-comment')?.value ?? '';
+  await doRating(oid, stars, commentVal);
+  document.getElementById('rate-modal')?.classList.remove('open');
   showToast('🌟 شكراً على تقييمك!', 'success');
 }
 
@@ -1574,7 +1606,7 @@ function startRealtime(userId) {
           if (st === 'delivered') {
             customerState.set('rateOrderId', p.new.id);
             customerState.set('rateStars', 0);
-            setTimeout(() => document.getElementById('rate-modal').classList.add('open'), 1500);
+            setTimeout(() => document.getElementById('rate-modal')?.classList.add('open'), 1500);
           }
         })
       .subscribe();
