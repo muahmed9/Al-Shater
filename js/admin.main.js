@@ -35,54 +35,65 @@ function applyTheme(dark) {
 }
 
 function bindLoginForm() {
-  document.getElementById('login-btn').addEventListener('click', () =>
+  document.getElementById('login-btn')?.addEventListener('click', () =>
     withLoading('login-btn', handleLogin)
   );
   document.addEventListener('keydown', e => {
-    if (e.key === 'Enter' && document.getElementById('login-screen').style.display !== 'none') {
+    const loginScreen = document.getElementById('login-screen');
+    if (e.key === 'Enter' && loginScreen && loginScreen.style.display !== 'none') {
       handleLogin();
     }
   });
 }
 
 async function handleLogin() {
-  const email = document.getElementById('adm-user').value;
-  const pass = document.getElementById('adm-pass').value;
+  const userEl = document.getElementById('adm-user');
+  const passEl = document.getElementById('adm-pass');
   const errEl = document.getElementById('loginerr');
-  errEl.style.display = 'none';
+  
+  const email = userEl ? userEl.value : '';
+  const pass = passEl ? passEl.value : '';
+  if (errEl) errEl.style.display = 'none';
   try {
     await adminLogin(email, pass);
     enterDashboard();
   } catch (e) {
-    errEl.textContent = '❌ ' + e.message;
-    errEl.style.display = 'block';
+    if (errEl) {
+      errEl.textContent = '❌ ' + e.message;
+      errEl.style.display = 'block';
+    }
   }
 }
 
 function enterDashboard() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('dashboard').style.display = 'block';
+  const loginScreen = document.getElementById('login-screen');
+  if (loginScreen) loginScreen.style.display = 'none';
+  
+  const dashboard = document.getElementById('dashboard');
+  if (dashboard) dashboard.style.display = 'block';
 
   const profile = adminState.get('currentProfile');
-  document.getElementById('role-badge-top').textContent =
-    `${profile?.emoji ?? '👤'} ${profile?.name ?? ''}`;
+  const roleBadgeTop = document.getElementById('role-badge-top');
+  if (roleBadgeTop) {
+    roleBadgeTop.textContent = `${profile?.emoji ?? '👤'} ${profile?.name ?? ''}`;
+  }
 
   sidebar = new Sidebar(navigateTo);
   sidebar.render();
 
-  document.getElementById('dm-toggle-btn').addEventListener('click', () => {
+  document.getElementById('dm-toggle-btn')?.addEventListener('click', () => {
     const dark = document.documentElement.getAttribute('data-theme') === 'dark';
     localStorage.setItem(Config.APP.STORAGE_KEYS.DARK_MODE_ADMIN, String(!dark));
     applyTheme(!dark);
   });
 
-  document.getElementById('mobile-menu-btn').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.toggle('mobile-open');
-    document.getElementById('sidebar-overlay').classList.toggle('show');
+  document.getElementById('mobile-menu-btn')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.toggle('mobile-open');
+    document.getElementById('sidebar-overlay')?.classList.toggle('show');
   });
-  document.getElementById('sidebar-overlay').addEventListener('click', () => {
-    document.getElementById('sidebar').classList.remove('mobile-open');
-    document.getElementById('sidebar-overlay').classList.remove('show');
+  document.getElementById('sidebar-overlay')?.addEventListener('click', () => {
+    document.getElementById('sidebar')?.classList.remove('mobile-open');
+    document.getElementById('sidebar-overlay')?.classList.remove('show');
   });
 
   document.querySelectorAll('.acc-header[data-acc]').forEach(btn => {
@@ -102,34 +113,42 @@ function enterDashboard() {
   // ── FIX: bind order list actions ONCE here, not inside renderOrders ──
   bindOrderActions();
 
-  document.getElementById('det-close-btn').addEventListener('click', () => { document.getElementById('detov').classList.remove('open'); document.getElementById('detpan').classList.remove('open'); });
-  document.getElementById('detov').addEventListener('click', () => { document.getElementById('detov').classList.remove('open'); document.getElementById('detpan').classList.remove('open'); });
+  document.getElementById('det-close-btn')?.addEventListener('click', () => { 
+    document.getElementById('detov')?.classList.remove('open'); 
+    document.getElementById('detpan')?.classList.remove('open'); 
+  });
+  document.getElementById('detov')?.addEventListener('click', () => { 
+    document.getElementById('detov')?.classList.remove('open'); 
+    document.getElementById('detpan')?.classList.remove('open'); 
+  });
 
-  document.getElementById('cancel-modal').addEventListener('click', e => {
+  document.getElementById('cancel-modal')?.addEventListener('click', e => {
     if (e.target === e.currentTarget) Modal.close('cancel-modal');
   });
-  document.getElementById('cancel-reasons-grid').addEventListener('click', e => {
+  document.getElementById('cancel-reasons-grid')?.addEventListener('click', e => {
     const btn = e.target.closest('.reason-btn');
     if (btn) {
       document.querySelectorAll('.reason-btn').forEach(b => b.classList.remove('selected'));
       btn.classList.add('selected');
-      document.getElementById('custom-reason').value = btn.dataset.reason;
+      const customReason = document.getElementById('custom-reason');
+      if (customReason) customReason.value = btn.dataset.reason;
     }
   });
-  document.getElementById('confirm-cancel-btn').addEventListener('click', () =>
+  document.getElementById('confirm-cancel-btn')?.addEventListener('click', () =>
     withLoading('confirm-cancel-btn', confirmCancel)
   );
-  document.getElementById('close-cancel-modal').addEventListener('click', () => Modal.close('cancel-modal'));
+  document.getElementById('close-cancel-modal')?.addEventListener('click', () => Modal.close('cancel-modal'));
 
-  document.getElementById('tx-cancel-btn').addEventListener('click', () => Modal.close('supply-tx-modal'));
-  document.getElementById('tx-confirm-btn').addEventListener('click', () => withLoading('tx-confirm-btn', confirmSupplyTx));
+  document.getElementById('tx-cancel-btn')?.addEventListener('click', () => Modal.close('supply-tx-modal'));
+  document.getElementById('tx-confirm-btn')?.addEventListener('click', () => withLoading('tx-confirm-btn', confirmSupplyTx));
 
   // Product modal bindings
-  document.getElementById('prod-cancel-btn').addEventListener('click', () => Modal.close('product-modal'));
-  document.getElementById('prod-save-btn').addEventListener('click', () => withLoading('prod-save-btn', saveProductForm));
-  document.getElementById('prod-delete-btn').addEventListener('click', deleteProductAction);
-  document.getElementById('prod-image-url').addEventListener('input', e => {
+  document.getElementById('prod-cancel-btn')?.addEventListener('click', () => Modal.close('product-modal'));
+  document.getElementById('prod-save-btn')?.addEventListener('click', () => withLoading('prod-save-btn', saveProductForm));
+  document.getElementById('prod-delete-btn')?.addEventListener('click', deleteProductAction);
+  document.getElementById('prod-image-url')?.addEventListener('input', e => {
     const preview = document.getElementById('prod-image-preview');
+    if (!preview) return;
     const urls = e.target.value.split(',').map(s => s.trim()).filter(Boolean);
     if (urls.length > 0) {
       preview.innerHTML = urls.map(u => `<img src="${esc(u)}" style="max-width:80px;max-height:80px;border-radius:var(--radius-sm);border:2px solid var(--border-soft);">`).join('');
@@ -139,7 +158,7 @@ function enterDashboard() {
       preview.innerHTML = '';
     }
   });
-  document.getElementById('prod-image-file').addEventListener('change', async e => {
+  document.getElementById('prod-image-file')?.addEventListener('change', async e => {
     const files = Array.from(e.target.files);
     if (!files.length) return;
     try {
@@ -147,18 +166,20 @@ function enterDashboard() {
       const uploadPromises = files.map(f => uploadFile(f, user?.id ?? 'admin'));
       const newUrls = await Promise.all(uploadPromises);
       const urlInput = document.getElementById('prod-image-url');
-      const currentUrls = urlInput.value.split(',').map(s => s.trim()).filter(Boolean);
-      const allUrls = [...currentUrls, ...newUrls].join(', ');
-      urlInput.value = allUrls;
-      urlInput.dispatchEvent(new Event('input'));
+      if (urlInput) {
+        const currentUrls = urlInput.value.split(',').map(s => s.trim()).filter(Boolean);
+        const allUrls = [...currentUrls, ...newUrls].join(', ');
+        urlInput.value = allUrls;
+        urlInput.dispatchEvent(new Event('input'));
+      }
       showToast('✅ تم رفع الصور', 'success');
     } catch (err) { showToast('❌ فشل رفع الصور: ' + err.message, 'error'); }
   });
 
   // Product stock adjustment modal bindings
-  document.getElementById('adj-prod-cancel').addEventListener('click', () => Modal.close('prod-stock-modal'));
-  document.getElementById('adj-prod-confirm').addEventListener('click', () => withLoading('adj-prod-confirm', confirmProductStockAdj));
-  document.getElementById('prod-stock-modal').addEventListener('click', e => {
+  document.getElementById('adj-prod-cancel')?.addEventListener('click', () => Modal.close('prod-stock-modal'));
+  document.getElementById('adj-prod-confirm')?.addEventListener('click', () => withLoading('adj-prod-confirm', confirmProductStockAdj));
+  document.getElementById('prod-stock-modal')?.addEventListener('click', e => {
     const btn = e.target.closest('.adj-type-btn');
     if (btn) {
       document.querySelectorAll('.adj-type-btn').forEach(b => { b.classList.remove('active'); b.style.opacity = '0.5'; });
@@ -183,6 +204,7 @@ function enterDashboard() {
 // ═══════════════════════════════════════
 function bindOrderActions() {
   const list = document.getElementById('olist');
+  if (!list) return;
   list.addEventListener('click', e => {
     // أزرار الإجراءات
     const btn = e.target.closest('.order-action-btn[data-action]');
@@ -215,8 +237,9 @@ function navigateTo(page) {
     reports: 'التقارير',
     settings: 'الإعدادات',
   };
-  document.getElementById('page-title').textContent = titles[page] ?? page;
-  sidebar.setActive(page);
+  const titleEl = document.getElementById('page-title');
+  if (titleEl) titleEl.textContent = titles[page] ?? page;
+  sidebar?.setActive(page);
 
   if (page === 'orders') { fetchAllOrders().then(renderOrders); }
   if (page === 'stats') { loadStats(); }
@@ -234,23 +257,27 @@ async function handleLogout() {
 
 function bindOrderFilters() {
   const searchEl = document.getElementById('order-search');
-  searchEl.addEventListener('input', debounce(() => {
-    adminState.set('searchQuery', searchEl.value);
-    renderOrders();
-  }, 300));
+  if (searchEl) {
+    searchEl.addEventListener('input', debounce(() => {
+      adminState.set('searchQuery', searchEl.value);
+      renderOrders();
+    }, 300));
+  }
 
-  document.getElementById('type-filter-bar').addEventListener('click', e => {
+  document.getElementById('type-filter-bar')?.addEventListener('click', e => {
     const btn = e.target.closest('.filter-tab[data-type]');
     if (!btn) return;
     document.querySelectorAll('#type-filter-bar .filter-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     adminState.set('typeFilter', btn.dataset.type);
-    document.getElementById('filter-bar').style.display = btn.dataset.type !== 'market' ? '' : 'none';
-    document.getElementById('mkt-filter-bar').style.display = btn.dataset.type === 'market' ? '' : 'none';
+    const filterBar = document.getElementById('filter-bar');
+    if (filterBar) filterBar.style.display = btn.dataset.type !== 'market' ? '' : 'none';
+    const mktFilterBar = document.getElementById('mkt-filter-bar');
+    if (mktFilterBar) mktFilterBar.style.display = btn.dataset.type === 'market' ? '' : 'none';
     renderOrders();
   });
 
-  document.getElementById('filter-bar').addEventListener('click', e => {
+  document.getElementById('filter-bar')?.addEventListener('click', e => {
     const btn = e.target.closest('.filter-tab[data-status]');
     if (!btn) return;
     document.querySelectorAll('#filter-bar .filter-tab').forEach(b => b.classList.remove('active'));
@@ -259,7 +286,7 @@ function bindOrderFilters() {
     renderOrders();
   });
 
-  document.getElementById('mkt-filter-bar').addEventListener('click', e => {
+  document.getElementById('mkt-filter-bar')?.addEventListener('click', e => {
     const btn = e.target.closest('.filter-tab[data-mkt-status]');
     if (!btn) return;
     document.querySelectorAll('#mkt-filter-bar .filter-tab').forEach(b => b.classList.remove('active'));
@@ -275,10 +302,11 @@ function bindOrderFilters() {
 function renderOrders() {
   const orders = getFilteredOrders();
   const list = document.getElementById('olist');
+  if (!list) return;
   updatePendingCount();
 
   if (!orders.length) {
-    list.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-muted);">لا توجد طلبات</div>';
+    list.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-muted);;">لا توجد طلبات</div>';
     return;
   }
 
@@ -479,13 +507,13 @@ async function loadStaffDashboard() {
 }
 
 function bindSettings() {
-  document.getElementById('save-pricing-btn').addEventListener('click', () =>
+  document.getElementById('save-pricing-btn')?.addEventListener('click', () =>
     withLoading('save-pricing-btn', savePricingForm)
   );
-  document.getElementById('create-staff-btn').addEventListener('click', () =>
+  document.getElementById('create-staff-btn')?.addEventListener('click', () =>
     withLoading('create-staff-btn', createStaffAccount)
   );
-  document.getElementById('create-coupon-btn').addEventListener('click', () =>
+  document.getElementById('create-coupon-btn')?.addEventListener('click', () =>
     withLoading('create-coupon-btn', createCoupon)
   );
   // Reports export bindings
@@ -498,18 +526,21 @@ async function loadSettingsPage() {
   const pricing = await loadPricing();
   if (pricing) {
     const P = pricing;
-    document.getElementById('pr-min-pages').value = P.min_pages;
-    document.getElementById('pr-min-price').value = P.min_price;
-    document.getElementById('pr-c1').value = P.c_single ?? 150;
-    document.getElementById('pr-c2').value = P.c_double ?? 130;
-    document.getElementById('pr-bw1').value = P.bw_single;
-    document.getElementById('pr-bw2').value = P.bw_double;
-    document.getElementById('pr-del').value = P.delivery_fee;
-    document.getElementById('pr-del-free').value = P.delivery_free_threshold;
-    document.getElementById('pr-express').value = P.express_fee;
-    document.getElementById('pr-pkg-none').value = P.packaging?.none ?? 0;
-    document.getElementById('pr-pkg-cardboard').value = P.packaging?.cardboard ?? 500;
-    document.getElementById('pr-pkg-spiral').value = P.packaging?.spiral ?? 1500;
+    const minPagesEl = document.getElementById('pr-min-pages');
+    if (minPagesEl) {
+      minPagesEl.value = P.min_pages;
+      document.getElementById('pr-min-price').value = P.min_price;
+      document.getElementById('pr-c1').value = P.c_single ?? 150;
+      document.getElementById('pr-c2').value = P.c_double ?? 130;
+      document.getElementById('pr-bw1').value = P.bw_single;
+      document.getElementById('pr-bw2').value = P.bw_double;
+      document.getElementById('pr-del').value = P.delivery_fee;
+      document.getElementById('pr-del-free').value = P.delivery_free_threshold;
+      document.getElementById('pr-express').value = P.express_fee;
+      document.getElementById('pr-pkg-none').value = P.packaging?.none ?? 0;
+      document.getElementById('pr-pkg-cardboard').value = P.packaging?.cardboard ?? 500;
+      document.getElementById('pr-pkg-spiral').value = P.packaging?.spiral ?? 1500;
+    }
   }
   // Load staff list
   loadStaffList();
@@ -626,7 +657,8 @@ async function loadMarketPage() {
     page.querySelector('#products-list-admin').before(alertDiv);
   }
 
-  document.getElementById('add-product-btn').addEventListener('click', () => showProductForm());
+  const addProductBtn = document.getElementById('add-product-btn');
+  if (addProductBtn) addProductBtn.addEventListener('click', () => showProductForm());
   document.getElementById('products-list-admin')?.addEventListener('click', e => {
     const editBtn = e.target.closest('[data-edit-prod]');
     const adjBtn = e.target.closest('[data-adj-prod]');
@@ -876,8 +908,10 @@ function loadOrdersReportPreview() {
     <p style="font-size:.78rem;color:var(--text-muted);margin-top:8px;">عرض ${Math.min(filtered.length, 50)} من ${filtered.length} طلب</p>`;
 
   // bind date change
-  document.getElementById('rep-from').onchange = loadOrdersReportPreview;
-  document.getElementById('rep-to').onchange = loadOrdersReportPreview;
+  const repFrom = document.getElementById('rep-from');
+  if (repFrom) repFrom.onchange = loadOrdersReportPreview;
+  const repTo = document.getElementById('rep-to');
+  if (repTo) repTo.onchange = loadOrdersReportPreview;
 }
 
 async function loadMarketReportPreview() {
@@ -1123,7 +1157,7 @@ function playAlert(status) {
   } catch { }
 }
 
-window.addEventListener('online', () => { const b = document.getElementById('conn-badge'); b.className = 'online'; b.textContent = '✅ الاتصال يعمل'; setTimeout(() => b.className = '', 3000); });
-window.addEventListener('offline', () => { const b = document.getElementById('conn-badge'); b.className = 'offline'; b.textContent = '❌ لا يوجد اتصال'; });
+window.addEventListener('online', () => { const b = document.getElementById('conn-badge'); if (b) { b.className = 'online'; b.textContent = '✅ الاتصال يعمل'; setTimeout(() => b.className = '', 3000); } });
+window.addEventListener('offline', () => { const b = document.getElementById('conn-badge'); if (b) { b.className = 'offline'; b.textContent = '❌ لا يوجد اتصال'; } });
 
 init().catch(console.error);
