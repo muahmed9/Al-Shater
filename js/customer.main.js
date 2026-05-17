@@ -210,13 +210,6 @@ async function init() {
   const pricing = await loadPricing();
   if (pricing) customerState.set('pricing', pricing);
 
-  const user = customerState.get('user');
-  if (!user.first_order_done) {
-    const foGift = document.getElementById('fo-gift');
-    if (foGift) foGift.style.display = 'block';
-    document.getElementById('wmodal')?.classList.add('open');
-  }
-
   customerState.subscribe('user', refreshPtsUI);
   refreshPtsUI();
   startRealtime(userId);
@@ -1365,11 +1358,6 @@ function showOrderDetail(orderId) {
 }
 
 function bindModals() {
-  const wmodalClose = document.getElementById('wmodal-close');
-  if (wmodalClose) {
-    wmodalClose.addEventListener('click', () => document.getElementById('wmodal')?.classList.remove('open'));
-  }
-  
   const detClose = document.getElementById('det-close');
   if (detClose) {
     detClose.addEventListener('click', () => document.getElementById('det-ov')?.classList.remove('open'));

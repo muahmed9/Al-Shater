@@ -69,3 +69,14 @@ export async function copyToClipboard(text) {
 }
 export function isValidIraqiPhone(phone) { return /^07[0-9]{9}$/.test(phone?.trim() ?? ''); }
 export function isValidName(name) { return (name?.trim().length ?? 0) >= 2 && (name?.trim().length ?? 0) <= 60; }
+
+export function withTimeout(promise, ms, errorMsg = 'انتهت مهلة الطلب، يرجى المحاولة مرة أخرى') {
+  let timer;
+  const timeoutPromise = new Promise((_, reject) => {
+    timer = setTimeout(() => reject(new Error(errorMsg)), ms);
+  });
+  return Promise.race([
+    promise,
+    timeoutPromise
+  ]).finally(() => clearTimeout(timer));
+}

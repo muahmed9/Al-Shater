@@ -1,5 +1,5 @@
 import { sb }    from '../core/supabase.js';
-import { getExt, isAllowedFile, formatFileSize, uid } from '../core/utils.js';
+import { getExt, isAllowedFile, formatFileSize, uid, withTimeout } from '../core/utils.js';
 
 const BUCKET = 'order-files';
 const MAX_MB  = 50;
@@ -11,7 +11,12 @@ export async function uploadFile(file, userId, onProgress) {
   await _validateMagicBytes(file);
   const ext  = getExt(file.name);
   const path = `${userId}/${Date.now()}_${uid()}.${ext}`;
-  const { error } = await sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
+  const uploadPromise = sb.storage.from(BUCKET).upload(path, file, { cacheControl: '3600', upsert: false });
+  const { error } = await withTimeout(
+    uploadPromise,
+    45000,
+    'استغرق رفع الملف وقتاً طويلاً. يرجى التحقق من اتصال الإنترنت والمحاولة مرة أخرى.'
+  );
   if (error) throw new Error('فشل رفع الملف: ' + error.message);
   const { data } = sb.storage.from(BUCKET).getPublicUrl(path);
   onProgress?.(100);

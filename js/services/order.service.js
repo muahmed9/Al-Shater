@@ -1,7 +1,7 @@
 import { sb }            from '../core/supabase.js';
 import { Config }        from '../core/config.js';
 import { customerState } from '../core/state.js';
-import { sanitize, isValidIraqiPhone, isValidName } from '../core/utils.js';
+import { sanitize, isValidIraqiPhone, isValidName, withTimeout } from '../core/utils.js';
 
 const T = Config.TABLES;
 
@@ -47,7 +47,12 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
     order_type:    files.length && (cart.length || Object.keys(sugCart).length) ? 'combined' : files.length ? 'print' : 'market',
   };
 
-  const { data, error } = await sb.from(T.ORDERS).insert(orderPayload).select('id').single();
+  const insertPromise = sb.from(T.ORDERS).insert(orderPayload).select('id').single();
+  const { data, error } = await withTimeout(
+    insertPromise,
+    15000,
+    'فشل إرسال الطلب بسبب بطء الاتصال بالخادم. يرجى المحاولة مرة أخرى.'
+  );
   if (error) throw new Error('فشل إرسال الطلب: ' + error.message);
 
   customerState.set('lastOrderTime', Date.now());
