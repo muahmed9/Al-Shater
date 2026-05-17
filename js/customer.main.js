@@ -154,12 +154,7 @@ async function init() {
   const dark = localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER) === 'true';
   applyTheme(dark);
 
-  if (localStorage.getItem(Config.APP.STORAGE_KEYS.ONBOARDING_DONE) === '1') {
-    document.getElementById('onboarding').style.display = 'none';
-  }
-
   bindNav();
-  bindOnboarding();
   bindStepper();
   bindUpload();
   bindPrintOptions();
@@ -216,9 +211,7 @@ async function init() {
   if (pricing) customerState.set('pricing', pricing);
 
   const user = customerState.get('user');
-  const obDone = localStorage.getItem(Config.APP.STORAGE_KEYS.ONBOARDING_DONE) === '1';
-  const obHidden = document.getElementById('onboarding').style.display === 'none';
-  if (!user.first_order_done && obDone && obHidden) {
+  if (!user.first_order_done) {
     const foGift = document.getElementById('fo-gift');
     if (foGift) foGift.style.display = 'block';
     document.getElementById('wmodal')?.classList.add('open');
@@ -401,35 +394,6 @@ function goTab(t) {
   if (t === 'market') { const p = customerState.get('mktProducts'); if (!p?.length) loadMktProducts(); }
 }
 
-function bindOnboarding() {
-  let idx = 0;
-  const TOTAL = 4;
-  const track = document.getElementById('ob-track');
-
-  const goTo = n => {
-    idx = Math.max(0, Math.min(TOTAL - 1, n));
-    track.style.transform = `translateX(${idx * -100}%)`;
-    document.querySelectorAll('.ob-dot').forEach((d, i) => d.classList.toggle('active', i === idx));
-    document.getElementById('ob-btn').textContent = idx === TOTAL - 1 ? 'ابدأ الآن 🚀' : 'التالي ←';
-  };
-
-  const finish = () => {
-    document.getElementById('onboarding').style.display = 'none';
-    localStorage.setItem(Config.APP.STORAGE_KEYS.ONBOARDING_DONE, '1');
-    const user = customerState.get('user');
-    if (!user?.first_order_done) document.getElementById('wmodal')?.classList.add('open');
-  };
-
-  document.getElementById('ob-btn').addEventListener('click', () => idx >= TOTAL - 1 ? finish() : goTo(idx + 1));
-  document.getElementById('ob-skip').addEventListener('click', finish);
-
-  let tx = 0;
-  track.addEventListener('touchstart', e => { tx = e.changedTouches[0].screenX; }, { passive: true });
-  track.addEventListener('touchend', e => {
-    const dx = e.changedTouches[0].screenX - tx;
-    if (Math.abs(dx) > 45) dx < 0 ? goTo(idx + 1) : goTo(idx - 1);
-  }, { passive: true });
-}
 
 let stepper;
 function bindStepper() {
