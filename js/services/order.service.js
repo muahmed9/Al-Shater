@@ -79,6 +79,9 @@ export async function fetchUserOrders(userId) {
     
     if (error) {
       console.error('[Supabase Fetch Error]', error);
+      if (error.code === '42501') {
+        throw new Error('تعذر الوصول للبيانات (خطأ في سياسة الأمان RLS). يرجى التأكد من إعدادات الحماية في Supabase.');
+      }
       throw new Error(`تعذر تحميل البيانات من قاعدة البيانات (كود: ${error.code})`);
     }
     return data ?? [];
@@ -248,8 +251,7 @@ async function _notifyCustomer(orderId, userId) {
   const msg = Config.customerMessage(orderId, 'received');
   if (!msg) return;
   
-  const cleanUserId = String(userId).trim();
-  const chatId = !isNaN(cleanUserId) ? Number(cleanUserId) : cleanUserId;
+  const chatId = String(userId).trim();
 
   console.log(`[NotifyCustomer] Attempting to send notification to #${orderId} (chatId: ${chatId})...`);
 

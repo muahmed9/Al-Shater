@@ -170,6 +170,7 @@ async function init() {
   bindPoints();
   bindResearch();
   bindModals();
+  bindSuccessOverlay();
   Modal.init();
 
   await authenticateTelegramUser();
@@ -228,6 +229,147 @@ async function init() {
 
   // Load suggested products for step 3
   loadSuggestedProducts();
+}
+
+function updateSuccessTracking(status) {
+  const nodes = document.querySelectorAll('#success-tracking-steps .track-node');
+  const lineProgress = document.getElementById('track-line-progress');
+  if (!nodes.length || !lineProgress) return;
+
+  nodes.forEach(n => {
+    n.classList.remove('active');
+    const circle = n.querySelector('div');
+    if (circle) {
+      circle.style.background = '#e2e8f0';
+      circle.style.color = '#64748b';
+      circle.style.boxShadow = 'none';
+    }
+    const label = n.querySelector('div:nth-child(2)');
+    if (label) {
+      label.style.color = '#94a3b8';
+    }
+  });
+
+  let activeIndex = 0;
+  if (status === 'received' || status === 'pending') {
+    activeIndex = 0;
+  } else if (status === 'printing') {
+    activeIndex = 1;
+  } else if (status === 'delivering' || status === 'ready' || status === 'delivered') {
+    activeIndex = 2;
+  }
+
+  for (let i = 0; i <= activeIndex; i++) {
+    const n = nodes[i];
+    if (!n) continue;
+    n.classList.add('active');
+    const circle = n.querySelector('div');
+    if (circle) {
+      circle.style.background = 'var(--teal)';
+      circle.style.color = '#fff';
+      circle.style.boxShadow = '0 0 0 4px var(--bg)';
+    }
+    const label = n.querySelector('div:nth-child(2)');
+    if (label) {
+      label.style.color = 'var(--teal)';
+    }
+  }
+
+  const pct = activeIndex * 50;
+  lineProgress.style.width = `${pct}%`;
+}
+
+function populateSuccessDetails() {
+  const itemsList = document.getElementById('success-items-list');
+  const detailsBox = document.getElementById('success-order-details');
+  if (!itemsList || !detailsBox) return;
+
+  itemsList.innerHTML = '';
+  detailsBox.style.display = 'block';
+
+  // Files
+  const files = customerState.get('files') ?? [];
+  files.forEach(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const isImg = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+    const typeIcon = isImg ? '🖼️' : '📄';
+    const colorMode = f.color === 'c' ? 'ملون' : 'أسود وأبيض';
+    const sideMode = f.double ? 'على الوجهين' : 'وجه واحد';
+    const itemEl = document.createElement('div');
+    itemEl.style.padding = '6px 0';
+    itemEl.style.borderBottom = '1px solid #f1f5f9';
+    itemEl.style.fontSize = '0.8rem';
+    itemEl.innerHTML = `
+      <b style="color: var(--navy); display: block;">${typeIcon} ${esc(f.name)}</b>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">
+        ${f.pages ?? 1} صفحة × ${f.copies ?? 1} نسخة • ${colorMode} • ${sideMode}
+      </span>
+    `;
+    itemsList.appendChild(itemEl);
+  });
+
+  // Stationery
+  const cart = customerState.get('cart') ?? [];
+  cart.forEach(i => {
+    const itemEl = document.createElement('div');
+    itemEl.style.padding = '6px 0';
+    itemEl.style.borderBottom = '1px solid #f1f5f9';
+    itemEl.style.fontSize = '0.8rem';
+    itemEl.innerHTML = `
+      <b style="color: var(--navy); display: block;">📦 ${esc(i.name)}</b>
+      <span style="font-size: 0.72rem; color: var(--text-muted);">
+        الكمية: ${i.qty} • السعر: ${formatPrice(i.effective_price ?? i.price)}
+      </span>
+    `;
+    itemsList.appendChild(itemEl);
+  });
+}
+
+function bindSuccessOverlay() {
+  document.getElementById('success-view-orders')?.addEventListener('click', () => {
+    document.getElementById('success-overlay').classList.remove('open');
+    goTab('orders');
+  });
+
+  document.getElementById('success-close')?.addEventListener('click', () => {
+    document.getElementById('success-overlay').classList.remove('open');
+    goTab('home');
+  });
+
+  document.getElementById('success-refresh-status')?.addEventListener('click', async () => {
+    const btn = document.getElementById('success-refresh-status');
+    const originalId = document.getElementById('success-order-id').textContent.replace('#', '');
+    if (!originalId || originalId === '-----') return;
+
+    btn.style.transform = 'rotate(360deg)';
+    btn.style.transition = 'transform 0.5s ease';
+    setTimeout(() => { btn.style.transform = 'none'; btn.style.transition = 'none'; }, 500);
+
+    try {
+      const allOrders = customerState.get('allUserOrders') ?? [];
+      let matchedOrder = allOrders.find(o => o.id.startsWith(originalId) || o.id === originalId);
+      if (!matchedOrder) {
+        const { data, error } = await sb.from(Config.TABLES.ORDERS).select('*').ilike('id', `${originalId}%`).limit(1);
+        if (!error && data && data.length) {
+          matchedOrder = data[0];
+        }
+      }
+
+      if (matchedOrder) {
+        const { data, error } = await sb.from(Config.TABLES.ORDERS).select('status').eq('id', matchedOrder.id).single();
+        if (!error && data) {
+          const statusMap = Config.ORDER_STATUSES;
+          const s = statusMap[data.status] ?? { label: data.status, icon: '📦' };
+          document.getElementById('success-order-status').textContent = `${s.label} ${s.icon}`;
+          updateSuccessTracking(data.status);
+          showToast('🔄 تم تحديث حالة الطلب', 'success');
+          loadOrders(); // background refresh
+        }
+      }
+    } catch (err) {
+      console.error('[Refresh status failed]', err);
+    }
+  });
 }
 
 function applyTheme(dark) {
@@ -480,13 +622,52 @@ function bindPrintOptions() {
 
 function renderPrintSummary() {
   const files = customerState.get('files') ?? [];
-  const isColor = customerState.get('printColor') === 'c';
-  const isDouble = customerState.get('printSide') === '2';
   const pkgKey = customerState.get('packaging') ?? 'none';
   const express = customerState.get('express');
   const P = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
 
-  // intermediate summary bar removed as per user request
+  const sumBox = document.getElementById('step2-summary-box');
+  if (!sumBox) return;
+
+  if (!files.length) {
+    sumBox.style.display = 'none';
+    return;
+  }
+  sumBox.style.display = 'block';
+
+  let totalPages = 0;
+  let totalImgs = 0;
+  files.forEach(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      totalImgs += (f.copies ?? 1);
+    } else {
+      totalPages += (f.pages ?? 1) * (f.copies ?? 1);
+    }
+  });
+
+  const packagingName = {
+    none: 'كبس فقط (مجاني)',
+    cardboard: 'ورق مقوى ونايلون (+500 د.ع)',
+    spiral: 'سبايرول (+1,500 د.ع)'
+  }[pkgKey] ?? pkgKey;
+
+  const expressText = express ? 'نعم (+1,500 د.ع)' : 'لا';
+
+  const totals = calcOrderTotals({
+    files,
+    cart: customerState.get('cart') ?? [],
+    sugCart: customerState.get('suggestedCart') ?? {},
+    pricing: P,
+    coupon: customerState.get('appliedCoupon'),
+    user: customerState.get('user'),
+  });
+
+  document.getElementById('s2-sum-pages').textContent = totalPages + ' صفحة';
+  document.getElementById('s2-sum-imgs').textContent = totalImgs + ' صورة';
+  document.getElementById('s2-sum-pkg').textContent = packagingName;
+  document.getElementById('s2-sum-express').textContent = expressText;
+  document.getElementById('s2-sum-total').textContent = formatPrice(totals.total);
 }
 
 function bindOrderForm() {
@@ -635,6 +816,68 @@ function updateInvoice() {
   document.getElementById('totlbl').textContent = `المجموع النهائي: ${formatPrice(totals.total)}`;
 }
 
+function updateSuccessTracking(status) {
+  const stepsMap = { received: 1, printing: 2, delivering: 3, delivered: 3 };
+  const currentStep = stepsMap[status] || 1;
+  const nodes = document.querySelectorAll('.track-node');
+  const line = document.getElementById('track-line-progress');
+  if (line) line.style.width = nodes.length > 1 ? ((currentStep - 1) / (nodes.length - 1) * 100) + '%' : '0%';
+
+  nodes.forEach((node, i) => {
+    const nodeStep = i + 1;
+    const circle = node.querySelector('div:first-child');
+    const label = node.querySelector('div:last-child');
+    if (!circle || !label) return;
+
+    if (nodeStep < currentStep) {
+      circle.style.background = 'var(--teal)';
+      circle.style.color = '#fff';
+      circle.innerHTML = '✓';
+      label.style.color = 'var(--teal)';
+    } else if (nodeStep === currentStep) {
+      circle.style.background = 'var(--teal)';
+      circle.style.color = '#fff';
+      circle.innerHTML = nodeStep;
+      circle.style.boxShadow = '0 0 0 4px #f0fdf4';
+      label.style.color = 'var(--teal)';
+      label.style.fontWeight = '800';
+    } else {
+      circle.style.background = '#e2e8f0';
+      circle.style.color = '#64748b';
+      circle.innerHTML = nodeStep;
+      circle.style.boxShadow = 'none';
+      label.style.color = '#94a3b8';
+      label.style.fontWeight = '700';
+    }
+  });
+}
+
+function populateSuccessDetails() {
+  const files = customerState.get('files') ?? [];
+  const cart = customerState.get('cart') ?? [];
+  const sugCart = customerState.get('suggestedCart') ?? {};
+  const suggestedProducts = customerState.get('suggestedProducts') ?? [];
+  
+  const list = document.getElementById('success-items-list');
+  const container = document.getElementById('success-order-details');
+  if (!list || !container) return;
+
+  const items = [];
+  files.forEach(f => items.push(`📄 ${esc(f.name)} (${f.pages} ص × ${f.copies})`));
+  cart.forEach(i => items.push(`📦 ${esc(i.name)} × ${i.qty}`));
+  Object.entries(sugCart).forEach(([id, qty]) => {
+    const p = suggestedProducts.find(x => x.id === id);
+    if (p) items.push(`✨ ${esc(p.name)} × ${qty}`);
+  });
+
+  if (items.length > 0) {
+    list.innerHTML = items.map(txt => `<div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">${txt}</div>`).join('');
+    container.style.display = 'block';
+  } else {
+    container.style.display = 'none';
+  }
+}
+
 async function sendOrder() {
   const errEl = document.getElementById('errbox');
   errEl.style.display = 'none';
@@ -695,6 +938,7 @@ async function sendOrder() {
       localStorage.setItem(Config.APP.STORAGE_KEYS.SAVED_ADDRESSES, JSON.stringify(updated));
     }
 
+    populateSuccessDetails();
     customerState.set('files', []);
     customerState.set('cart', []);
     customerState.set('suggestedCart', {});
@@ -708,8 +952,12 @@ async function sendOrder() {
     stepper.reset();
 
     // Show Success Overlay
-    document.getElementById('success-order-id').textContent = '#' + orderId;
+    const orderIdShort = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
+    document.getElementById('success-order-id').textContent = '#' + orderIdShort;
     document.getElementById('success-order-total').textContent = formatPrice(totals.total);
+    document.getElementById('success-order-addr').textContent = document.getElementById('uRegion').value || 'استلام من المركز';
+    document.getElementById('success-order-status').textContent = 'مستلم 📥';
+    updateSuccessTracking('received');
     document.getElementById('success-overlay').classList.add('open');
     
     // Refresh orders in background
@@ -857,13 +1105,18 @@ async function checkoutMarket() {
     const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
     const del = sub >= pricing.delivery_free_threshold ? 0 : pricing.delivery_fee;
 
+    populateSuccessDetails();
     customerState.set('cart', []);
     renderCart();
     updateCartBadge();
 
     // Show Success Screen
-    document.getElementById('success-order-id').textContent = '#' + orderId.slice(0, 8);
+    const orderIdShort = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
+    document.getElementById('success-order-id').textContent = '#' + orderIdShort;
     document.getElementById('success-order-total').textContent = formatPrice(sub + del);
+    document.getElementById('success-order-addr').textContent = region || 'استلام من المركز';
+    document.getElementById('success-order-status').textContent = 'مستلم 📥';
+    updateSuccessTracking('received');
     document.getElementById('success-overlay').classList.add('open');
 
     await loadOrders();
@@ -959,7 +1212,14 @@ async function loadOrders() {
     const orders = await fetchUserOrders(user.id);
     customerState.set('allUserOrders', orders);
     renderOrders();
-  } catch { box.innerHTML = '<p style="text-align:center;color:var(--red);">❌ تعذّر تحميل الطلبات</p>'; }
+  } catch (err) { 
+    console.error('[loadOrders Error]', err);
+    box.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">
+      <p>❌ تعذّر تحميل الطلبات</p>
+      <p style="font-size:0.75rem;opacity:0.7;margin-top:8px;">${esc(err.message)}</p>
+      <button onclick="location.reload()" style="margin-top:12px;background:var(--navy);color:#fff;border:none;padding:8px 16px;border-radius:8px;">إعادة المحاولة</button>
+    </div>`; 
+  }
 }
 
 // ═══════════════════════════════════════
@@ -1299,8 +1559,17 @@ function startRealtime(userId) {
         p => {
           if (!p.new?.status) return;
           const st = p.new.status;
-          const map = { received: '📥 تم الاستلام', printing: '🖨️ قيد الطباعة', delivering: '🛵 جاري التوصيل', delivered: '✅ تم التسليم', cancelled: '❌ تم إلغاء الطلب' };
-          showToast('🔔 ' + (map[st] || st), st === 'cancelled' ? 'error' : 'info');
+          const statusMap = Config.ORDER_STATUSES;
+          const s = statusMap[st] ?? { label: st, icon: '🔔' };
+          
+          showToast(`🔔 ${s.icon} ${s.label}`, st === 'cancelled' ? 'error' : 'info');
+          
+          // Update Success Overlay tracking if open
+          if (document.getElementById('success-overlay').classList.contains('open')) {
+            document.getElementById('success-order-status').textContent = `${s.label} ${s.icon}`;
+            updateSuccessTracking(st);
+          }
+
           loadOrders();
           if (st === 'delivered') {
             customerState.set('rateOrderId', p.new.id);
