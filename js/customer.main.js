@@ -166,6 +166,7 @@ async function init() {
   bindResearch();
   bindModals();
   bindSuccessOverlay();
+  bindHomeTrackingCard();
   Modal.init();
 
   await authenticateTelegramUser();
@@ -218,9 +219,9 @@ async function init() {
   loadSuggestedProducts();
 }
 
-function updateSuccessTracking(status) {
-  const nodes = document.querySelectorAll('#success-tracking-steps .track-node');
-  const lineProgress = document.getElementById('track-line-progress');
+function updateTrackingNodes(containerId, lineProgressId, status) {
+  const nodes = document.querySelectorAll(`#${containerId} .track-node`);
+  const lineProgress = document.getElementById(lineProgressId);
   if (!nodes.length || !lineProgress) return;
 
   nodes.forEach(n => {
@@ -234,6 +235,7 @@ function updateSuccessTracking(status) {
     const label = n.querySelector('div:nth-child(2)');
     if (label) {
       label.style.color = '#94a3b8';
+      label.style.fontWeight = '700';
     }
   });
 
@@ -259,11 +261,16 @@ function updateSuccessTracking(status) {
     const label = n.querySelector('div:nth-child(2)');
     if (label) {
       label.style.color = 'var(--teal)';
+      label.style.fontWeight = '800';
     }
   }
 
   const pct = activeIndex * 50;
   lineProgress.style.width = `${pct}%`;
+}
+
+function updateSuccessTracking(status) {
+  updateTrackingNodes('success-tracking-steps', 'track-line-progress', status);
 }
 
 function populateSuccessDetails() {
@@ -272,16 +279,27 @@ function populateSuccessDetails() {
   if (!itemsList || !detailsBox) return;
 
   itemsList.innerHTML = '';
+  
+  const files = customerState.get('files') ?? [];
+  const cart = customerState.get('cart') ?? [];
+  const sugCart = customerState.get('suggestedCart') ?? {};
+  const suggestedProducts = customerState.get('suggestedProducts') ?? [];
+
+  if (files.length === 0 && cart.length === 0 && Object.keys(sugCart).length === 0) {
+    detailsBox.style.display = 'none';
+    return;
+  }
   detailsBox.style.display = 'block';
 
   // Files
-  const files = customerState.get('files') ?? [];
   files.forEach(f => {
     const ext = f.name.split('.').pop().toLowerCase();
     const isImg = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
     const typeIcon = isImg ? '🖼️' : '📄';
-    const colorMode = f.color === 'c' ? 'ملون' : 'أسود وأبيض';
-    const sideMode = f.double ? 'على الوجهين' : 'وجه واحد';
+    const isColor = customerState.get('printColor') === 'c';
+    const isDouble = customerState.get('printSide') === '2';
+    const colorMode = isColor ? 'ملون' : 'أسود وأبيض';
+    const sideMode = isDouble ? 'على الوجهين' : 'وجه واحد';
     const itemEl = document.createElement('div');
     itemEl.style.padding = '6px 0';
     itemEl.style.borderBottom = '1px solid #f1f5f9';
@@ -296,7 +314,6 @@ function populateSuccessDetails() {
   });
 
   // Stationery
-  const cart = customerState.get('cart') ?? [];
   cart.forEach(i => {
     const itemEl = document.createElement('div');
     itemEl.style.padding = '6px 0';
@@ -310,6 +327,162 @@ function populateSuccessDetails() {
     `;
     itemsList.appendChild(itemEl);
   });
+
+  // Suggested Items
+  Object.entries(sugCart).forEach(([id, qty]) => {
+    const p = suggestedProducts.find(x => x.id === id);
+    if (p) {
+      const itemEl = document.createElement('div');
+      itemEl.style.padding = '6px 0';
+      itemEl.style.borderBottom = '1px solid #f1f5f9';
+      itemEl.style.fontSize = '0.8rem';
+      itemEl.innerHTML = `
+        <b style="color: var(--navy); display: block;">✨ ${esc(p.name)}</b>
+        <span style="font-size: 0.72rem; color: var(--text-muted);">
+          الكمية: ${qty} • السعر: ${formatPrice(p.price)}
+        </span>
+      `;
+      itemsList.appendChild(itemEl);
+    }
+  });
+}
+
+function updateHomeOrderTrackingCard(order) {
+  const card = document.getElementById('home-order-tracking-card');
+  const stepper = document.querySelector('.stepper-wrap');
+  const activeBanner = document.getElementById('home-active-order-banner');
+
+  if (!card || !stepper) return;
+
+  if (!order || customerState.get('hideHomeTracking') === true) {
+    card.style.display = 'none';
+    stepper.style.display = 'block';
+    if (order && activeBanner) {
+      activeBanner.style.display = 'block';
+    } else if (activeBanner) {
+      activeBanner.style.display = 'none';
+    }
+    return;
+  }
+
+  card.style.display = 'block';
+  stepper.style.display = 'none';
+  if (activeBanner) activeBanner.style.display = 'none';
+
+  const orderIdShort = order.id.length > 8 ? order.id.slice(0, 8) : order.id;
+  document.getElementById('home-track-order-id').textContent = '#' + orderIdShort;
+  
+  const statusMap = Config.ORDER_STATUSES;
+  const s = statusMap[order.status] ?? { label: order.status, icon: '📦' };
+  document.getElementById('home-track-order-status').textContent = `${s.label} ${s.icon}`;
+  document.getElementById('home-track-order-addr').textContent = order.region || 'استلام من المركز';
+  document.getElementById('home-track-order-total').textContent = formatPrice(order.total);
+
+  const itemsList = document.getElementById('home-track-items-list');
+  if (itemsList) {
+    itemsList.innerHTML = '';
+    const items = [];
+    
+    if (order.files_data && Array.isArray(order.files_data)) {
+      order.files_data.forEach(f => {
+        const ext = f.name.split('.').pop().toLowerCase();
+        const isImg = ['jpg', 'jpeg', 'png', 'webp'].includes(ext);
+        const typeIcon = isImg ? '🖼️' : '📄';
+        items.push(`${typeIcon} ${esc(f.name)} (${f.pages} ص × ${f.copies})`);
+      });
+    }
+    if (order.cart_items && Array.isArray(order.cart_items)) {
+      order.cart_items.forEach(item => {
+        const prefix = item.is_suggested ? '✨' : '📦';
+        items.push(`${prefix} ${esc(item.name)} × ${item.qty}`);
+      });
+    }
+
+    if (items.length > 0) {
+      itemsList.innerHTML = items.map(txt => `<div style="border-bottom: 1px solid #f1f5f9; padding: 4px 0; font-size: 0.8rem;">${txt}</div>`).join('');
+    } else {
+      itemsList.innerHTML = '<div style="color:var(--text-muted);font-size:0.78rem;">لا توجد تفاصيل للمواد</div>';
+    }
+  }
+
+  updateTrackingNodes('home-tracking-steps', 'home-track-line-progress', order.status);
+}
+
+function bindHomeTrackingCard() {
+  const refreshBtn = document.getElementById('home-track-refresh-status');
+  refreshBtn?.addEventListener('click', async () => {
+    const orderId = document.getElementById('home-track-order-id').textContent.replace('#', '');
+    if (!orderId || orderId === '-----') return;
+
+    refreshBtn.style.transform = 'rotate(360deg)';
+    refreshBtn.style.transition = 'transform 0.5s ease';
+    setTimeout(() => {
+      refreshBtn.style.transform = 'none';
+      refreshBtn.style.transition = 'none';
+    }, 500);
+
+    try {
+      const allOrders = customerState.get('allUserOrders') ?? [];
+      let matchedOrder = allOrders.find(o => o.id.startsWith(orderId) || o.id === orderId);
+      if (!matchedOrder) {
+        const { data, error } = await sb.from(Config.TABLES.ORDERS).select('*').ilike('id', `${orderId}%`).limit(1);
+        if (!error && data && data.length) {
+          matchedOrder = data[0];
+        }
+      }
+
+      if (matchedOrder) {
+        const { data, error } = await sb.from(Config.TABLES.ORDERS).select('*').eq('id', matchedOrder.id).single();
+        if (!error && data) {
+          updateHomeOrderTrackingCard(data);
+          showToast('🔄 تم تحديث حالة الطلب', 'success');
+          loadOrders();
+        }
+      }
+    } catch (err) {
+      console.error('[Home Refresh status failed]', err);
+    }
+  });
+
+  const newOrderBtn = document.getElementById('home-track-new-order');
+  newOrderBtn?.addEventListener('click', () => {
+    customerState.set('hideHomeTracking', true);
+    updateHomeOrderTrackingCard(null);
+    const orders = customerState.get('allUserOrders') ?? [];
+    const activeStatuses = ['received', 'printing', 'delivering', 'pending', 'ready'];
+    const activeOrder = orders.find(o => activeStatuses.includes(o.status));
+    const banner = document.getElementById('home-active-order-banner');
+    if (banner && activeOrder) {
+      banner.style.display = 'block';
+    }
+  });
+
+  const hideBtn = document.getElementById('home-track-hide');
+  hideBtn?.addEventListener('click', () => {
+    customerState.set('hideHomeTracking', true);
+    updateHomeOrderTrackingCard(null);
+    const orders = customerState.get('allUserOrders') ?? [];
+    const activeStatuses = ['received', 'printing', 'delivering', 'pending', 'ready'];
+    const activeOrder = orders.find(o => activeStatuses.includes(o.status));
+    const banner = document.getElementById('home-active-order-banner');
+    if (banner && activeOrder) {
+      banner.style.display = 'block';
+    }
+  });
+
+  const banner = document.getElementById('home-active-order-banner');
+  if (banner) {
+    banner.addEventListener('click', () => {
+      customerState.set('hideHomeTracking', false);
+      banner.style.display = 'none';
+      const orders = customerState.get('allUserOrders') ?? [];
+      const activeStatuses = ['received', 'printing', 'delivering', 'pending', 'ready'];
+      const activeOrder = orders.find(o => activeStatuses.includes(o.status));
+      if (activeOrder) {
+        updateHomeOrderTrackingCard(activeOrder);
+      }
+    });
+  }
 }
 
 function bindSuccessOverlay() {
@@ -392,6 +565,7 @@ let stepper;
 function bindStepper() {
   stepper = new Stepper(4, step => {
     updateSummaryBar();
+    if (step === 3) updateStep3Summary();
     if (step === 4) updateInvoice();
   });
 
@@ -626,6 +800,95 @@ function renderPrintSummary() {
   document.getElementById('s2-sum-pkg').textContent = packagingName;
   document.getElementById('s2-sum-express').textContent = expressText;
   document.getElementById('s2-sum-total').textContent = formatPrice(totals.total);
+  updateStep3Summary();
+}
+
+function updateStep3Summary() {
+  const box = document.getElementById('step3-summary-box');
+  if (!box) return;
+
+  const files = customerState.get('files') ?? [];
+  const cart = customerState.get('cart') ?? [];
+  const sugCart = customerState.get('suggestedCart') ?? {};
+
+  if (files.length === 0 && cart.length === 0 && Object.keys(sugCart).length === 0) {
+    box.style.display = 'none';
+    return;
+  }
+
+  box.style.display = 'block';
+
+  const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
+  const totals = calcOrderTotals({
+    files,
+    cart,
+    sugCart,
+    pricing,
+    coupon: customerState.get('appliedCoupon'),
+    user: customerState.get('user')
+  });
+
+  let printSubtotal = 0;
+  let totalPrintPages = 0;
+  const isColor = customerState.get('printColor') === 'c';
+  const isDouble = customerState.get('printSide') === '2';
+  for (const f of files) {
+    totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
+  }
+  const P = pricing ?? Config.DEFAULT_PRICING;
+  const tiers = isColor ? P.color_tiers : P.bw_tiers;
+  
+  if (tiers && tiers.length > 0) {
+    const matchingTier = tiers.find(t => totalPrintPages >= t.min && (t.max ? totalPrintPages <= t.max : true));
+    if (matchingTier) {
+      const rate = isDouble ? (matchingTier.double ?? matchingTier.price) : (matchingTier.single ?? matchingTier.price);
+      printSubtotal = totalPrintPages * rate;
+    } else {
+      const highestTier = [...tiers].sort((a,b) => b.min - a.min)[0];
+      const rate = isDouble ? (highestTier.double ?? highestTier.price) : (highestTier.single ?? highestTier.price);
+      printSubtotal = totalPrintPages * rate;
+    }
+  } else {
+    const pricePerPage = isColor 
+      ? (isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150))
+      : (isDouble ? (P.bw_double ?? 75) : (P.bw_single ?? 90));
+    for (const f of files) {
+      const pages = (f.pages ?? 1) * (f.copies ?? 1);
+      printSubtotal += pages * pricePerPage;
+    }
+  }
+  if (files.length > 0 && printSubtotal < P.min_price) {
+    printSubtotal = P.min_price;
+  }
+  const pkgKey = customerState.get('packaging') ?? 'none';
+  printSubtotal += P.packaging?.[pkgKey] ?? 0;
+  if (customerState.get('express')) printSubtotal += P.express_fee;
+
+  let cartSubtotal = 0;
+  for (const item of cart) cartSubtotal += (item.effective_price ?? item.price) * (item.qty ?? 1);
+  for (const [id, qty] of Object.entries(sugCart ?? {})) {
+    const prod = customerState.get('suggestedProducts')?.find(p => p.id === id);
+    if (prod) cartSubtotal += prod.price * qty;
+  }
+
+  document.getElementById('s3-sum-print').textContent = formatPrice(printSubtotal);
+  document.getElementById('s3-sum-market').textContent = formatPrice(cartSubtotal);
+
+  const ptsRow = document.getElementById('s3-pts-row');
+  const ptsVal = document.getElementById('s3-sum-pts');
+  const usePoints = document.getElementById('ptstog')?.checked;
+  const user = customerState.get('user');
+  const subtotal = printSubtotal + cartSubtotal;
+  const pointsSaving = usePoints ? Math.min((user?.loyalty_points ?? 0) * 10, subtotal * 0.3) : 0;
+
+  if (pointsSaving > 0) {
+    if (ptsRow) ptsRow.style.display = 'flex';
+    if (ptsVal) ptsVal.textContent = '- ' + formatPrice(Math.round(pointsSaving));
+  } else {
+    if (ptsRow) ptsRow.style.display = 'none';
+  }
+
+  document.getElementById('s3-sum-total').textContent = formatPrice(totals.total);
 }
 
 function bindOrderForm() {
@@ -671,7 +934,10 @@ function bindOrderForm() {
     withLoading('sendbtn', sendOrder);
   });
 
-  document.getElementById('ptstog').addEventListener('change', updateInvoice);
+  document.getElementById('ptstog').addEventListener('change', () => {
+    updateInvoice();
+    updateStep3Summary();
+  });
 }
 
 async function applyCoupon() {
@@ -774,67 +1040,7 @@ function updateInvoice() {
   document.getElementById('totlbl').textContent = `المجموع النهائي: ${formatPrice(totals.total)}`;
 }
 
-function updateSuccessTracking(status) {
-  const stepsMap = { received: 1, printing: 2, delivering: 3, delivered: 3 };
-  const currentStep = stepsMap[status] || 1;
-  const nodes = document.querySelectorAll('.track-node');
-  const line = document.getElementById('track-line-progress');
-  if (line) line.style.width = nodes.length > 1 ? ((currentStep - 1) / (nodes.length - 1) * 100) + '%' : '0%';
 
-  nodes.forEach((node, i) => {
-    const nodeStep = i + 1;
-    const circle = node.querySelector('div:first-child');
-    const label = node.querySelector('div:last-child');
-    if (!circle || !label) return;
-
-    if (nodeStep < currentStep) {
-      circle.style.background = 'var(--teal)';
-      circle.style.color = '#fff';
-      circle.innerHTML = '✓';
-      label.style.color = 'var(--teal)';
-    } else if (nodeStep === currentStep) {
-      circle.style.background = 'var(--teal)';
-      circle.style.color = '#fff';
-      circle.innerHTML = nodeStep;
-      circle.style.boxShadow = '0 0 0 4px #f0fdf4';
-      label.style.color = 'var(--teal)';
-      label.style.fontWeight = '800';
-    } else {
-      circle.style.background = '#e2e8f0';
-      circle.style.color = '#64748b';
-      circle.innerHTML = nodeStep;
-      circle.style.boxShadow = 'none';
-      label.style.color = '#94a3b8';
-      label.style.fontWeight = '700';
-    }
-  });
-}
-
-function populateSuccessDetails() {
-  const files = customerState.get('files') ?? [];
-  const cart = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
-  const suggestedProducts = customerState.get('suggestedProducts') ?? [];
-  
-  const list = document.getElementById('success-items-list');
-  const container = document.getElementById('success-order-details');
-  if (!list || !container) return;
-
-  const items = [];
-  files.forEach(f => items.push(`📄 ${esc(f.name)} (${f.pages} ص × ${f.copies})`));
-  cart.forEach(i => items.push(`📦 ${esc(i.name)} × ${i.qty}`));
-  Object.entries(sugCart).forEach(([id, qty]) => {
-    const p = suggestedProducts.find(x => x.id === id);
-    if (p) items.push(`✨ ${esc(p.name)} × ${qty}`);
-  });
-
-  if (items.length > 0) {
-    list.innerHTML = items.map(txt => `<div style="border-bottom: 1px solid #f1f5f9; padding-bottom: 4px;">${txt}</div>`).join('');
-    container.style.display = 'block';
-  } else {
-    container.style.display = 'none';
-  }
-}
 
 async function sendOrder() {
   const errEl = document.getElementById('errbox');
@@ -896,6 +1102,7 @@ async function sendOrder() {
       localStorage.setItem(Config.APP.STORAGE_KEYS.SAVED_ADDRESSES, JSON.stringify(updated));
     }
 
+    customerState.set('hideHomeTracking', false);
     populateSuccessDetails();
     customerState.set('files', []);
     customerState.set('cart', []);
@@ -1034,6 +1241,7 @@ function updateUnifiedCart() {
 
   const total = allItems.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
   document.getElementById('ucart-subtotal').textContent = formatPrice(total);
+  updateStep3Summary();
 }
 
 async function checkoutMarket() {
@@ -1063,6 +1271,7 @@ async function checkoutMarket() {
     const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
     const del = sub >= pricing.delivery_free_threshold ? 0 : pricing.delivery_fee;
 
+    customerState.set('hideHomeTracking', false);
     populateSuccessDetails();
     customerState.set('cart', []);
     renderCart();
@@ -1198,20 +1407,28 @@ function renderOrders() {
 
   const box = document.getElementById('ordersbox');
 
-  // Update Home Active Order Banner
+  // Update Home Active Order Tracking Card / Banner
+  const activeStatuses = ['received', 'printing', 'delivering', 'pending', 'ready'];
+  const activeOrder = orders.find(o => activeStatuses.includes(o.status));
   const homeBanner = document.getElementById('home-active-order-banner');
-  const activeOrder = orders.find(o => active.includes(o.status));
-  if (homeBanner) {
-    if (activeOrder) {
-      homeBanner.style.display = 'block';
-      homeBanner.onclick = () => {
-        goTab('orders');
-        showOrderDetail(activeOrder.id);
-      };
+  
+  if (activeOrder) {
+    if (customerState.get('hideHomeTracking') === true) {
+      if (homeBanner) {
+        homeBanner.style.display = 'block';
+        homeBanner.onclick = () => {
+          customerState.set('hideHomeTracking', false);
+          renderOrders();
+        };
+      }
+      updateHomeOrderTrackingCard(null);
     } else {
-      homeBanner.style.display = 'none';
-      homeBanner.onclick = null;
+      if (homeBanner) homeBanner.style.display = 'none';
+      updateHomeOrderTrackingCard(activeOrder);
     }
+  } else {
+    if (homeBanner) homeBanner.style.display = 'none';
+    updateHomeOrderTrackingCard(null);
   }
 
   if (!filtered.length) {

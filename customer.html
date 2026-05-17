@@ -142,6 +142,67 @@
       </div>
     </div>
 
+    <!-- بطاقة تتبع وإتمام الطلب للرئيسية -->
+    <div id="home-order-tracking-card" class="card" style="display:none; border: 3px solid #f0fdf4; border-radius: 25px; padding: 24px 18px; margin: 15px; background: #fff; text-align: center; box-shadow: 0 10px 25px rgba(0,0,0,0.05);">
+      <div class="success-icon-wrap" style="width: 70px; height: 70px; background: #16a34a; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 16px; color: #fff; box-shadow: 0 8px 20px rgba(22, 163, 74, 0.2);">
+        <svg viewBox="0 0 24 24" style="width: 36px; height: 36px;">
+          <path d="M4 12l4 4L20 6" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3 style="color:var(--navy);margin:0 0 4px; font-size: 1.3rem; font-weight: 800;">شكرًا لك! تم استلام طلبك بنجاح 🎉</h3>
+      <p style="color:var(--green); font-weight: 800; margin-bottom: 12px; font-size: 0.95rem;">سيتم قبول طلبك قريباً ✅</p>
+      <p class="text-muted" style="margin:0 0 16px; font-size: 0.85rem; line-height: 1.5; font-weight: 600;">لقد استلمنا طلبك وسنعمل على تجهيزه وتوصيله بأعلى جودة ممكنة.</p>
+      
+      <div class="order-summary-mini" style="background: linear-gradient(135deg, #f8fafc, #f1f5f9); border-radius: var(--radius-lg); padding: 16px; border: 1px solid #e2e8f0; margin-bottom: 18px; text-align: right;">
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px; font-size: 0.88rem;">
+          <span style="color: #64748b; font-weight: 700;">رقم الطلب:</span> <b id="home-track-order-id" style="color: var(--navy); font-size: 0.95rem;">#-----</b>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px; font-size: 0.88rem;">
+          <span style="color: #64748b; font-weight: 700;">الحالة الحالية:</span>
+          <div style="display:flex;align-items:center;gap:6px;">
+            <b id="home-track-order-status" style="color: var(--teal); font-weight: 800;">مستلم 📥</b>
+            <button id="home-track-refresh-status" style="background:none;border:none;cursor:pointer;color:var(--teal);font-size:0.9rem;padding:2px;display:inline-flex;align-items:center;justify-content:center;transition:all 0.2s;" title="تحديث الحالة">🔄</button>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:space-between;margin-bottom:8px; font-size: 0.88rem;">
+          <span style="color: #64748b; font-weight: 700;">العنوان:</span> <b id="home-track-order-addr" style="color: var(--navy);">---</b>
+        </div>
+        <div style="display:flex;justify-content:space-between; font-size: 0.88rem;">
+          <span style="color: #64748b; font-weight: 700;">المجموع النهائي:</span> <b id="home-track-order-total" style="color: #16a34a; font-size: 1.1rem; font-weight: 800;">0 د.ع</b>
+        </div>
+      </div>
+
+      <!-- Tracking Steps Visualization for Home Screen -->
+      <div id="home-tracking-steps" style="margin-bottom: 20px; display: flex; justify-content: space-between; position: relative; padding: 0 10px;">
+        <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: #e2e8f0; z-index: 0;"></div>
+        <div id="home-track-line-progress" style="position: absolute; top: 15px; left: 10%; width: 0%; height: 2px; background: var(--teal); z-index: 1; transition: width 0.5s ease;"></div>
+        
+        <div class="track-node active" style="z-index: 2; text-align: center; width: 20%;">
+          <div data-num="1" style="width: 32px; height: 32px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #fff; font-size: 0.8rem; box-shadow: 0 0 0 4px #f0fdf4;">1</div>
+          <div style="font-size: 0.65rem; font-weight: 800; color: var(--teal);">تم الاستلام</div>
+        </div>
+        <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
+          <div data-num="2" style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">2</div>
+          <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">الطباعة</div>
+        </div>
+        <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
+          <div data-num="3" style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">3</div>
+          <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">التوصيل</div>
+        </div>
+      </div>
+      
+      <!-- Order details dropdown for Home tracking card -->
+      <div id="home-track-order-details" style="text-align: right; max-height: 150px; overflow-y: auto; margin-bottom: 18px; font-size: 0.85rem; color: #64748b; padding: 12px; background: #f8fafc; border-radius: 12px; border: 1px dashed #e2e8f0;">
+        <b style="color: var(--navy); display: block; margin-bottom: 6px; font-size: 0.88rem;">📦 تفاصيل الطلب:</b>
+        <div id="home-track-items-list" style="display: flex; flex-direction: column; gap: 4px;"></div>
+      </div>
+      
+      <div style="display: flex; gap: 10px;">
+        <button id="home-track-new-order" class="btn-primary" style="flex: 1; background: var(--navy); border: none; padding: 12px; border-radius: 12px; color: #fff; font-weight: 800; cursor: pointer; font-size: 0.95rem;">➕ طلب جديد</button>
+        <button id="home-track-hide" style="background: #fff; border: 2px solid #e2e8f0; padding: 12px; border-radius: 12px; color: #64748b; font-weight: 800; cursor: pointer; font-size: 0.9rem; flex: 1;">إخفاء التتبع ✕</button>
+      </div>
+    </div>
+
     <div class="stepper-wrap">
       <div class="stepper-header" id="stepper-header">
         <div class="step-item active" data-step="1">
@@ -319,6 +380,30 @@
           style="display:none;margin:10px 0 0;color:var(--green);font-size:.9rem;font-weight:800;background:#dcfce7;padding:8px;border-radius:var(--radius-sm);text-align:center;">
         </p>
       </div>
+
+      <!-- ملخص تكلفة الطلب الكلي (الطباعة + القرطاسية) -->
+      <div id="step3-summary-box" class="card" style="display:none; background: linear-gradient(135deg, var(--card), var(--input-bg)); border: 2px solid var(--teal); border-radius: var(--radius-lg); padding: 18px; margin-top: 15px; text-align: right;">
+        <h4 style="margin: 0 0 12px; color: var(--navy); border-bottom: 1.5px solid var(--border-soft); padding-bottom: 8px; font-weight: 800; font-size: 1rem;">📊 ملخص الطلب الكلي والأسعار:</h4>
+        <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-weight: 600;">🖨️ تكلفة الطباعة والتغليف:</span>
+            <b id="s3-sum-print" style="color: var(--navy);">0 د.ع</b>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-weight: 600;">🛍️ إجمالي القرطاسية:</span>
+            <b id="s3-sum-market" style="color: var(--navy);">0 د.ع</b>
+          </div>
+          <div id="s3-pts-row" style="display: none; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-weight: 600;">💎 خصم النقاط:</span>
+            <b id="s3-sum-pts" style="color: var(--red); font-weight: 800;">-0 د.ع</b>
+          </div>
+          <div style="display: flex; justify-content: space-between; border-top: 1.5px dashed var(--border-soft); padding-top: 8px; margin-top: 4px; font-size: 1.05rem;">
+            <span style="color: var(--navy); font-weight: 800;">💰 المجموع النهائي (التقريبي):</span>
+            <b id="s3-sum-total" style="color: var(--teal); font-weight: 900;">0 د.ع</b>
+          </div>
+        </div>
+      </div>
+
       <div class="stepper-nav">
         <button id="step3-prev" class="btn-primary btn-prev">→ رجوع</button>
         <button id="step3-next" class="btn-primary btn-next" style="background:var(--navy);color:#fff;">التالي: تأكيد الطلب ←</button>
