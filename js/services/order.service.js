@@ -130,19 +130,26 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   const P = pricing ?? Config.DEFAULT_PRICING;
 
   // طباعة
-  let totalPrintPages = 0;
+  let documentPages = 0;
+  let imageUnits = 0;
   let printSubtotal = 0;
   const isColor = customerState.get('printColor') === 'c';
   const isDouble = customerState.get('printSide') === '2';
 
   for (const f of files) {
-    totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
+    const ext = f.name.split('.').pop().toLowerCase();
+    if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+      imageUnits += (f.copies ?? 1);
+    } else {
+      documentPages += (f.pages ?? 1) * (f.copies ?? 1);
+    }
   }
 
   // Calculate units based on side mode
   // If single-sided: 1 page = 1 unit
   // If double-sided: 2 pages = 1 unit (round up for odd numbers)
-  const printUnits = isDouble ? Math.ceil(totalPrintPages / 2) : totalPrintPages;
+  const documentUnits = isDouble ? Math.ceil(documentPages / 2) : documentPages;
+  const printUnits = documentUnits + imageUnits;
 
   // Determine price per page based on tiers (Color or BW) and scale dynamically
   let tiers = isColor ? P.color_tiers : P.bw_tiers;
