@@ -249,23 +249,23 @@ async function _notifyAdmin(orderId, payload) {
   let fileList = payload.files_data.map(f => `📄 ${f.name} (${f.pages} ص × ${f.copies})`).join('\n');
   let cartList = payload.cart_items.map(i => `📦 ${i.name} × ${i.qty}`).join('\n');
   
-  let msg = `🆕 *طلب جديد #${orderId}*\n\n`;
-  msg += `👤 *العميل:* ${payload.customer_name}\n`;
-  msg += `📞 *الهاتف:* ${payload.phone}\n`;
-  msg += `🏠 *المنطقة:* ${payload.region}\n`;
-  if (payload.location_url) msg += `📍 [موقع العميل](${payload.location_url})\n`;
-  msg += `\n⚙️ *خيارات:* ${payload.color === 'c' ? '🌈 ملون' : '⚪ أبيض وأسود'} • ${payload.sides === '2' ? 'وجهين' : 'وجه واحد'} • ${payload.packaging}\n`;
-  if (payload.express) msg += `⚡ *طلب عاجل*\n`;
+  let msg = `🆕 <b>طلب جديد #${orderId}</b>\n\n`;
+  msg += `👤 <b>العميل:</b> ${payload.customer_name}\n`;
+  msg += `📞 <b>الهاتف:</b> ${payload.phone}\n`;
+  msg += `🏠 <b>المنطقة:</b> ${payload.region}\n`;
+  if (payload.location_url) msg += `📍 <a href="${payload.location_url}">موقع العميل</a>\n`;
+  msg += `\n⚙️ <b>خيارات:</b> ${payload.color === 'c' ? '🌈 ملون' : '⚪ أبيض وأسود'} • ${payload.sides === '2' ? 'وجهين' : 'وجه واحد'} • ${payload.packaging}\n`;
+  if (payload.express) msg += `⚡ <b>طلب عاجل</b>\n`;
   
-  if (fileList) msg += `\n📂 *الملفات:*\n${fileList}\n`;
-  if (cartList) msg += `\n🛒 *القرطاسية:*\n${cartList}\n`;
-  if (payload.notes) msg += `\n📝 *ملاحظات:* ${payload.notes}\n`;
+  if (fileList) msg += `\n📂 <b>الملفات:</b>\n${fileList}\n`;
+  if (cartList) msg += `\n🛒 <b>القرطاسية:</b>\n${cartList}\n`;
+  if (payload.notes) msg += `\n📝 <b>ملاحظات:</b> ${payload.notes}\n`;
   
-  msg += `\n💰 *الإجمالي:* ${payload.total?.toLocaleString()} د.ع`;
+  msg += `\n💰 <b>الإجمالي:</b> ${payload.total?.toLocaleString()} د.ع`;
 
   for (let i = 0; i < 3; i++) {
     try {
-      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { body: { chat_id: Config.TELEGRAM.ADMIN_TG_ID, text: msg, parse_mode: 'Markdown' } });
+      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { body: { chat_id: Config.TELEGRAM.ADMIN_TG_ID, text: msg, parse_mode: 'HTML' } });
       if (!error) return;
       if (i === 2) throw error;
     } catch (e) {
