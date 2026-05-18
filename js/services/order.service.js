@@ -148,23 +148,10 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   let tiers = isColor ? P.color_tiers : P.bw_tiers;
   
   if (tiers && tiers.length > 0) {
-    const baseCSingle = 150;
-    const baseCDouble = 130;
-    const baseBwSingle = 90;
-    const baseBwDouble = 75;
-
-    const scaleFactorSingle = isColor 
-      ? (P.c_single ?? baseCSingle) / baseCSingle 
-      : (P.bw_single ?? baseBwSingle) / baseBwSingle;
-      
-    const scaleFactorDouble = isColor 
-      ? (P.c_double ?? baseCDouble) / baseCDouble 
-      : (P.bw_double ?? baseBwDouble) / baseBwDouble;
-
-    // Scale the tiers on the fly
+    // Process the tiers directly without legacy scaling
     tiers = tiers.map(t => {
-      const single = Math.round((t.single ?? t.price ?? 0) * scaleFactorSingle);
-      const double = Math.round((t.double ?? t.price ?? 0) * scaleFactorDouble);
+      const single = t.single ?? t.price ?? 0;
+      const double = t.double ?? t.price ?? 0;
       return { ...t, single, double, price: isDouble ? double : single };
     });
 
