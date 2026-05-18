@@ -247,23 +247,33 @@
                   الحد الأدنى</label><input type="number" id="pr-min-price" value="1000" min="0"
                   style="margin-bottom:0;"></div>
             </div>
-            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:0 0 8px;">🌈 ملون:</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-              <div style="background:#fef9c3;border-radius:var(--radius-sm);padding:10px;"><label
-                  style="font-size:.72rem;color:#854d0e;font-weight:800;display:block;margin-bottom:4px;">وجه واحد</label><input
-                  type="number" id="pr-c1" value="150" style="margin-bottom:0;background:#fffbeb;"></div>
-              <div style="background:#fef9c3;border-radius:var(--radius-sm);padding:10px;"><label
-                  style="font-size:.72rem;color:#854d0e;font-weight:800;display:block;margin-bottom:4px;">وجهين</label><input
-                  type="number" id="pr-c2" value="130" style="margin-bottom:0;background:#fffbeb;"></div>
+            <!-- Hidden inputs to maintain legacy JS support -->
+            <div style="display:none;">
+              <input type="number" id="pr-c1" value="150">
+              <input type="number" id="pr-c2" value="130">
+              <input type="number" id="pr-bw1" value="90">
+              <input type="number" id="pr-bw2" value="75">
             </div>
-            <p style="font-size:.82rem;font-weight:800;color:var(--navy);margin:0 0 8px;">⚪ أبيض وأسود:</p>
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;">
-              <div style="background:var(--input-bg);border-radius:var(--radius-sm);padding:10px;"><label
-                  style="font-size:.72rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:4px;">وجه
-                  واحد</label><input type="number" id="pr-bw1" value="90" style="margin-bottom:0;"></div>
-              <div style="background:var(--input-bg);border-radius:var(--radius-sm);padding:10px;"><label
-                  style="font-size:.72rem;color:var(--text-muted);font-weight:800;display:block;margin-bottom:4px;">وجهين</label><input
-                  type="number" id="pr-bw2" value="75" style="margin-bottom:0;"></div>
+
+            <!-- Dynamic Print Pricing Tiers Manager -->
+            <div style="margin-bottom:18px; border-bottom:1px solid var(--border-soft); padding-bottom:14px;">
+              <p style="font-size:.85rem;font-weight:800;color:var(--navy);margin:0 0 8px;">🌈 فئات تسعير الطباعة الملونة:</p>
+              <div id="color-tiers-container" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+                <!-- Rendered dynamically -->
+              </div>
+              <button type="button" id="add-color-tier-btn" class="btn-action" style="background:var(--input-bg);color:var(--navy);font-size:.8rem;padding:8px 12px;border:1px dashed var(--border-soft);border-radius:var(--radius-sm);cursor:pointer;width:100%;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+                ➕ إضافة فئة ملون جديدة
+              </button>
+            </div>
+
+            <div style="margin-bottom:18px; border-bottom:1px solid var(--border-soft); padding-bottom:14px;">
+              <p style="font-size:.85rem;font-weight:800;color:var(--navy);margin:0 0 8px;">⚪ فئات تسعير الطباعة الأبيض والأسود:</p>
+              <div id="bw-tiers-container" style="display:flex;flex-direction:column;gap:8px;margin-bottom:10px;">
+                <!-- Rendered dynamically -->
+              </div>
+              <button type="button" id="add-bw-tier-btn" class="btn-action" style="background:var(--input-bg);color:var(--navy);font-size:.8rem;padding:8px 12px;border:1px dashed var(--border-soft);border-radius:var(--radius-sm);cursor:pointer;width:100%;font-weight:700;display:flex;align-items:center;justify-content:center;gap:6px;">
+                ➕ إضافة فئة أبيض وأسود جديدة
+              </button>
             </div>
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px;">
               <div><label

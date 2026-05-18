@@ -506,6 +506,85 @@ async function loadStaffDashboard() {
   }
 }
 
+function renderAdminTiers(containerId, tiers) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = (tiers ?? []).map((t, idx) => `
+    <div class="tier-row" data-idx="${idx}" style="display:flex;gap:8px;align-items:center;margin-bottom:8px;background:var(--input-bg);padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-soft);">
+      <div style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;">
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">من صفحات</span>
+          <input type="number" class="tier-min" placeholder="من" value="${t.min ?? 1}" min="1" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">إلى صفحات</span>
+          <input type="number" class="tier-max" placeholder="+" value="${(t.max && t.max < 99999) ? t.max : ''}" min="1" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">سعر مفرد</span>
+          <input type="number" class="tier-single" placeholder="مفرد" value="${t.single ?? t.price ?? 0}" min="0" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+        </div>
+        <div style="display:flex;flex-direction:column;gap:2px;">
+          <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">سعر مزدوج</span>
+          <input type="number" class="tier-double" placeholder="مزدوج" value="${t.double ?? t.price ?? 0}" min="0" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+        </div>
+      </div>
+      <button type="button" class="btn-delete-tier" title="حذف الفئة" style="background:#fee2e2;color:#ef4444;border:none;border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;margin-top:14px;transition:background 0.2s;">🗑️</button>
+    </div>
+  `).join('');
+}
+
+function addTierRow(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const div = document.createElement('div');
+  div.className = 'tier-row';
+  div.style.cssText = 'display:flex;gap:8px;align-items:center;margin-bottom:8px;background:var(--input-bg);padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border-soft);';
+  div.innerHTML = `
+    <div style="flex:1;min-width:0;display:grid;grid-template-columns:repeat(4, 1fr);gap:6px;">
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">من صفحات</span>
+        <input type="number" class="tier-min" placeholder="من" min="1" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">إلى صفحات</span>
+        <input type="number" class="tier-max" placeholder="+" min="1" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">سعر مفرد</span>
+        <input type="number" class="tier-single" placeholder="مفرد" min="0" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+      </div>
+      <div style="display:flex;flex-direction:column;gap:2px;">
+        <span style="font-size:.62rem;color:var(--text-muted);font-weight:700;margin-right:2px;">سعر مزدوج</span>
+        <input type="number" class="tier-double" placeholder="مزدوج" min="0" style="margin-bottom:0;padding:6px;font-size:.82rem;background:#fff;border:1px solid var(--border-soft);border-radius:var(--radius-sm);">
+      </div>
+    </div>
+    <button type="button" class="btn-delete-tier" title="حذف الفئة" style="background:#fee2e2;color:#ef4444;border:none;border-radius:var(--radius-sm);width:32px;height:32px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;margin-top:14px;transition:background 0.2s;">🗑️</button>
+  `;
+  container.appendChild(div);
+}
+
+function serializeTiers(containerId) {
+  const container = document.getElementById(containerId);
+  if (!container) return [];
+  const rows = container.querySelectorAll('.tier-row');
+  const tiers = [];
+  rows.forEach(row => {
+    const minVal = row.querySelector('.tier-min').value.trim();
+    const maxVal = row.querySelector('.tier-max').value.trim();
+    const singleVal = row.querySelector('.tier-single').value.trim();
+    const doubleVal = row.querySelector('.tier-double').value.trim();
+    if (minVal === '') return;
+    tiers.push({
+      min: Number(minVal),
+      max: maxVal === '' ? 99999 : Number(maxVal),
+      single: Number(singleVal) || 0,
+      double: Number(doubleVal) || 0
+    });
+  });
+  return tiers.sort((a, b) => a.min - b.min);
+}
+
 function bindSettings() {
   document.getElementById('save-pricing-btn')?.addEventListener('click', () =>
     withLoading('save-pricing-btn', savePricingForm)
@@ -516,6 +595,21 @@ function bindSettings() {
   document.getElementById('create-coupon-btn')?.addEventListener('click', () =>
     withLoading('create-coupon-btn', createCoupon)
   );
+
+  // Add tier buttons
+  document.getElementById('add-color-tier-btn')?.addEventListener('click', () => addTierRow('color-tiers-container'));
+  document.getElementById('add-bw-tier-btn')?.addEventListener('click', () => addTierRow('bw-tiers-container'));
+  
+  // Event delegation for deleting tiers
+  document.getElementById('color-tiers-container')?.addEventListener('click', e => {
+    const delBtn = e.target.closest('.btn-delete-tier');
+    if (delBtn) delBtn.closest('.tier-row').remove();
+  });
+  document.getElementById('bw-tiers-container')?.addEventListener('click', e => {
+    const delBtn = e.target.closest('.btn-delete-tier');
+    if (delBtn) delBtn.closest('.tier-row').remove();
+  });
+
   // Reports export bindings
   document.getElementById('export-orders-excel')?.addEventListener('click', exportOrdersExcel);
   document.getElementById('export-market-csv')?.addEventListener('click', exportMarketCSV);
@@ -540,6 +634,10 @@ async function loadSettingsPage() {
       document.getElementById('pr-pkg-none').value = P.packaging?.none ?? 0;
       document.getElementById('pr-pkg-cardboard').value = P.packaging?.cardboard ?? 500;
       document.getElementById('pr-pkg-spiral').value = P.packaging?.spiral ?? 1500;
+
+      // Load tiers
+      renderAdminTiers('color-tiers-container', P.color_tiers || Config.DEFAULT_PRICING.color_tiers);
+      renderAdminTiers('bw-tiers-container', P.bw_tiers || Config.DEFAULT_PRICING.bw_tiers);
     }
   }
   // Load staff list
@@ -566,6 +664,8 @@ async function savePricingForm() {
       cardboard: Number(document.getElementById('pr-pkg-cardboard').value),
       spiral: Number(document.getElementById('pr-pkg-spiral').value),
     },
+    color_tiers: serializeTiers('color-tiers-container'),
+    bw_tiers: serializeTiers('bw-tiers-container')
   };
   await savePricing(pricing);
   showToast('✅ تم حفظ التسعير', 'success');
@@ -665,7 +765,7 @@ async function loadMarketPage() {
     const editBtn = e.target.closest('[data-edit-prod]');
     const adjBtn = e.target.closest('[data-adj-prod]');
     const products = adminState.get('_marketProducts') ?? [];
-    if (editBtn) showProductForm(products.find(p => p.id === editBtn.dataset.editProd));
+    if (editBtn) showProductForm(products.find(p => p.id == editBtn.dataset.editProd));
     if (adjBtn) adjProductStock(adjBtn.dataset.adjProd, products);
   });
 }
@@ -780,7 +880,7 @@ async function deleteProductAction() {
 }
 
 function adjProductStock(id, products) {
-  const product = products.find(p => p.id === id);
+  const product = products.find(p => p.id == id);
   if (!product) return;
   adminState.set('_adjProdId', id);
   adminState.set('_adjProdType', 'add');

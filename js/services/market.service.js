@@ -46,7 +46,11 @@ export async function saveProduct(product) {
 
 export async function deleteProduct(id) {
   const { error } = await sb.from(T.MARKET_PRODUCTS).delete().eq('id', id);
-  if (error) throw error;
+  if (error) {
+    console.warn('Hard delete failed, trying soft delete fallback:', error);
+    const { error: softErr } = await sb.from(T.MARKET_PRODUCTS).update({ active: false }).eq('id', id);
+    if (softErr) throw new Error(error.message || softErr.message);
+  }
 }
 
 export async function adjustProductStock(id, type, qty) {
@@ -108,6 +112,6 @@ export async function loadPricing() {
 }
 
 export async function savePricing(pricing) {
-  const { error } = await sb.from(T.SETTINGS).upsert({ key: 'pricing', value: pricing }, { onConflict: 'key' });
+  const { error } = await sb.from(T.SETTINGS).update({ value: pricing }).eq('key', 'pricing');
   if (error) throw error;
 }
