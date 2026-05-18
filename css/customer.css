@@ -136,3 +136,101 @@ body{padding-bottom:80px}
   border-top-color: var(--border-soft);
 }
 
+/* Packaging Button (طريقة التغليف) Styles */
+.pkg-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  border: 1.5px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  background: var(--card);
+  cursor: pointer;
+  width: 100%;
+  text-align: right;
+  transition: all var(--transition-fast);
+}
+.pkg-btn:hover {
+  border-color: var(--teal);
+  background: var(--light-teal);
+}
+.pkg-btn.active {
+  border-color: var(--teal);
+  background: var(--light-teal);
+  box-shadow: 0 0 0 1px var(--teal);
+}
+.pkg-icon {
+  font-size: 1.4rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.pkg-btn.active .pkg-icon {
+  background: rgba(90, 179, 196, 0.2);
+}
+.pkg-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+}
+.pkg-info b {
+  font-size: 0.92rem;
+  color: var(--navy);
+  font-weight: 800;
+  transition: color var(--transition-fast);
+}
+.pkg-info span {
+  font-size: 0.76rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  transition: color var(--transition-fast);
+}
+.pkg-price {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--teal);
+  padding: 4px 10px;
+  background: var(--input-bg);
+  border-radius: var(--radius-sm);
+  transition: all var(--transition-fast);
+}
+.pkg-btn.active .pkg-price {
+  background: var(--teal);
+  color: #fff;
+}
+
+/* Dark Mode support */
+[data-theme="dark"] .pkg-btn {
+  background: var(--card);
+  border-color: var(--border-soft);
+}
+[data-theme="dark"] .pkg-btn:hover {
+  background: rgba(90, 179, 196, 0.15);
+  border-color: var(--teal);
+}
+[data-theme="dark"] .pkg-btn.active {
+  background: rgba(90, 179, 196, 0.15);
+  border-color: var(--teal);
+}
+[data-theme="dark"] .pkg-btn.active .pkg-icon {
+  background: rgba(255, 255, 255, 0.05);
+}
+[data-theme="dark"] .pkg-info b {
+  color: var(--teal);
+}
+[data-theme="dark"] .pkg-price {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--teal);
+}
+[data-theme="dark"] .pkg-btn.active .pkg-price {
+  background: var(--teal);
+  color: #fff;
+}
+

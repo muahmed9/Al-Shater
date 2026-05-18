@@ -234,7 +234,7 @@ function navigateTo(page) {
     dash: 'داشبورد الموظفين',
     market: 'قرطاسية الشاطر',
     supplies: 'المخزن',
-    reports: 'التقارير',
+    reports: 'إعداد التقارير',
     settings: 'الإعدادات',
   };
   const titleEl = document.getElementById('page-title');
@@ -549,7 +549,9 @@ async function loadSettingsPage() {
 }
 
 async function savePricingForm() {
+  const existingPricing = await loadPricing() || {};
   const pricing = {
+    ...existingPricing,
     min_pages: Number(document.getElementById('pr-min-pages').value),
     min_price: Number(document.getElementById('pr-min-price').value),
     c_single: Number(document.getElementById('pr-c1').value),
@@ -871,6 +873,15 @@ async function confirmSupplyTx() {
 function loadReportsPage() {
   const csvBtn = document.getElementById('export-orders-csv');
   if (csvBtn) csvBtn.onclick = exportOrdersCSV;
+
+  const xlsBtn = document.getElementById('export-orders-excel');
+  if (xlsBtn) xlsBtn.onclick = exportOrdersExcel;
+
+  const mktBtn = document.getElementById('export-market-csv');
+  if (mktBtn) mktBtn.onclick = exportMarketCSV;
+
+  const supBtn = document.getElementById('export-supplies-csv');
+  if (supBtn) supBtn.onclick = exportSuppliesCSV;
 
   // Load preview tables
   loadOrdersReportPreview();

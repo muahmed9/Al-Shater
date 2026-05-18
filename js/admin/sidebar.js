@@ -7,7 +7,7 @@ const PAGES = [
   { id: 'dash',     icon: '🏆', label: 'داشبورد',         manager: true },
   { id: 'market',   icon: '📦', label: 'قرطاسية الشاطر', perm: 'manage_market' },
   { id: 'supplies', icon: '🗄️', label: 'المخزن',          perm: 'manage_supplies' },
-  { id: 'reports',  icon: '📥', label: 'التقارير',        manager: true },
+  { id: 'reports',  icon: '📥', label: 'إعداد التقارير',        always: true },
   { id: 'settings', icon: '⚙️', label: 'الإعدادات',       manager: true },
 ];
 

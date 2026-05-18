@@ -274,22 +274,19 @@
         </div>
       </div>
       <div class="card">
-        <p style="margin:0 0 12px;color:var(--navy);font-weight:800;">📦 طريقة التغليف:</p>
-        <div style="display:flex;flex-direction:column;gap:9px;">
-          <button id="pkg-none" class="pkg-btn" data-pkg="none">
-            <span class="pkg-icon">📎</span>
-            <div class="pkg-info"><b>كبس فقط</b><span>تدبيس الورق — بدون تغليف إضافي</span></div>
-            <span id="pkg-none-price" class="pkg-price">مجاني</span>
+        <p style="margin:0 0 10px;color:var(--navy);font-weight:700;">📦 طريقة التغليف:</p>
+        <div class="option-group" style="flex-direction: column; gap: 8px;">
+          <button id="pkg-none" class="pkg-btn option-btn active" data-pkg="none" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; text-align: right;">
+            <span style="font-weight: 700;">📎 كبس فقط (بدون تغليف إضافي)</span>
+            <span id="pkg-none-price" style="font-size: 0.88rem; font-weight: 700;">مجاني</span>
           </button>
-          <button id="pkg-cardboard" class="pkg-btn" data-pkg="cardboard">
-            <span class="pkg-icon">📋</span>
-            <div class="pkg-info"><b>ورق مقوى ونايلون شفاف</b><span>حماية من الماء والانثناء</span></div>
-            <span id="pkg-cardboard-price" class="pkg-price">500 د.ع</span>
+          <button id="pkg-cardboard" class="pkg-btn option-btn" data-pkg="cardboard" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; text-align: right;">
+            <span style="font-weight: 700;">📋 ورق مقوى ونايلون شفاف</span>
+            <span id="pkg-cardboard-price" style="font-size: 0.88rem; font-weight: 700;">500 د.ع</span>
           </button>
-          <button id="pkg-spiral" class="pkg-btn" data-pkg="spiral">
-            <span class="pkg-icon">🔩</span>
-            <div class="pkg-info"><b>سبايرول</b><span>تجليد حلزوني — مثالي للتقارير</span></div>
-            <span id="pkg-spiral-price" class="pkg-price">1,500 د.ع</span>
+          <button id="pkg-spiral" class="pkg-btn option-btn" data-pkg="spiral" style="display: flex; justify-content: space-between; align-items: center; padding: 12px 16px; text-align: right;">
+            <span style="font-weight: 700;">🔩 تجليد حلزوني (سبايرول)</span>
+            <span id="pkg-spiral-price" style="font-size: 0.88rem; font-weight: 700;">1,500 د.ع</span>
           </button>
         </div>
       </div>
@@ -307,7 +304,7 @@
 
       <!-- ملخص تكلفة خيارات الطباعة والإضافات -->
       <div id="step2-summary-box" class="card" style="display:none; background: linear-gradient(135deg, var(--card), var(--input-bg)); border: 2px solid var(--teal); border-radius: var(--radius-lg); padding: 18px; margin-top: 15px; text-align: right;">
-        <h4 style="margin: 0 0 12px; color: var(--navy); border-bottom: 1.5px solid var(--border-soft); padding-bottom: 8px; font-weight: 800; font-size: 1rem;">📊 ملخص الخيارات والأسعار الحالية:</h4>
+        <h4 style="margin: 0 0 12px; color: var(--navy); border-bottom: 1.5px solid var(--border-soft); padding-bottom: 8px; font-weight: 800; font-size: 1rem;">📊 ملخص الخيارات:</h4>
         <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;">
           <div style="display: flex; justify-content: space-between;">
             <span style="color: var(--text-muted); font-weight: 600;">📄 صفحات الطباعة:</span>
@@ -317,13 +314,17 @@
             <span style="color: var(--text-muted); font-weight: 600;">🖼️ عدد الصور:</span>
             <b id="s2-sum-imgs" style="color: var(--navy);">0 صورة</b>
           </div>
-          <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-muted); font-weight: 600;">📦 طريقة التغليف:</span>
-            <b id="s2-sum-pkg" style="color: var(--navy);">تحميل...</b>
+          <div style="display: flex; justify-content: space-between; border-top: 1px dashed var(--border-soft); padding-top: 6px; margin-top: 2px;">
+            <span style="color: var(--text-muted); font-weight: 600;">💵 سعر الطباعة فقط:</span>
+            <b id="s2-sum-print-only" style="color: var(--navy);">0 د.ع</b>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-muted); font-weight: 600;">⚡ طلب عاجل (Express):</span>
-            <b id="s2-sum-express" style="color: var(--navy);">لا</b>
+            <span style="color: var(--text-muted); font-weight: 600;">📦 إضافة التغليف:</span>
+            <b id="s2-sum-pkg-price" style="color: var(--navy);">0 د.ع</b>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-muted); font-weight: 600;">⚡ إضافة الطلب العاجل:</span>
+            <b id="s2-sum-express-price" style="color: var(--navy);">0 د.ع</b>
           </div>
           <div style="display: flex; justify-content: space-between; border-top: 1.5px dashed var(--border-soft); padding-top: 8px; margin-top: 4px; font-size: 1.05rem;">
             <span style="color: var(--navy); font-weight: 800;">💰 السعر الكلي للطباعة:</span>
@@ -383,7 +384,7 @@
 
       <!-- ملخص تكلفة الطلب الكلي (الطباعة + القرطاسية) -->
       <div id="step3-summary-box" class="card" style="display:none; background: linear-gradient(135deg, var(--card), var(--input-bg)); border: 2px solid var(--teal); border-radius: var(--radius-lg); padding: 18px; margin-top: 15px; text-align: right;">
-        <h4 style="margin: 0 0 12px; color: var(--navy); border-bottom: 1.5px solid var(--border-soft); padding-bottom: 8px; font-weight: 800; font-size: 1rem;">📊 ملخص الطلب الكلي والأسعار:</h4>
+        <h4 style="margin: 0 0 12px; color: var(--navy); border-bottom: 1.5px solid var(--border-soft); padding-bottom: 8px; font-weight: 800; font-size: 1rem;">📊 ملخص الطلب الكلي:</h4>
         <div style="display: flex; flex-direction: column; gap: 8px; font-size: 0.9rem;">
           <div style="display: flex; justify-content: space-between;">
             <span style="color: var(--text-muted); font-weight: 600;">🖨️ تكلفة الطباعة والتغليف:</span>

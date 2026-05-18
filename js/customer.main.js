@@ -184,19 +184,19 @@ async function init() {
     const { data } = await sb.from(Config.TABLES.USERS).select('*').eq('id', userId).maybeSingle();
     if (data) {
       // Update info if changed
-      if (tgU && (data.telegram_id !== String(tgU.id) || data.name !== tgU.first_name)) {
+      if (tgU && (data.telegram_id !== String(tgU.id) || data.first_name !== tgU.first_name)) {
         await sb.from(Config.TABLES.USERS).update({ 
           telegram_id: String(tgU.id), 
-          name: tgU.first_name, 
+          first_name: tgU.first_name, 
           username: tgU.username 
         }).eq('id', userId);
       }
-      customerState.set('user', { ...data, telegram_id: data.telegram_id || (tgU ? String(tgU.id) : null) });
+      customerState.set('user', { ...data, name: data.first_name, telegram_id: data.telegram_id || (tgU ? String(tgU.id) : null) });
     } else {
       const newUser = {
         id: userId, 
         telegram_id: tgU ? String(tgU.id) : null,
-        name: tgU?.first_name ?? 'ضيف', 
+        first_name: tgU?.first_name ?? 'ضيف', 
         username: tgU?.username ?? '',
         loyalty_points: 0, 
         total_orders: 0, 
@@ -204,12 +204,13 @@ async function init() {
         first_order_done: false
       };
       await sb.from(Config.TABLES.USERS).insert(newUser);
-      customerState.set('user', newUser);
+      customerState.set('user', { ...newUser, name: newUser.first_name });
     }
   } catch (e) { console.warn('[Auth]', e.message); }
 
   const pricing = await loadPricing();
   if (pricing) customerState.set('pricing', pricing);
+  applyPricingToUI(pricing ?? Config.DEFAULT_PRICING);
 
   customerState.subscribe('user', refreshPtsUI);
   refreshPtsUI();
@@ -217,6 +218,22 @@ async function init() {
 
   // Load suggested products for step 3
   loadSuggestedProducts();
+}
+
+function applyPricingToUI(pricing) {
+  const P = pricing ?? Config.DEFAULT_PRICING;
+  const cardboardPrice = P.packaging?.cardboard ?? 500;
+  const spiralPrice = P.packaging?.spiral ?? 1500;
+  const expressFee = P.express_fee ?? 1500;
+
+  const cardPriceEl = document.getElementById('pkg-cardboard-price');
+  if (cardPriceEl) cardPriceEl.textContent = cardboardPrice === 0 ? 'مجاني' : `${formatPrice(cardboardPrice)}`;
+
+  const spiralPriceEl = document.getElementById('pkg-spiral-price');
+  if (spiralPriceEl) spiralPriceEl.textContent = spiralPrice === 0 ? 'مجاني' : `${formatPrice(spiralPrice)}`;
+
+  const expressFeeEl = document.getElementById('express-fee-label');
+  if (expressFeeEl) expressFeeEl.textContent = `أولوية في الطباعة (+${formatPrice(expressFee)})`;
 }
 
 function updateTrackingNodes(containerId, lineProgressId, status) {
@@ -795,11 +812,16 @@ function renderPrintSummary() {
     user: customerState.get('user'),
   });
 
+  const packagingPrice = P.packaging?.[pkgKey] ?? 0;
+  const expressPrice = express ? P.express_fee : 0;
+  const basePrintPrice = totals.printSubtotal - packagingPrice - expressPrice;
+
   document.getElementById('s2-sum-pages').textContent = totalPages + ' صفحة';
   document.getElementById('s2-sum-imgs').textContent = totalImgs + ' صورة';
-  document.getElementById('s2-sum-pkg').textContent = packagingName;
-  document.getElementById('s2-sum-express').textContent = expressText;
-  document.getElementById('s2-sum-total').textContent = formatPrice(totals.total);
+  document.getElementById('s2-sum-print-only').textContent = formatPrice(basePrintPrice);
+  document.getElementById('s2-sum-pkg-price').textContent = formatPrice(packagingPrice);
+  document.getElementById('s2-sum-express-price').textContent = formatPrice(expressPrice);
+  document.getElementById('s2-sum-total').textContent = formatPrice(totals.printSubtotal);
   updateStep3Summary();
 }
 
@@ -828,48 +850,8 @@ function updateStep3Summary() {
     user: customerState.get('user')
   });
 
-  let printSubtotal = 0;
-  let totalPrintPages = 0;
-  const isColor = customerState.get('printColor') === 'c';
-  const isDouble = customerState.get('printSide') === '2';
-  for (const f of files) {
-    totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
-  }
-  const P = pricing ?? Config.DEFAULT_PRICING;
-  const tiers = isColor ? P.color_tiers : P.bw_tiers;
-  
-  if (tiers && tiers.length > 0) {
-    const matchingTier = tiers.find(t => totalPrintPages >= t.min && (t.max ? totalPrintPages <= t.max : true));
-    if (matchingTier) {
-      const rate = isDouble ? (matchingTier.double ?? matchingTier.price) : (matchingTier.single ?? matchingTier.price);
-      printSubtotal = totalPrintPages * rate;
-    } else {
-      const highestTier = [...tiers].sort((a,b) => b.min - a.min)[0];
-      const rate = isDouble ? (highestTier.double ?? highestTier.price) : (highestTier.single ?? highestTier.price);
-      printSubtotal = totalPrintPages * rate;
-    }
-  } else {
-    const pricePerPage = isColor 
-      ? (isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150))
-      : (isDouble ? (P.bw_double ?? 75) : (P.bw_single ?? 90));
-    for (const f of files) {
-      const pages = (f.pages ?? 1) * (f.copies ?? 1);
-      printSubtotal += pages * pricePerPage;
-    }
-  }
-  if (files.length > 0 && printSubtotal < P.min_price) {
-    printSubtotal = P.min_price;
-  }
-  const pkgKey = customerState.get('packaging') ?? 'none';
-  printSubtotal += P.packaging?.[pkgKey] ?? 0;
-  if (customerState.get('express')) printSubtotal += P.express_fee;
-
-  let cartSubtotal = 0;
-  for (const item of cart) cartSubtotal += (item.effective_price ?? item.price) * (item.qty ?? 1);
-  for (const [id, qty] of Object.entries(sugCart ?? {})) {
-    const prod = customerState.get('suggestedProducts')?.find(p => p.id === id);
-    if (prod) cartSubtotal += prod.price * qty;
-  }
+  const printSubtotal = totals.printSubtotal;
+  const cartSubtotal = totals.cartSubtotal;
 
   document.getElementById('s3-sum-print').textContent = formatPrice(printSubtotal);
   document.getElementById('s3-sum-market').textContent = formatPrice(cartSubtotal);
@@ -1006,10 +988,31 @@ function updateInvoice() {
     files.forEach(f => {
       rows.push([`<span style="margin-right:10px;font-size:0.85rem">📄 ${esc(f.name)} (${f.pages ?? 1} ص × ${f.copies ?? 1} نسخ)</span>`, '']);
     });
-    const printCost = totals.subtotal - cartTotal - Object.entries(sugCart).reduce((s,[id,qty])=>{
-        const p = suggestedProducts.find(x => x.id === id); return s + (p?.price ?? 0)*qty;
-    }, 0);
-    rows.push(['<span style="margin-right:10px;font-size:0.85rem;color:var(--teal)">إجمالي تكلفة الطباعة والتغليف</span>', `<b style="color:var(--teal)">${formatPrice(printCost)}</b>`]);
+
+    const P = pricing ?? Config.DEFAULT_PRICING;
+    const pkgKey = customerState.get('packaging') ?? 'none';
+    const packagingPrice = P.packaging?.[pkgKey] ?? 0;
+    const expressPrice = customerState.get('express') ? (P.express_fee ?? 0) : 0;
+    
+    const printCost = totals.printSubtotal; 
+    const basePrintPrice = printCost - packagingPrice - expressPrice;
+    
+    rows.push([`<span style="margin-right:10px;font-size:0.85rem;color:var(--teal)">💵 سعر الطباعة فقط</span>`, `<b>${formatPrice(basePrintPrice)}</b>`]);
+    
+    if (packagingPrice > 0) {
+      const packagingName = {
+        none: 'كبس فقط',
+        cardboard: 'ورق مقوى ونايلون شفاف',
+        spiral: 'تجليد حلزوني (سبايرول)'
+      }[pkgKey] ?? pkgKey;
+      rows.push([`<span style="margin-right:10px;font-size:0.85rem;color:var(--teal)">📦 إضافة التغليف (${packagingName})</span>`, `<b>+ ${formatPrice(packagingPrice)}</b>`]);
+    }
+    
+    if (expressPrice > 0) {
+      rows.push([`<span style="margin-right:10px;font-size:0.85rem;color:var(--teal)">⚡ إضافة طلب عاجل</span>`, `<b>+ ${formatPrice(expressPrice)}</b>`]);
+    }
+    
+    rows.push([`<span style="margin-right:10px;font-size:0.85rem;color:var(--navy);font-weight:800">💰 السعر الكلي للطباعة</span>`, `<b style="color:var(--teal);font-weight:900">${formatPrice(printCost)}</b>`]);
   }
 
   const cartItems = cart.map(i => ({...i, isSug: false}));
@@ -1153,6 +1156,16 @@ function bindCart() {
     else customerState.set('cart', [...cart]);
     renderCart();
   });
+
+  // Handle direct item deletion
+  document.getElementById('cart-items-list')?.addEventListener('click', e => {
+    const btn = e.target.closest('.delete-cart-item-btn');
+    if (!btn) return;
+    const id = btn.dataset.id;
+    const cart = customerState.get('cart') ?? [];
+    customerState.set('cart', cart.filter(i => i.id !== id));
+    renderCart();
+  });
 }
 
 function addToCart(product) {
@@ -1186,12 +1199,15 @@ function renderCart() {
   }
 
   itemsEl.innerHTML = cart.map(i => `
-    <div class="cart-item">
-      <div>
+    <div class="cart-item" style="gap: 12px;">
+      <div style="flex: 1;">
         <b style="font-size:.9rem;color:var(--navy);">${esc(i.name)}</b>
         <p style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);">${formatPrice(i.effective_price ?? i.price)} / ${esc(i.unit ?? 'قطعة')}</p>
       </div>
-      ${QtyControl.html({ id: i.id, value: i.qty, min: 0, max: i.stock })}
+      <div style="display: flex; align-items: center; gap: 8px;">
+        ${QtyControl.html({ id: i.id, value: i.qty, min: 0, max: i.stock })}
+        <button class="delete-cart-item-btn" data-id="${i.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px; transition:color 0.2s;" title="حذف المنتج">🗑️</button>
+      </div>
     </div>`).join('');
 
   checkEl.style.display = 'block';
@@ -1224,20 +1240,46 @@ function updateUnifiedCart() {
   const sec = document.getElementById('unified-cart-section');
   const list = document.getElementById('unified-cart-items');
 
-  const allItems = [...cart];
+  const allItems = cart.map(i => ({ ...i, isSug: false }));
   for (const [id, qty] of Object.entries(sugCart)) {
     const p = suggests.find(x => x.id === id);
-    if (p) allItems.push({ ...p, qty, effective_price: p.price });
+    if (p) allItems.push({ ...p, qty, effective_price: p.price, isSug: true });
   }
 
   if (!allItems.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
   list.innerHTML = allItems.map(i => `
-    <div style="display:flex;justify-content:space-between;font-size:.85rem;padding:5px 0;border-bottom:1px solid var(--border);">
-      <span>${esc(i.name)} × ${i.qty}</span>
-      <b style="color:var(--teal);">${formatPrice((i.effective_price ?? i.price) * i.qty)}</b>
+    <div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:8px 0;border-bottom:1px solid var(--border-soft);">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="delete-addon-btn" data-id="${i.id}" data-sug="${!!i.isSug}" 
+          style="border:none;background:#fef2f2;color:var(--red);width:26px;height:26px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;transition:all var(--transition-fast);" title="حذف">
+          🗑️
+        </button>
+        <span style="font-weight:700;color:var(--navy);">${esc(i.name)} <span style="color:var(--text-muted);font-weight:500;">× ${i.qty}</span></span>
+      </div>
+      <b style="color:var(--teal);font-weight:800;">${formatPrice((i.effective_price ?? i.price) * i.qty)}</b>
     </div>`).join('');
+
+  list.querySelectorAll('.delete-addon-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.dataset.id;
+      const isSug = btn.dataset.sug === 'true';
+      if (isSug) {
+        const sug = customerState.get('suggestedCart') ?? {};
+        delete sug[id];
+        customerState.set('suggestedCart', { ...sug });
+      } else {
+        const c = customerState.get('cart') ?? [];
+        customerState.set('cart', c.filter(x => x.id !== id));
+      }
+      renderCart();
+      updateCartBadge();
+      updateUnifiedCart();
+      updateInvoice();
+      showToast('🗑️ تم إزالة الإضافة بنجاح', 'success');
+    });
+  });
 
   const total = allItems.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
   document.getElementById('ucart-subtotal').textContent = formatPrice(total);

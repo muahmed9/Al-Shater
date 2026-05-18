@@ -77,7 +77,7 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
 export async function fetchUserOrders(userId) {
   try {
     const { data, error } = await sb.from(T.ORDERS)
-      .select('id,status,total,created_at,cancel_reason,rating,files_data,cart_items')
+      .select('id,status,total,created_at,cancel_reason,files_data,cart_items,order_metadata')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -89,7 +89,12 @@ export async function fetchUserOrders(userId) {
       }
       throw new Error(`تعذر تحميل البيانات من قاعدة البيانات (كود: ${error.code})`);
     }
-    return data ?? [];
+    const orders = data ?? [];
+    return orders.map(o => ({
+      ...o,
+      rating: o.order_metadata?.rating ?? null,
+      rating_comment: o.order_metadata?.rating_comment ?? null
+    }));
   } catch (err) {
     console.error('[fetchUserOrders Exception]', err);
     throw err;
@@ -103,7 +108,11 @@ export async function fetchOrderById(orderId) {
 }
 
 export async function submitRating(orderId, stars, comment = '') {
-  const { error } = await sb.from(T.ORDERS).update({ rating: stars, rating_comment: sanitize(comment, 200) || null }).eq('id', orderId);
+  const { data: order } = await sb.from(T.ORDERS).select('order_metadata').eq('id', orderId).single();
+  const meta = order?.order_metadata || {};
+  meta.rating = stars;
+  meta.rating_comment = sanitize(comment, 200) || null;
+  const { error } = await sb.from(T.ORDERS).update({ order_metadata: meta }).eq('id', orderId);
   if (error) throw error;
 }
 
@@ -130,10 +139,30 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
     totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
   }
 
-  // Determine price per page based on tiers (Color or BW)
-  const tiers = isColor ? P.color_tiers : P.bw_tiers;
+  // Determine price per page based on tiers (Color or BW) and scale dynamically
+  let tiers = isColor ? P.color_tiers : P.bw_tiers;
   
   if (tiers && tiers.length > 0) {
+    const baseCSingle = 150;
+    const baseCDouble = 130;
+    const baseBwSingle = 90;
+    const baseBwDouble = 75;
+
+    const scaleFactorSingle = isColor 
+      ? (P.c_single ?? baseCSingle) / baseCSingle 
+      : (P.bw_single ?? baseBwSingle) / baseBwSingle;
+      
+    const scaleFactorDouble = isColor 
+      ? (P.c_double ?? baseCDouble) / baseCDouble 
+      : (P.bw_double ?? baseBwDouble) / baseBwDouble;
+
+    // Scale the tiers on the fly
+    tiers = tiers.map(t => {
+      const single = Math.round((t.single ?? t.price ?? 0) * scaleFactorSingle);
+      const double = Math.round((t.double ?? t.price ?? 0) * scaleFactorDouble);
+      return { ...t, single, double, price: isDouble ? double : single };
+    });
+
     // Find the tier that matches the total volume
     const matchingTier = tiers.find(t => totalPrintPages >= t.min && (t.max ? totalPrintPages <= t.max : true));
     
@@ -204,7 +233,9 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
     discount, 
     deliveryFee, 
     total: afterDisc + deliveryFee,
-    pointsUsed: usePoints ? Math.round(pointsSaving / 10) : 0
+    pointsUsed: usePoints ? Math.round(pointsSaving / 10) : 0,
+    printSubtotal,
+    cartSubtotal
   };
 }
 
