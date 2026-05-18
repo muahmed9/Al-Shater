@@ -231,7 +231,6 @@ function navigateTo(page) {
 
   const titles = {
     orders: 'الطلبات',
-    stats: 'الإحصائيات',
     research: 'طلبات البحوث',
     market: 'قرطاسية الشاطر',
     supplies: 'المخزن',
@@ -243,7 +242,6 @@ function navigateTo(page) {
   sidebar?.setActive(page);
 
   if (page === 'orders') { fetchAllOrders().then(renderOrders); }
-  if (page === 'stats') { loadStats(); }
   if (page === 'research') { loadResearchPage(); }
   if (page === 'market') { loadMarketPage(); }
   if (page === 'supplies') { loadSuppliesPage(); }
@@ -518,20 +516,7 @@ async function confirmCancel() {
   } catch (e) { showToast('❌ ' + e.message, 'error'); }
 }
 
-function loadStats() {
-  const orders = adminState.get('allOrders') ?? [];
-  const today = new Date().toDateString();
-  const tod = orders.filter(o => new Date(o.created_at).toDateString() === today);
 
-  document.getElementById('s-today').textContent = tod.length;
-  document.getElementById('s-pending').textContent = orders.filter(o => ['received', 'printing', 'delivering'].includes(o.status)).length;
-  document.getElementById('s-revenue').textContent = formatPrice(tod.filter(o => o.status !== 'cancelled').reduce((s, o) => s + (o.total ?? 0), 0));
-  document.getElementById('s-total').textContent = orders.length;
-  document.getElementById('s-market').textContent = orders.filter(o => o.order_type === 'market').length;
-  document.getElementById('s-combined').textContent = orders.filter(o => o.order_type === 'combined').length;
-  document.getElementById('s-delivered').textContent = orders.filter(o => o.status === 'delivered').length;
-  document.getElementById('s-cancelled').textContent = orders.filter(o => o.status === 'cancelled').length;
-}
 
 async function loadResearchPage() {
   const page = document.getElementById('page-research');

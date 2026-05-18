@@ -257,7 +257,7 @@ body{padding-bottom:80px}
 .home-track-card {
   background: var(--card);
   border: 1px solid var(--border-soft);
-  border-radius: 25px;
+  border-radius: var(--radius-xl);
   padding: 24px 18px;
   margin: 15px;
   text-align: center;
@@ -272,7 +272,7 @@ body{padding-bottom:80px}
 .success-box {
   background: var(--card) !important;
   border: 1px solid var(--border-soft) !important;
-  border-radius: 30px !important;
+  border-radius: var(--radius-xl) !important;
   padding: 40px 24px !important;
 }
 
@@ -292,7 +292,7 @@ body{padding-bottom:80px}
 .ptshero {
   background: linear-gradient(135deg, var(--navy), #1e40af);
   color: #fff;
-  border-radius: var(--radius-lg);
+  border-radius: var(--radius-xl);
   padding: 24px;
   text-align: center;
   box-shadow: 0 10px 25px rgba(13, 59, 102, 0.15);

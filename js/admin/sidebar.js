@@ -3,7 +3,6 @@ import { hasPermission, isManager } from '../services/auth.service.js';
 
 const PAGES = [
   { id: 'orders',   icon: '📋', label: 'الطلبات',        always: true  },
-  { id: 'stats',    icon: '📊', label: 'الإحصائيات',     always: true  },
   { id: 'research', icon: '📝', label: 'طلبات البحوث',   always: true  },
   { id: 'market',   icon: '📦', label: 'قرطاسية الشاطر', perm: 'manage_market' },
   { id: 'supplies', icon: '🗄️', label: 'المخزن',          perm: 'manage_supplies' },

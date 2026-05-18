@@ -139,6 +139,11 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
     totalPrintPages += (f.pages ?? 1) * (f.copies ?? 1);
   }
 
+  // Calculate units based on side mode
+  // If single-sided: 1 page = 1 unit
+  // If double-sided: 2 pages = 1 unit (round up for odd numbers)
+  const printUnits = isDouble ? Math.ceil(totalPrintPages / 2) : totalPrintPages;
+
   // Determine price per page based on tiers (Color or BW) and scale dynamically
   let tiers = isColor ? P.color_tiers : P.bw_tiers;
   
@@ -164,17 +169,17 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
     });
 
     // Find the tier that matches the total volume
-    const matchingTier = tiers.find(t => totalPrintPages >= t.min && (t.max ? totalPrintPages <= t.max : true));
+    const matchingTier = tiers.find(t => printUnits >= t.min && (t.max ? printUnits <= t.max : true));
     
     if (matchingTier) {
       const rate = isDouble ? (matchingTier.double ?? matchingTier.price) : (matchingTier.single ?? matchingTier.price);
-      printSubtotal = totalPrintPages * rate;
+      printSubtotal = printUnits * rate;
       console.log(`[Pricing] Volume matched tier ${matchingTier.min}-${matchingTier.max || '+'}. Rate: ${rate}, Total: ${printSubtotal}`);
     } else {
       // Fallback to default or the highest tier if over limit
       const highestTier = [...tiers].sort((a,b) => b.min - a.min)[0];
       const rate = isDouble ? (highestTier.double ?? highestTier.price) : (highestTier.single ?? highestTier.price);
-      printSubtotal = totalPrintPages * rate;
+      printSubtotal = printUnits * rate;
     }
   } else {
     // Fallback to legacy pricing
@@ -182,10 +187,7 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
       ? (isDouble ? (P.c_double ?? 130) : (P.c_single ?? 150))
       : (isDouble ? (P.bw_double ?? 75) : (P.bw_single ?? 90));
     
-    for (const f of files) {
-      const pages = (f.pages ?? 1) * (f.copies ?? 1);
-      printSubtotal += pages * pricePerPage;
-    }
+    printSubtotal = printUnits * pricePerPage;
   }
   
   // Apply min_price at total print level
