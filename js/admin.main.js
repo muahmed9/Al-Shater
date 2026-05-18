@@ -1324,12 +1324,15 @@ async function loadStaffList() {
     const { data } = await sb.from('profiles').select('id, name, emoji, role, permissions').order('name');
     const profiles = data ?? [];
     if (!profiles.length) { listEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:10px;">لا يوجد موظفون</p>'; return; }
+    
+    const currentUserId = adminState.get('currentUser')?.id;
+
     listEl.innerHTML = profiles.map(p => `
       <div class="staff-card">
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <b style="color:var(--navy);">${esc(p.emoji ?? '👤')} ${esc(p.name)}</b>
           <div>
-            ${p.role !== 'admin' ? `
+            ${p.id !== currentUserId ? `
             <button data-edit-staff="${esc(p.id)}" style="background:var(--teal);color:white;border:none;border-radius:4px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">✏️ صلاحيات</button>
             <button data-del-staff="${esc(p.id)}" style="background:var(--red);color:white;border:none;border-radius:4px;padding:4px 8px;font-size:0.75rem;cursor:pointer;">🗑️ حذف</button>
             ` : ''}

@@ -283,7 +283,7 @@ async function _notifyCustomer(orderId, userId) {
   for (let i = 0; i < 3; i++) {
     try {
       const response = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
-        body: { chat_id: chatId, text: msg, parse_mode: 'Markdown' } 
+        body: { chat_id: chatId, text: msg, parse_mode: 'HTML' } 
       });
 
       if (response.error) {
