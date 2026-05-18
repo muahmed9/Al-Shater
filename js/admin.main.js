@@ -407,6 +407,11 @@ function openOrderDetail(orderId) {
             </div>
           `).join('')}
         </div>
+        ${o.files_data.length > 0 ? `
+          <button id="download-all-zip-btn" data-order-id="${esc(o.id)}" style="width:100%;margin-top:12px;background:var(--teal);color:#fff;padding:12px 14px;border:none;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;font-size:0.85rem;box-shadow: 0 4px 6px rgba(0, 150, 136, 0.15);">
+            📁 تحميل كافة الملفات في ملف ZIP مضغوط 📥
+          </button>
+        ` : ''}
       </div>
     ` : ''}
 
@@ -430,6 +435,62 @@ function openOrderDetail(orderId) {
         📱 تواصل عبر تيليجرام
       </a>
     </div>`;
+
+  // Bind ZIP download event listener
+  const zipBtn = document.getElementById('download-all-zip-btn');
+  if (zipBtn) {
+    zipBtn.addEventListener('click', async () => {
+      const orderId = zipBtn.getAttribute('data-order-id');
+      const order = (adminState.get('allOrders') ?? []).find(x => x.id === orderId);
+      if (!order || !order.files_data || !order.files_data.length) return;
+
+      zipBtn.disabled = true;
+      zipBtn.style.opacity = '0.7';
+      const originalText = zipBtn.innerHTML;
+      zipBtn.innerHTML = '⏳ جاري تحميل وتجميع الملفات...';
+
+      try {
+        if (!window.JSZip) {
+          throw new Error('مكتبة JSZip غير محملة بعد، يرجى المحاولة مرة أخرى');
+        }
+        const zip = new JSZip();
+        for (let i = 0; i < order.files_data.length; i++) {
+          const file = order.files_data[i];
+          if (!file.url) continue;
+          
+          zipBtn.innerHTML = `⏳ جاري تحميل الملف (${i + 1}/${order.files_data.length}): ${esc(file.name)}...`;
+          
+          const res = await fetch(file.url);
+          if (!res.ok) throw new Error(`فشل تحميل الملف: ${file.name}`);
+          const blob = await res.blob();
+          zip.file(file.name || `file_${i + 1}`, blob);
+        }
+
+        zipBtn.innerHTML = '⚡ جاري ضغط وتجهيز الملفات...';
+        const zipContent = await zip.generateAsync({ type: 'blob' });
+        
+        const shortId = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
+        const filename = `order_${shortId}_files.zip`;
+        
+        const a = Object.assign(document.createElement('a'), {
+          href: URL.createObjectURL(zipContent),
+          download: filename
+        });
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        showToast('✅ تم تحميل وضغط كافة الملفات بنجاح', 'success');
+      } catch (err) {
+        console.error('[ZIP Download error]', err);
+        showToast(`❌ فشل تحميل الملفات: ${err.message}`, 'error');
+      } finally {
+        zipBtn.disabled = false;
+        zipBtn.style.opacity = '1';
+        zipBtn.innerHTML = originalText;
+      }
+    });
+  }
 
   document.getElementById('detov').classList.add('open');
   document.getElementById('detpan').classList.add('open');

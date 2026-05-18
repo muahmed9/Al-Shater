@@ -112,6 +112,6 @@ export async function loadPricing() {
 }
 
 export async function savePricing(pricing) {
-  const { error } = await sb.from(T.SETTINGS).update({ value: pricing }).eq('key', 'pricing');
+  const { error } = await sb.from(T.SETTINGS).upsert({ key: 'pricing', value: pricing }, { onConflict: 'key' });
   if (error) throw error;
 }

@@ -1598,11 +1598,33 @@ function showOrderDetail(orderId) {
     `<div style="font-size:.82rem;color:var(--text-muted);padding:3px 0;">📦 ${esc(i.name)} × ${i.qty}</div>`
   ).join('');
 
+  const isCancelled = o.status === 'cancelled';
+  const stepperHTML = isCancelled ? '' : `
+    <div id="det-tracking-steps" style="margin-top: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; position: relative; padding: 0 10px;">
+      <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: #e2e8f0; z-index: 0;"></div>
+      <div id="det-line-progress" style="position: absolute; top: 15px; left: 10%; width: 0%; height: 2px; background: var(--teal); z-index: 1; transition: width 0.5s ease;"></div>
+      
+      <div class="track-node active" style="z-index: 2; text-align: center; width: 20%;">
+        <div style="width: 32px; height: 32px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #fff; font-size: 0.8rem; box-shadow: 0 0 0 4px var(--bg);">1</div>
+        <div style="font-size: 0.65rem; font-weight: 800; color: var(--teal);">تم الاستلام</div>
+      </div>
+      <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
+        <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">2</div>
+        <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">الطباعة</div>
+      </div>
+      <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
+        <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">3</div>
+        <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">التوصيل</div>
+      </div>
+    </div>
+  `;
+
   document.getElementById('det-title').textContent = `طلب #${o.id.slice(0, 8)}`;
   document.getElementById('det-body').innerHTML = `
     <div style="text-align:center;margin-bottom:16px;">
       <span class="sbadge ${s.css}" style="font-size:1rem;padding:8px 20px;">${s.icon} ${s.label}</span>
     </div>
+    ${stepperHTML}
     <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
       <span>المبلغ الكلي</span><b>${formatPrice(o.total)}</b>
     </div>
@@ -1613,6 +1635,11 @@ function showOrderDetail(orderId) {
     ${cartHTML ? `<div style="padding:10px 0;border-bottom:1px solid var(--border);"><b style="font-size:.85rem;color:var(--navy);">القرطاسية:</b>${cartHTML}</div>` : ''}
     ${o.cancel_reason ? `<div style="padding:10px;margin-top:10px;background:#fef2f2;border-radius:var(--radius-sm);color:var(--red);font-size:.88rem;">❌ سبب الإلغاء: ${esc(o.cancel_reason)}</div>` : ''}
   `;
+
+  if (!isCancelled) {
+    updateTrackingNodes('det-tracking-steps', 'det-line-progress', o.status);
+  }
+
   document.getElementById('det-ov').classList.add('open');
 }
 
