@@ -138,9 +138,20 @@
         </div>
       </div>
 
-      <!-- صفحة: داشبورد الموظفين -->
-      <div class="admin-page" id="page-dash">
-        <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+      <!-- صفحة: طلبات البحوث -->
+      <div class="admin-page" id="page-research">
+        <div style="margin-bottom:14px;">
+          <input type="text" id="res-search" placeholder="🔍 بحث في طلبات البحوث (الاسم، الهاتف، الموضوع)..." style="margin-bottom:0;">
+        </div>
+        <div class="filter-bar" id="res-filter-bar">
+          <button class="filter-tab active" data-res-status="all">الكل</button>
+          <button class="filter-tab" data-res-status="pending">🕐 معلق</button>
+          <button class="filter-tab" data-res-status="in_progress">⚙️ قيد العمل</button>
+          <button class="filter-tab" data-res-status="completed">✅ مكتمل</button>
+        </div>
+        <div id="res-list">
+          <div style="text-align:center;padding:50px;color:var(--text-muted);">جاري التحميل...</div>
+        </div>
       </div>
 
       <!-- صفحة: قرطاسية الشاطر -->

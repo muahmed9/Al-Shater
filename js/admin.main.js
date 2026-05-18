@@ -108,6 +108,7 @@ function enterDashboard() {
   });
 
   bindOrderFilters();
+  bindResearchFilters();
   bindSettings();
 
   // ── FIX: bind order list actions ONCE here, not inside renderOrders ──
@@ -231,7 +232,7 @@ function navigateTo(page) {
   const titles = {
     orders: 'الطلبات',
     stats: 'الإحصائيات',
-    dash: 'داشبورد الموظفين',
+    research: 'طلبات البحوث',
     market: 'قرطاسية الشاطر',
     supplies: 'المخزن',
     reports: 'إعداد التقارير',
@@ -243,7 +244,7 @@ function navigateTo(page) {
 
   if (page === 'orders') { fetchAllOrders().then(renderOrders); }
   if (page === 'stats') { loadStats(); }
-  if (page === 'dash') { loadStaffDashboard(); }
+  if (page === 'research') { loadResearchPage(); }
   if (page === 'market') { loadMarketPage(); }
   if (page === 'supplies') { loadSuppliesPage(); }
   if (page === 'reports') { loadReportsPage(); }
@@ -532,39 +533,162 @@ function loadStats() {
   document.getElementById('s-cancelled').textContent = orders.filter(o => o.status === 'cancelled').length;
 }
 
-async function loadStaffDashboard() {
-  if (!isManager()) return;
-  const page = document.getElementById('page-dash');
+async function loadResearchPage() {
+  const page = document.getElementById('page-research');
   if (!page) return;
 
-  page.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">⏳ جاري تحميل بيانات الموظفين...</div>';
+  const listContainer = document.getElementById('res-list');
+  if (listContainer) {
+    listContainer.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">⏳ جاري تحميل طلبات البحوث...</div>';
+  }
 
   try {
     const { sb } = await import('./core/supabase.js');
-    const { data: profiles } = await sb
-      .from('profiles')
-      .select('name, emoji, role, permissions')
-      .neq('role', 'admin');
+    const { data, error } = await sb
+      .from('research_requests')
+      .select('*')
+      .order('created_at', { ascending: false });
 
-    const list = profiles ?? [];
-    page.innerHTML = `
-      <h2 style="color:var(--navy);margin:0 0 20px;">🏆 لوحة متابعة الموظفين</h2>
-      ${list.length
-        ? list.map(p => `
-          <div class="staff-card">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <b style="color:var(--navy);">${esc(p.emoji ?? '👤')} ${esc(p.name)}</b>
-              <span class="role-badge rb-oper">${esc(p.role)}</span>
-            </div>
-            <div style="font-size:.78rem;color:var(--text-muted);margin-top:6px;">
-              ${(p.permissions ?? []).join(' | ') || 'لا صلاحيات'}
-            </div>
-          </div>`).join('')
-        : '<p style="color:var(--text-muted);text-align:center;padding:20px;">لا يوجد موظفون بعد</p>'
-      }`;
+    if (error) throw error;
+    adminState.set('allResearch', data ?? []);
+    renderResearch();
   } catch (e) {
-    page.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">❌ تعذّر التحميل: ${esc(e.message)}</div>`;
+    if (listContainer) {
+      listContainer.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">❌ تعذّر التحميل: ${esc(e.message)}</div>`;
+    }
   }
+}
+
+function renderResearch() {
+  const listContainer = document.getElementById('res-list');
+  if (!listContainer) return;
+
+  const list = adminState.get('allResearch') ?? [];
+  const searchVal = document.getElementById('res-search')?.value.toLowerCase().trim() ?? '';
+  
+  const activeTab = document.querySelector('#res-filter-bar .filter-tab.active');
+  const activeStatus = activeTab ? activeTab.dataset.resStatus : 'all';
+
+  let filtered = list;
+
+  if (activeStatus !== 'all') {
+    filtered = filtered.filter(r => r.status === activeStatus);
+  }
+
+  if (searchVal) {
+    filtered = filtered.filter(r => 
+      (r.name ?? '').toLowerCase().includes(searchVal) ||
+      (r.phone ?? '').toLowerCase().includes(searchVal) ||
+      (r.subject ?? '').toLowerCase().includes(searchVal) ||
+      (r.type ?? '').toLowerCase().includes(searchVal)
+    );
+  }
+
+  if (!filtered.length) {
+    listContainer.innerHTML = '<div style="text-align:center;padding:50px;color:var(--text-muted);">📭 لا توجد طلبات بحوث تطابق خيارات البحث</div>';
+    return;
+  }
+
+  const statusLabels = {
+    pending: '🕐 معلق',
+    in_progress: '⚙️ قيد العمل',
+    completed: '✅ مكتمل'
+  };
+
+  listContainer.innerHTML = `
+    <div style="overflow-x:auto; background:var(--card); border-radius:var(--radius-md); box-shadow:0 4px 12px rgba(0,0,0,.03);">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>👤 العميل</th>
+            <th>📚 نوع الطلب والموضوع</th>
+            <th>📄 الصفحات</th>
+            <th>📅 الموعد</th>
+            <th>📝 التفاصيل</th>
+            <th>🚦 الحالة</th>
+            <th>⚙️ إجراءات</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${filtered.map(r => `
+            <tr>
+              <td>
+                <div style="font-weight:700; color:var(--navy);">${esc(r.name)}</div>
+                <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">📞 ${esc(r.phone)}</div>
+              </td>
+              <td>
+                <span class="category-badge" style="background:var(--navy-soft); color:var(--navy); font-size:0.72rem; padding:2px 6px; border-radius:var(--radius-sm); font-weight:700; margin-left:4px;">
+                  ${esc(r.type)}
+                </span>
+                <b style="color:var(--text-main); font-size:0.88rem;">${esc(r.subject)}</b>
+              </td>
+              <td><b style="color:var(--teal);">${esc(r.pages ?? '—')}</b></td>
+              <td><span style="font-size:0.8rem; font-weight:600;">${r.deadline ? formatDate(r.deadline) : '—'}</span></td>
+              <td>
+                <div style="max-width:200px; max-height:60px; overflow-y:auto; font-size:0.8rem; color:var(--text-muted); line-height:1.4; white-space:pre-wrap;">
+                  ${esc(r.details || '—')}
+                </div>
+              </td>
+              <td>
+                <span class="status-pill status-${r.status ?? 'pending'}" style="font-size:0.75rem; font-weight:700; padding:4px 8px; border-radius:var(--radius-full);">
+                  ${statusLabels[r.status] ?? r.status}
+                </span>
+              </td>
+              <td>
+                <select class="research-status-select" data-rid="${r.id}" style="margin:0; padding:4px 8px; font-size:0.8rem; border-radius:var(--radius-sm); border:1px solid var(--border-soft); background:var(--input-bg); color:var(--text-main); font-weight:600; cursor:pointer;">
+                  <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>🕐 معلق</option>
+                  <option value="in_progress" ${r.status === 'in_progress' ? 'selected' : ''}>⚙️ قيد العمل</option>
+                  <option value="completed" ${r.status === 'completed' ? 'selected' : ''}>✅ مكتمل</option>
+                </select>
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function bindResearchFilters() {
+  document.getElementById('res-search')?.addEventListener('input', debounce(() => {
+    renderResearch();
+  }, 200));
+
+  document.getElementById('res-filter-bar')?.addEventListener('click', e => {
+    const tab = e.target.closest('.filter-tab');
+    if (!tab) return;
+    document.querySelectorAll('#res-filter-bar .filter-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    renderResearch();
+  });
+
+  document.getElementById('res-list')?.addEventListener('change', async e => {
+    const select = e.target.closest('.research-status-select');
+    if (!select) return;
+
+    const rid = select.dataset.rid;
+    const newStatus = select.value;
+
+    try {
+      const { sb } = await import('./core/supabase.js');
+      const { error } = await sb
+        .from('research_requests')
+        .update({ status: newStatus })
+        .eq('id', rid);
+
+      if (error) throw error;
+
+      showToast('✅ تم تحديث حالة طلب البحث بنجاح!', 'success');
+      
+      // Update local state and rerender
+      const list = adminState.get('allResearch') ?? [];
+      const updated = list.map(r => r.id == rid ? { ...r, status: newStatus } : r);
+      adminState.set('allResearch', updated);
+      renderResearch();
+    } catch (e) {
+      showToast('❌ تعذر التحديث: ' + e.message, 'error');
+    }
+  });
 }
 
 function renderAdminTiers(containerId, tiers) {

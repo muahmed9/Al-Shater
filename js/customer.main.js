@@ -245,14 +245,11 @@ function updateTrackingNodes(containerId, lineProgressId, status) {
     n.classList.remove('active');
     const circle = n.querySelector('div');
     if (circle) {
-      circle.style.background = '#e2e8f0';
-      circle.style.color = '#64748b';
-      circle.style.boxShadow = 'none';
+      circle.removeAttribute('style');
     }
     const label = n.querySelector('div:nth-child(2)');
     if (label) {
-      label.style.color = '#94a3b8';
-      label.style.fontWeight = '700';
+      label.removeAttribute('style');
     }
   });
 
@@ -269,22 +266,12 @@ function updateTrackingNodes(containerId, lineProgressId, status) {
     const n = nodes[i];
     if (!n) continue;
     n.classList.add('active');
-    const circle = n.querySelector('div');
-    if (circle) {
-      circle.style.background = 'var(--teal)';
-      circle.style.color = '#fff';
-      circle.style.boxShadow = '0 0 0 4px var(--bg)';
-    }
-    const label = n.querySelector('div:nth-child(2)');
-    if (label) {
-      label.style.color = 'var(--teal)';
-      label.style.fontWeight = '800';
-    }
   }
 
   const pct = activeIndex * 50;
   lineProgress.style.width = `${pct}%`;
 }
+
 
 function updateSuccessTracking(status) {
   updateTrackingNodes('success-tracking-steps', 'track-line-progress', status);
@@ -1601,23 +1588,24 @@ function showOrderDetail(orderId) {
   const isCancelled = o.status === 'cancelled';
   const stepperHTML = isCancelled ? '' : `
     <div id="det-tracking-steps" style="margin-top: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; position: relative; padding: 0 10px;">
-      <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: #e2e8f0; z-index: 0;"></div>
+      <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: var(--border-soft); z-index: 0;"></div>
       <div id="det-line-progress" style="position: absolute; top: 15px; left: 10%; width: 0%; height: 2px; background: var(--teal); z-index: 1; transition: width 0.5s ease;"></div>
       
-      <div class="track-node active" style="z-index: 2; text-align: center; width: 20%;">
-        <div style="width: 32px; height: 32px; background: var(--teal); border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #fff; font-size: 0.8rem; box-shadow: 0 0 0 4px var(--bg);">1</div>
-        <div style="font-size: 0.65rem; font-weight: 800; color: var(--teal);">تم الاستلام</div>
+      <div class="track-node active">
+        <div>1</div>
+        <div>تم الاستلام</div>
       </div>
-      <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
-        <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">2</div>
-        <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">الطباعة</div>
+      <div class="track-node">
+        <div>2</div>
+        <div>الطباعة</div>
       </div>
-      <div class="track-node" style="z-index: 2; text-align: center; width: 20%;">
-        <div style="width: 32px; height: 32px; background: #e2e8f0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 8px; color: #64748b; font-size: 0.8rem;">3</div>
-        <div style="font-size: 0.65rem; font-weight: 700; color: #94a3b8;">التوصيل</div>
+      <div class="track-node">
+        <div>3</div>
+        <div>التوصيل</div>
       </div>
     </div>
   `;
+
 
   document.getElementById('det-title').textContent = `طلب #${o.id.slice(0, 8)}`;
   document.getElementById('det-body').innerHTML = `
