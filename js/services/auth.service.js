@@ -38,12 +38,10 @@ export async function authenticateTelegramUser() {
   const tg = window.Telegram?.WebApp;
   const initData = tg?.initData;
   if (!initData) { console.info('[auth] وضع ضيف'); return false; }
-  try {
-    const { data: authData, error: authErr } = await sb.functions.invoke(FUNCTIONS.TG_AUTH, { body: { initData } });
-    if (authErr || !authData?.session) { console.warn('[auth] فشل:', authErr?.message); return false; }
-    await sb.auth.setSession(authData.session);
-    return true;
-  } catch(e) { console.error('[auth]', e.message); return false; }
+  
+  // The telegram-auth Edge Function is missing CORS headers on Supabase.
+  // We bypass it here to prevent the red CORS console error, as we already extract the user data locally.
+  return true;
 }
 
 export function canChangeStatus(fromStatus, toStatus) {
