@@ -206,6 +206,22 @@ async function init() {
       await sb.from(Config.TABLES.USERS).insert(newUser);
       customerState.set('user', { ...newUser, name: newUser.first_name });
     }
+
+    // Auto-fill forms with name and phone
+    const activeUser = customerState.get('user');
+    if (activeUser) {
+      const fullName = (tgU?.first_name || activeUser.first_name || '') + (tgU?.last_name ? ' ' + tgU.last_name : '');
+      const phone = activeUser.phone || '';
+      
+      ['uName', 'cart-name', 'res-name'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.value = fullName.trim();
+      });
+      ['uPhone', 'res-phone'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el && !el.value) el.value = phone;
+      });
+    }
   } catch (e) { console.warn('[Auth]', e.message); }
 
   const pricing = await loadPricing();

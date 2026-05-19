@@ -55,6 +55,12 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
   );
   if (error) throw new Error('فشل إرسال الطلب: ' + error.message);
 
+  // Update user's phone if they are not a guest
+  if (user && user.id && !String(user.id).startsWith('guest_') && user.phone !== phone.trim()) {
+    await sb.from(T.USERS).update({ phone: phone.trim() }).eq('id', user.id).catch(() => null);
+    customerState.set('user', { ...user, phone: phone.trim() });
+  }
+
   customerState.set('lastOrderTime', Date.now());
   customerState.set('lastOrderId',   data.id);
 
