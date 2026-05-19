@@ -154,7 +154,7 @@ async function init() {
   if (!tg?.initData) {
     console.warn('[Telegram] App opened outside of Telegram WebApp context.');
     setTimeout(() => {
-      showToast('⚠️ أنت في وضع الزائر! لن تصلك الإشعارات. يجب إضافة الرابط كـ "Web App" في إعدادات BotFather وليس كرابط عادي.', 'error', 8000);
+      showToast('⚠️ خلل في الرابط: ' + window.location.href, 'error', 10000);
     }, 1000);
   }
 
