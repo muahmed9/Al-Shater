@@ -56,7 +56,7 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
       const chatId = userData?.telegram_id || order.user_id;
       
       if (chatId && !String(chatId).startsWith('guest_') && !String(chatId).includes('-')) {
-        _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: chatId, text: msg, parse_mode: 'HTML' })
+        _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: Number(chatId), text: msg, parse_mode: 'HTML' })
           .catch(err => console.warn('Telegram notification failed after retries:', err));
       }
     }

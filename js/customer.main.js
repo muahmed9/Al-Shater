@@ -1548,9 +1548,14 @@ async function loadPtsTab() {
     const hist = document.getElementById('ptshist');
     if (data?.length) {
       hist.innerHTML = data.map(o => `
-        <div style="display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--border);font-size:.85rem;">
-          <span style="color:var(--text-muted);">#${esc(o.id.slice(0, 8))} — ${new Date(o.created_at).toLocaleDateString('ar-IQ')}</span>
-          <b style="color:var(--teal);">+${Math.floor((o.total ?? 0) / 1000)} نقطة</b>
+        <div class="pts-history-row">
+          <div class="pts-history-left">
+            <span class="pts-history-id">#${esc(o.id.slice(0, 8))}</span>
+            <span class="pts-history-date">${new Date(o.created_at).toLocaleDateString('ar-IQ')}</span>
+          </div>
+          <div class="pts-history-right">
+            <span class="pts-history-badge">+${Math.floor((o.total ?? 0) / 1000)} نقطة</span>
+          </div>
         </div>`).join('');
     }
   } catch { }
@@ -1711,6 +1716,7 @@ async function submitResearch() {
       user_id: userId,
       name,
       phone,
+      title: subject, // Satisfy NOT NULL constraint
       subject,
       type,
       pages: Number(pages) || null,

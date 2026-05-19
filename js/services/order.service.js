@@ -283,14 +283,31 @@ async function _notifyCustomer(orderId, userId) {
   const msg = Config.customerMessage(orderId, 'received');
   if (!msg) return;
   
-  const chatId = String(userId).trim();
+  let chatId = String(userId).trim();
+  
+  // If the userId is a UUID or non-numeric (fallback check), resolve from users table
+  if (chatId.includes('-') || isNaN(Number(chatId))) {
+    try {
+      const { data: userData } = await sb.from(Config.TABLES.USERS).select('telegram_id').eq('id', userId).maybeSingle();
+      if (userData?.telegram_id) {
+        chatId = userData.telegram_id;
+      } else {
+        console.log('[NotifyCustomer] No telegram_id found for user:', userId);
+        return;
+      }
+    } catch (err) {
+      console.warn('[NotifyCustomer] Failed to fetch telegram_id for user:', err);
+      return;
+    }
+  }
+
 
   console.log(`[NotifyCustomer] Attempting to send notification to #${orderId} (chatId: ${chatId})...`);
 
   for (let i = 0; i < 3; i++) {
     try {
       const response = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
-        body: { chat_id: chatId, text: msg, parse_mode: 'HTML' } 
+        body: { chat_id: Number(chatId), text: msg, parse_mode: 'HTML' } 
       });
 
       if (response.error) {

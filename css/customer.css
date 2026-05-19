@@ -419,7 +419,13 @@ body{padding-bottom:80px}
   background: var(--teal);
   color: #fff;
   border-color: var(--teal);
-  box-shadow: 0 0 0 4px var(--bg);
+  box-shadow: 0 0 0 4px rgba(90, 179, 196, 0.2);
+  animation: pulseActive 2s infinite;
+}
+@keyframes pulseActive {
+  0% { box-shadow: 0 0 0 0 rgba(90, 179, 196, 0.4); }
+  70% { box-shadow: 0 0 0 8px rgba(90, 179, 196, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(90, 179, 196, 0); }
 }
 .track-node.active div:nth-child(2) {
   color: var(--teal);
@@ -445,5 +451,142 @@ body{padding-bottom:80px}
   margin-bottom: 12px;
   box-shadow: 0 6px 16px rgba(16, 185, 129, 0.15);
 }
+
+/* Premium Status Badges */
+.sbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: var(--radius-full);
+  font-weight: 800;
+  font-size: 0.8rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+}
+.sbadge.sr { /* received */
+  background-color: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+.sbadge.sp { /* printing / pending */
+  background-color: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+.sbadge.sd { /* delivering / ready */
+  background-color: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+.sbadge.sv { /* delivered */
+  background-color: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+.sbadge.sc { /* cancelled */
+  background-color: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+/* Dark Mode support for badges */
+[data-theme="dark"] .sbadge.sr {
+  background-color: rgba(29, 78, 216, 0.15);
+  color: #60a5fa;
+  border-color: rgba(29, 78, 216, 0.3);
+}
+[data-theme="dark"] .sbadge.sp {
+  background-color: rgba(180, 83, 9, 0.15);
+  color: #fbbf24;
+  border-color: rgba(180, 83, 9, 0.3);
+}
+[data-theme="dark"] .sbadge.sd {
+  background-color: rgba(4, 120, 87, 0.15);
+  color: #34d399;
+  border-color: rgba(4, 120, 87, 0.3);
+}
+[data-theme="dark"] .sbadge.sv {
+  background-color: rgba(21, 128, 61, 0.15);
+  color: #4ade80;
+  border-color: rgba(21, 128, 61, 0.3);
+}
+[data-theme="dark"] .sbadge.sc {
+  background-color: rgba(185, 28, 28, 0.15);
+  color: #f87171;
+  border-color: rgba(185, 28, 28, 0.3);
+}
+
+/* Tier badges */
+.tierbadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: var(--radius-full);
+  font-weight: 800;
+  font-size: 0.85rem;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  text-shadow: none;
+}
+.tierbadge.tgold {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  color: #92400e;
+  border: 1px solid #f59e0b;
+}
+.tierbadge.tsilv {
+  background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+  color: #475569;
+  border: 1px solid #cbd5e1;
+}
+.tierbadge.tbron {
+  background: linear-gradient(135deg, #ffedd5, #fed7aa);
+  color: #c2410c;
+  border: 1px solid #ea580c;
+}
+
+/* Loyalty Points History Row */
+.pts-history-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 14px;
+  background: var(--input-bg);
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  border: 1px solid var(--border-soft);
+  transition: all var(--transition-fast);
+}
+.pts-history-row:hover {
+  border-color: var(--teal);
+  transform: translateX(-2px);
+}
+.pts-history-left {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pts-history-id {
+  font-weight: 800;
+  color: var(--navy);
+  font-size: 0.85rem;
+}
+[data-theme="dark"] .pts-history-id {
+  color: var(--teal);
+}
+.pts-history-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+}
+.pts-history-badge {
+  background: var(--light-teal);
+  color: var(--teal);
+  font-weight: 800;
+  font-size: 0.82rem;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  display: inline-block;
+}
+
 
 

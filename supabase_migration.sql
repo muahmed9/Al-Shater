@@ -70,3 +70,17 @@ CREATE POLICY "Allow public read for research_requests"
 ON public.research_requests FOR SELECT 
 TO public 
 USING (true);
+
+DROP POLICY IF EXISTS "Allow public update for research_requests" ON public.research_requests;
+CREATE POLICY "Allow public update for research_requests" 
+ON public.research_requests FOR UPDATE 
+TO public 
+USING (true)
+WITH CHECK (true);
+
+DROP POLICY IF EXISTS "Allow public delete for research_requests" ON public.research_requests;
+CREATE POLICY "Allow public delete for research_requests" 
+ON public.research_requests FOR DELETE 
+TO public 
+USING (true);
+
