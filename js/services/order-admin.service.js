@@ -49,15 +49,19 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
 
   // 🔔 Notify customer via Telegram
   if (order.user_id) {
-    const msg = Config.customerMessage(orderId, toStatus, cancelReason);
+    const { esc } = await import('../core/utils.js');
+    const msg = Config.customerMessage(orderId, toStatus, esc(cancelReason));
     if (msg) {
       // Get chat_id from users table (fallback to user_id if not found/different)
       const { data: userData } = await sb.from(T.USERS).select('telegram_id').eq('id', order.user_id).maybeSingle();
       const chatId = userData?.telegram_id || order.user_id;
       
-      if (chatId && !String(chatId).startsWith('guest_') && !String(chatId).includes('-')) {
-        _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: Number(chatId), text: msg, parse_mode: 'HTML' })
+      const numericChatId = Number(chatId);
+      if (chatId && !isNaN(numericChatId) && !String(chatId).includes('-')) {
+        _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: numericChatId, text: msg, parse_mode: 'HTML' })
           .catch(err => console.warn('Telegram notification failed after retries:', err));
+      } else {
+        console.log('[AdminNotify] Skipped notification - no valid numeric telegram_id for user:', order.user_id);
       }
     }
   }

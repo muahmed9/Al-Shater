@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <style>
     body {
       background-color: #fff;
@@ -283,5 +284,23 @@
     <p>جميع الحقوق محفوظة &copy; 2026 خدمات الشاطر الطلابية</p>
   </footer>
 
+  <script>
+    // Initialize Telegram WebApp to expand the view
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      tg.ready();
+      tg.expand();
+    }
+
+    // Preserve Telegram WebApp hash when navigating
+    document.addEventListener('DOMContentLoaded', () => {
+      const hash = window.location.hash;
+      if (hash && hash.includes('tgWebAppData')) {
+        document.querySelectorAll('a[href="customer.html"]').forEach(a => {
+          a.href = 'customer.html' + hash;
+        });
+      }
+    });
+  </script>
 </body>
 </html>

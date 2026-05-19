@@ -1,7 +1,7 @@
 import { sb }            from '../core/supabase.js';
 import { Config }        from '../core/config.js';
 import { customerState } from '../core/state.js';
-import { sanitize, isValidIraqiPhone, isValidName, withTimeout } from '../core/utils.js';
+import { esc, sanitize, isValidIraqiPhone, isValidName, withTimeout } from '../core/utils.js';
 
 const T = Config.TABLES;
 
@@ -252,26 +252,30 @@ function _buildCartItems(cart, sugCart) {
 }
 
 async function _notifyAdmin(orderId, payload) {
-  let fileList = payload.files_data.map(f => `📄 ${f.name} (${f.pages} ص × ${f.copies})`).join('\n');
-  let cartList = payload.cart_items.map(i => `📦 ${i.name} × ${i.qty}`).join('\n');
+  let fileList = payload.files_data.map(f => `📄 ${esc(f.name)} (${f.pages} ص × ${f.copies})`).join('\n');
+  let cartList = payload.cart_items.map(i => `📦 ${esc(i.name)} × ${i.qty}`).join('\n');
   
   let msg = `🆕 <b>طلب جديد #${orderId}</b>\n\n`;
-  msg += `👤 <b>العميل:</b> ${payload.customer_name}\n`;
-  msg += `📞 <b>الهاتف:</b> ${payload.phone}\n`;
-  msg += `🏠 <b>المنطقة:</b> ${payload.region}\n`;
+  msg += `👤 <b>العميل:</b> ${esc(payload.customer_name)}\n`;
+  msg += `📞 <b>الهاتف:</b> ${esc(payload.phone)}\n`;
+  msg += `🏠 <b>المنطقة:</b> ${esc(payload.region)}\n`;
   if (payload.location_url) msg += `📍 <a href="${payload.location_url}">موقع العميل</a>\n`;
   msg += `\n⚙️ <b>خيارات:</b> ${payload.color === 'c' ? '🌈 ملون' : '⚪ أبيض وأسود'} • ${payload.sides === '2' ? 'وجهين' : 'وجه واحد'} • ${payload.packaging}\n`;
   if (payload.express) msg += `⚡ <b>طلب عاجل</b>\n`;
   
   if (fileList) msg += `\n📂 <b>الملفات:</b>\n${fileList}\n`;
   if (cartList) msg += `\n🛒 <b>القرطاسية:</b>\n${cartList}\n`;
-  if (payload.notes) msg += `\n📝 <b>ملاحظات:</b> ${payload.notes}\n`;
+  if (payload.notes) msg += `\n📝 <b>ملاحظات:</b> ${esc(payload.notes)}\n`;
   
   msg += `\n💰 <b>الإجمالي:</b> ${payload.total?.toLocaleString()} د.ع`;
 
+  const adminChatId = Number(Config.TELEGRAM.ADMIN_TG_ID);
+
   for (let i = 0; i < 3; i++) {
     try {
-      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { body: { chat_id: Config.TELEGRAM.ADMIN_TG_ID, text: msg, parse_mode: 'HTML' } });
+      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
+        body: { chat_id: adminChatId, text: msg, parse_mode: 'HTML' } 
+      });
       if (!error) return;
       if (i === 2) throw error;
     } catch (e) {
@@ -282,55 +286,55 @@ async function _notifyAdmin(orderId, payload) {
 }
 
 async function _notifyCustomer(orderId, userId) {
-  if (!userId || String(userId).startsWith('guest_')) {
-    console.log('[NotifyCustomer] Skipped for guest user:', userId);
-    return;
-  }
+  if (!userId) return;
+  
   const msg = Config.customerMessage(orderId, 'received');
   if (!msg) return;
   
-  let chatId = String(userId).trim();
-  
-  // If the userId is a UUID or non-numeric (fallback check), resolve from users table
-  if (chatId.includes('-') || isNaN(Number(chatId))) {
+  let finalChatId = null;
+  const originalId = String(userId).trim();
+
+  // 1. If originalId is numeric, it's likely a direct Telegram ID
+  if (!isNaN(Number(originalId)) && !originalId.includes('-')) {
+    finalChatId = Number(originalId);
+  } else {
+    // 2. If it's a UUID or Guest ID, we MUST find the telegram_id in the users table
     try {
-      const { data: userData } = await sb.from(Config.TABLES.USERS).select('telegram_id').eq('id', userId).maybeSingle();
-      if (userData?.telegram_id) {
-        chatId = userData.telegram_id;
-      } else {
-        console.log('[NotifyCustomer] No telegram_id found for user:', userId);
-        return;
+      const { data: userData } = await sb.from(Config.TABLES.USERS)
+        .select('telegram_id')
+        .eq('id', originalId)
+        .maybeSingle();
+      
+      if (userData?.telegram_id && !isNaN(Number(userData.telegram_id))) {
+        finalChatId = Number(userData.telegram_id);
       }
     } catch (err) {
-      console.warn('[NotifyCustomer] Failed to fetch telegram_id for user:', err);
-      return;
+      console.error('[NotifyCustomer] Error fetching telegram_id:', err);
     }
   }
 
+  if (!finalChatId) {
+    console.log('[NotifyCustomer] No valid numeric telegram_id found for user:', userId);
+    return;
+  }
 
-  console.log(`[NotifyCustomer] Attempting to send notification to #${orderId} (chatId: ${chatId})...`);
+  console.log(`[NotifyCustomer] Sending to #${orderId} via Telegram ID: ${finalChatId}`);
 
+  // Retry logic for robustness
   for (let i = 0; i < 3; i++) {
     try {
-      const response = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
-        body: { chat_id: Number(chatId), text: msg, parse_mode: 'HTML' } 
+      const { data, error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
+        body: { chat_id: finalChatId, text: msg, parse_mode: 'HTML' } 
       });
 
-      if (response.error) {
-        console.error(`[TG Customer Notify Failed - Attempt ${i+1}] Error:`, response.error);
-        console.error(`[TG Customer Notify Failed - Details]`, {
-          status: response.status,
-          statusText: response.statusText,
-          orderId,
-          chatId
-        });
-        if (i === 2) throw response.error;
+      if (error) {
+        console.error(`[TG Customer Notify Failed - Attempt ${i+1}]`, error);
+        if (i === 2) throw error;
       } else {
-        console.log('[TG Customer Notify Success] Data:', response.data);
+        console.log('[TG Customer Notify Success] Message sent to customer');
         return;
       }
     } catch (e) {
-      console.error(`[TG Customer Notify Exception - Attempt ${i+1}]`, e);
       if (i === 2) console.warn('[TG Customer Notify Final Failure]', e);
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
