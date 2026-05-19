@@ -17,11 +17,6 @@ import { withLoading } from './components/loading-btn.js';
 import { Modal } from './components/modal.js';
 import { QtyControl } from './components/qty-control.js';
 
-const tg = window.Telegram?.WebApp;
-const tgU = tg?.initDataUnsafe?.user;
-tg?.ready();
-tg?.expand();
-
 // Summary bar removed as per user request
 function updateSummaryBar() {
   return;
@@ -151,6 +146,18 @@ function _getFilePreviewHTML(f) {
 
 
 async function init() {
+  const tg = window.Telegram?.WebApp;
+  tg?.ready();
+  tg?.expand();
+  const tgU = tg?.initDataUnsafe?.user;
+
+  if (!tg?.initData) {
+    console.warn('[Telegram] App opened outside of Telegram WebApp context.');
+    setTimeout(() => {
+      showToast('⚠️ أنت تستخدم وضع الزائر. لن تصلك الإشعارات إلا إذا فتحت التطبيق من زر البوت الداخلي.', 'error', 6000);
+    }, 1000);
+  }
+
   const dark = localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER) === 'true';
   applyTheme(dark);
 
