@@ -154,7 +154,7 @@ async function init() {
   if (!tg?.initData) {
     console.warn('[Telegram] App opened outside of Telegram WebApp context.');
     setTimeout(() => {
-      showToast('⚠️ أنت تستخدم وضع الزائر. لن تصلك الإشعارات إلا إذا فتحت التطبيق من زر البوت الداخلي.', 'error', 6000);
+      showToast('⚠️ أنت في وضع الزائر! لن تصلك الإشعارات. يجب إضافة الرابط كـ "Web App" في إعدادات BotFather وليس كرابط عادي.', 'error', 8000);
     }, 1000);
   }
 
@@ -179,10 +179,16 @@ async function init() {
   await authenticateTelegramUser();
 
   // Stable ID for tracking: use Telegram ID if available, otherwise persist a guest ID
-  let userId = tgU?.id ? String(tgU.id) : localStorage.getItem('shater_guest_id');
-  if (!userId) {
-    userId = 'guest_' + Date.now() + Math.random().toString(36).substring(2, 6);
-    localStorage.setItem('shater_guest_id', userId);
+  let userId;
+  if (tgU?.id) {
+    userId = String(tgU.id);
+    localStorage.removeItem('shater_guest_id'); // Clear old guest ID since we have real ID
+  } else {
+    userId = localStorage.getItem('shater_guest_id');
+    if (!userId) {
+      userId = 'guest_' + Date.now() + Math.random().toString(36).substring(2, 6);
+      localStorage.setItem('shater_guest_id', userId);
+    }
   }
 
   customerState.merge('user', { id: userId, name: tgU?.first_name ?? '', username: tgU?.username ?? '' });
