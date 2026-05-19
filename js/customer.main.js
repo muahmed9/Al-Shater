@@ -201,21 +201,27 @@ async function init() {
   try {
     const { data } = await sb.from(Config.TABLES.USERS).select('*').eq('id', userId).maybeSingle();
     if (data) {
-      // Update info if changed in Telegram
-      if (tgU && (data.telegram_id !== String(tgU.id) || data.first_name !== tgU.first_name)) {
+      // User exists — update if Telegram data changed
+      const needsUpdate = tgU && (
+        data.telegram_id !== String(tgU.id) ||
+        data.first_name !== tgU.first_name
+      );
+      
+      if (needsUpdate) {
         const updates = { 
           telegram_id: String(tgU.id), 
           first_name: tgU.first_name, 
           username: tgU.username 
         };
         await sb.from(Config.TABLES.USERS).update(updates).eq('id', userId);
-        // Merge updates into the local 'data' object so it reflects current Telegram info
         Object.assign(data, updates);
       }
+      
       customerState.set('user', { 
         ...data, 
         name: data.first_name, 
-        telegram_id: data.telegram_id || (tgU ? String(tgU.id) : null) 
+        // Ensure telegram_id is properly set in the state
+        telegram_id: tgU ? String(tgU.id) : data.telegram_id 
       });
     } else {
       const newUser = {

@@ -96,7 +96,9 @@ export async function adjustSupplyStock(id, type, qty, note = '') {
   const newStock = Math.max(0, sup.stock + delta);
   const { error } = await sb.from(T.SUPPLIES).update({ stock: newStock }).eq('id', id);
   if (error) throw error;
-  await sb.from(T.SUPPLY_LOG).insert({ supply_id: id, type, qty: Number(qty), note: sanitize(note, 200) });
+  await sb.from(T.SUPPLY_LOG)
+    .insert({ supply_id: id, type, qty: Number(qty), note: sanitize(note, 200) })
+    .catch(e => console.warn('[SupplyLog] Failed to log:', e.message));
 }
 
 export async function fetchSupplyLog(supplyId) {

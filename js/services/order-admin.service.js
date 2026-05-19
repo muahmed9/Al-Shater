@@ -52,16 +52,31 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
     const { esc } = await import('../core/utils.js');
     const msg = Config.customerMessage(orderId, toStatus, esc(cancelReason));
     if (msg) {
-      // Get chat_id from users table (fallback to user_id if not found/different)
-      const { data: userData } = await sb.from(T.USERS).select('telegram_id').eq('id', order.user_id).maybeSingle();
-      const chatId = userData?.telegram_id || order.user_id;
-      
-      const numericChatId = Number(chatId);
-      if (chatId && !isNaN(numericChatId) && !String(chatId).includes('-')) {
-        _retryInvoke(Config.FUNCTIONS.SEND_TG, { chat_id: numericChatId, text: msg, parse_mode: 'HTML' })
-          .catch(err => console.warn('Telegram notification failed after retries:', err));
-      } else {
-        console.log('[AdminNotify] Skipped notification - no valid numeric telegram_id for user:', order.user_id);
+      try {
+        const { data: userData } = await sb.from(T.USERS)
+          .select('telegram_id')
+          .eq('id', order.user_id)
+          .maybeSingle();
+
+        // Priority: telegram_id from users table
+        let chatId = userData?.telegram_id;
+        
+        // Fallback: If user_id itself is a direct Telegram ID number
+        if (!chatId && !isNaN(Number(order.user_id)) && !String(order.user_id).includes('-')) {
+          chatId = order.user_id;
+        }
+
+        if (chatId && !isNaN(Number(chatId))) {
+          _retryInvoke(Config.FUNCTIONS.SEND_TG, { 
+            chat_id: Number(chatId), 
+            text: msg, 
+            parse_mode: 'HTML' 
+          }).catch(err => console.warn('TG notify failed:', err));
+        } else {
+          console.warn('[Notify] No valid telegram_id for user:', order.user_id, '| userData:', userData);
+        }
+      } catch (err) {
+        console.error('[Notify] Error fetching user telegram_id:', err);
       }
     }
   }
@@ -76,6 +91,7 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
 }
 
 async function _retryInvoke(func, body, retries = 3) {
+  console.log('[TG Debug] Attempting to send to chat_id:', body.chat_id);
   for (let i = 0; i < retries; i++) {
     try {
       const { error } = await sb.functions.invoke(func, { body });
