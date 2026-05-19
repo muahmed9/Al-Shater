@@ -90,14 +90,32 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
   }
 }
 
-async function _retryInvoke(func, body, retries = 3) {
-  console.log('[TG Debug] Attempting to send to chat_id:', body.chat_id);
+async function _retryInvoke(funcName, body, retries = 3) {
+  console.log(`[TG Debug] Attempting to invoke ${funcName} for chat_id:`, body.chat_id);
+  
   for (let i = 0; i < retries; i++) {
     try {
-      const { error } = await sb.functions.invoke(func, { body });
-      if (!error) return;
-      if (i === retries - 1) throw error;
+      const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/${funcName}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Config.SUPABASE.ANON_KEY}`,
+          'apikey': Config.SUPABASE.ANON_KEY,
+        },
+        body: JSON.stringify(body)
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[RetryInvoke] Attempt ${i+1} failed with status ${res.status}:`, errText);
+        if (i === retries - 1) throw new Error(`HTTP ${res.status}: ${errText}`);
+      } else {
+        const data = await res.json();
+        console.log(`[RetryInvoke] ✅ Success on attempt ${i+1}:`, data);
+        return data;
+      }
     } catch (e) {
+      console.error(`[RetryInvoke] Attempt ${i+1} exception:`, e.message);
       if (i === retries - 1) throw e;
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }

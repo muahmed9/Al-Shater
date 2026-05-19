@@ -273,13 +273,27 @@ async function _notifyAdmin(orderId, payload) {
 
   for (let i = 0; i < 3; i++) {
     try {
-      const { error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
-        body: { chat_id: adminChatId, text: msg, parse_mode: 'HTML' } 
+      const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/${Config.FUNCTIONS.SEND_TG}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Config.SUPABASE.ANON_KEY}`,
+          'apikey': Config.SUPABASE.ANON_KEY,
+        },
+        body: JSON.stringify({ chat_id: adminChatId, text: msg, parse_mode: 'HTML' })
       });
-      if (!error) return;
-      if (i === 2) throw error;
+
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[TG Admin Notify Failed - Attempt ${i+1}] Status: ${res.status}`, errText);
+        if (i === 2) throw new Error(`HTTP ${res.status}: ${errText}`);
+      } else {
+        console.log('[TG Admin Notify Success]');
+        return;
+      }
     } catch (e) {
-      if (i === 2) console.warn('[TG Admin Notify Failed]', e);
+      console.error(`[TG Admin Notify Exception - Attempt ${i+1}]`, e.message);
+      if (i === 2) console.warn('[TG Admin Notify Final Failure]', e);
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
   }
@@ -320,21 +334,29 @@ async function _notifyCustomer(orderId, userId) {
 
   console.log(`[NotifyCustomer] Sending to #${orderId} via Telegram ID: ${finalChatId}`);
 
-  // Retry logic for robustness
+  // Retry logic for robustness using direct fetch to bypass functions.invoke CORS masking
   for (let i = 0; i < 3; i++) {
     try {
-      const { data, error } = await sb.functions.invoke(Config.FUNCTIONS.SEND_TG, { 
-        body: { chat_id: finalChatId, text: msg, parse_mode: 'HTML' } 
+      const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/${Config.FUNCTIONS.SEND_TG}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Config.SUPABASE.ANON_KEY}`,
+          'apikey': Config.SUPABASE.ANON_KEY,
+        },
+        body: JSON.stringify({ chat_id: finalChatId, text: msg, parse_mode: 'HTML' })
       });
 
-      if (error) {
-        console.error(`[TG Customer Notify Failed - Attempt ${i+1}]`, error);
-        if (i === 2) throw error;
+      if (!res.ok) {
+        const errText = await res.text();
+        console.error(`[TG Customer Notify Failed - Attempt ${i+1}] Status: ${res.status}`, errText);
+        if (i === 2) throw new Error(`HTTP ${res.status}: ${errText}`);
       } else {
         console.log('[TG Customer Notify Success] Message sent to customer');
         return;
       }
     } catch (e) {
+      console.error(`[TG Customer Notify Exception - Attempt ${i+1}]`, e.message);
       if (i === 2) console.warn('[TG Customer Notify Final Failure]', e);
       await new Promise(r => setTimeout(r, 1000 * (i + 1)));
     }
