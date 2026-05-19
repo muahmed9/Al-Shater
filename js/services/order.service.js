@@ -76,7 +76,7 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
     await sb.from(T.COUPONS).update({ used_count: (coupon.used_count ?? 0) + 1 }).eq('id', coupon.id);
   }
   _notifyAdmin(data.id, orderPayload).catch(() => {});
-  _notifyCustomer(data.id, orderPayload.user_id).catch(() => {});
+  _notifyCustomer(data.id, orderPayload).catch(() => {});
   return data.id;
 }
 
@@ -299,11 +299,32 @@ async function _notifyAdmin(orderId, payload) {
   }
 }
 
-async function _notifyCustomer(orderId, userId) {
+async function _notifyCustomer(orderId, payload) {
+  const userId = payload.user_id;
   if (!userId) return;
   
-  const msg = Config.customerMessage(orderId, 'received');
-  if (!msg) return;
+  const shortId = String(orderId).slice(0, 8);
+  let msg = `✨ <b>تم استلام طلبك بنجاح</b> ✨\n\n`;
+  msg += `📦 <b>رقم الطلب:</b> #${shortId}\n`;
+
+  let totalFiles = payload.files_data?.length || 0;
+  let totalPages = payload.files_data?.reduce((sum, f) => sum + (Number(f.pages) * Number(f.copies)), 0) || 0;
+
+  if (totalFiles > 0) {
+    msg += `\n🖨️ <b>تفاصيل الطباعة:</b>\n`;
+    msg += `• عدد الملفات/الصور: ${totalFiles}\n`;
+    if (totalPages > 0) msg += `• مجموع الصفحات: ${totalPages}\n`;
+  }
+
+  if (payload.cart_items?.length > 0) {
+    msg += `\n🛍️ <b>المنتجات والقرطاسية:</b>\n`;
+    payload.cart_items.forEach(item => {
+       msg += `• ${esc(item.name)} (الكمية: ${item.qty})\n`;
+    });
+  }
+
+  msg += `\n💰 <b>السعر الكلي:</b> ${payload.total?.toLocaleString('ar-IQ')} د.ع\n`;
+  msg += `\nشكراً لاختيارك "الشاطر". فريقنا سيبدأ بتجهيز طلبك قريباً جداً. 🚀`;
   
   let finalChatId = null;
   const originalId = String(userId).trim();
