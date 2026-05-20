@@ -680,18 +680,18 @@ async function handleFiles(newFiles) {
   });
   if (!allowed.length) { showToast('❌ نوع الملف غير مدعوم', 'error'); return; }
 
-  const files = [...(customerState.get('files') ?? [])];
-  
   // Show a loading toast if many files
   if (allowed.length > 2) showToast('⏳ جاري معالجة الملفات وحساب الصفحات...', 'info');
 
   for (const f of allowed) {
     const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
     const pages = await processFilePages(f);
-    files.push({ id, name: f.name, size: f.size, pages: pages, copies: 1, file: f });
+    // Get fresh state to prevent race conditions during async operations
+    const currentFiles = [...(customerState.get('files') ?? [])];
+    currentFiles.push({ id, name: f.name, size: f.size, pages: pages, copies: 1, file: f });
+    customerState.set('files', currentFiles);
   }
   
-  customerState.set('files', files);
   renderFileList();
 }
 

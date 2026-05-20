@@ -125,7 +125,7 @@ USING (
 -- 5. جدول الطلبات (orders) — INSERT+SELECT للعامة | UPDATE للموظفين
 -- =====================================================================
 CREATE POLICY "orders_public_insert" 
-ON public.orders FOR INSERT TO public WITH CHECK (true);
+ON public.orders FOR INSERT TO public WITH CHECK (total >= 0 AND subtotal >= 0);
 
 CREATE POLICY "orders_public_read" 
 ON public.orders FOR SELECT TO public USING (true);
@@ -310,3 +310,40 @@ $$ LANGUAGE plpgsql SECURITY DEFINER;
 -- منح صلاحية تنفيذ الدالة للزبائن (anon) والموظفين (authenticated)
 GRANT EXECUTE ON FUNCTION sp_redeem_points(TEXT, INT, INT) TO anon;
 GRANT EXECUTE ON FUNCTION sp_redeem_points(TEXT, INT, INT) TO authenticated;
+
+-- =====================================================================
+-- 14. الحماية المتقدمة لأسعار الطلبات - منع التلاعب
+-- =====================================================================
+CREATE OR REPLACE FUNCTION public.check_order_totals()
+RETURNS trigger AS $$
+BEGIN
+  IF NEW.total < 0 OR NEW.subtotal < 0 THEN
+    RAISE EXCEPTION 'لا يمكن أن يكون الإجمالي أو المجموع الفرعي بالسالب.';
+  END IF;
+
+  -- منع جعل السعر صفر إذا كان هناك منتجات أو ملفات (إلا إذا غطى الخصم المبلغ)
+  IF COALESCE(NEW.discount, 0) = 0 AND NEW.total = 0 AND 
+    (jsonb_array_length(NEW.files_data) > 0 OR jsonb_array_length(NEW.cart_items) > 0) THEN
+    RAISE EXCEPTION 'لا يمكن أن يكون سعر الطلب صفراً بدون خصم صالح.';
+  END IF;
+
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+DROP TRIGGER IF EXISTS trg_check_order_totals ON public.orders;
+CREATE TRIGGER trg_check_order_totals
+BEFORE INSERT OR UPDATE ON public.orders
+FOR EACH ROW
+EXECUTE FUNCTION public.check_order_totals();
+
+-- =====================================================================
+-- 15. تحديث أعمدة جدول طلبات البحوث
+-- =====================================================================
+ALTER TABLE public.research_requests 
+ADD COLUMN IF NOT EXISTS name text,
+ADD COLUMN IF NOT EXISTS phone text,
+ADD COLUMN IF NOT EXISTS subject text,
+ADD COLUMN IF NOT EXISTS type text,
+ADD COLUMN IF NOT EXISTS pages integer,
+ADD COLUMN IF NOT EXISTS deadline timestamp with time zone;

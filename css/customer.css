@@ -590,3 +590,7 @@ body{padding-bottom:80px}
 
 
 
+
+/* === Missing CSS Classes === */
+.pdp-header { display: flex; align-items: center; padding: 15px; background: var(--card); border-bottom: 1px solid var(--border-soft); position: sticky; top: 0; z-index: 10; }
+.pdp-back { border: none; background: var(--input-bg); width: 36px; height: 36px; border-radius: 50%; display: flex; align-items: center; justify-content: center; cursor: pointer; font-size: 1.2rem; margin-left: 10px; color: var(--navy); }
