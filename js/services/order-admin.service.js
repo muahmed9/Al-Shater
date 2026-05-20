@@ -5,6 +5,9 @@ import { canChangeStatus, canSeeStatus } from './auth.service.js';
 
 const T = Config.TABLES;
 
+// Reuse a single Audio instance to prevent memory leaks
+let _notifAudio = null;
+
 export async function fetchAllOrders() {
   const { data, error } = await sb.from(T.ORDERS).select('*').order('created_at', { ascending: false }).limit(300);
   if (error) throw error;
@@ -32,20 +35,8 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
     throw new Error('فشل تحديث حالة الطلب. يرجى المحاولة مرة أخرى.');
   }
 
-  // 🏆 Award Points on Delivery (only if not already delivered before)
-  if (toStatus === 'delivered' && order.user_id) {
-    const alreadyDelivered = (order.status_history ?? []).some(h => h.status === 'delivered' && h.at !== updateData.updated_at);
-    if (!alreadyDelivered) {
-      const awardedPoints = Math.floor((order.total || 0) / 1000);
-      if (awardedPoints > 0) {
-        // Fetch current points to increment
-        const { data: userProfile } = await sb.from(T.USERS).select('loyalty_points').eq('id', order.user_id).single();
-        const newPoints = (userProfile?.loyalty_points || 0) + awardedPoints;
-        await sb.from(T.USERS).update({ loyalty_points: newPoints }).eq('id', order.user_id);
-        console.log(`✅ Awarded ${awardedPoints} points to user ${order.user_id}`);
-      }
-    }
-  }
+  // 🏆 Points are now awarded automatically via database Trigger (award_loyalty_points_on_delivery)
+  // when order status changes to 'delivered'. No client-side update needed.
 
   // 🔔 Notify customer via Telegram
   if (order.user_id) {
@@ -149,11 +140,14 @@ export function subscribeToOrders(onNewOrder, onStatusChange) {
       const orders = adminState.get('allOrders') ?? [];
       adminState.set('allOrders', [order, ...orders]);
       
-      // Play notification sound if possible
+      // Play notification sound (reuse single instance to prevent memory leaks)
       try {
-        const audio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
-        audio.volume = 0.5;
-        audio.play().catch(() => {});
+        if (!_notifAudio) {
+          _notifAudio = new Audio('https://assets.mixkit.co/active_storage/sfx/2869/2869-preview.mp3');
+          _notifAudio.volume = 0.5;
+        }
+        _notifAudio.currentTime = 0;
+        _notifAudio.play().catch(() => {});
       } catch (e) {}
 
       onNewOrder?.(order);

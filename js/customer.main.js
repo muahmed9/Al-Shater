@@ -1611,9 +1611,12 @@ async function redeemPts(pts, discount) {
   const user = customerState.get('user');
   if ((user?.loyalty_points ?? 0) < pts) { showToast('نقاطك غير كافية', 'error'); return; }
   try {
-    await sb.from(Config.TABLES.USERS)
-      .update({ loyalty_points: (user.loyalty_points ?? 0) - pts })
-      .eq('id', user.id);
+    const { error } = await sb.rpc('sp_redeem_points', {
+      p_user_id: user.id,
+      p_points: pts,
+      p_discount: discount
+    });
+    if (error) throw error;
     customerState.merge('user', { loyalty_points: (user.loyalty_points ?? 0) - pts });
     refreshPtsUI();
     const banner = document.getElementById('redeembanner');

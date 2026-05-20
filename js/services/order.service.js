@@ -64,11 +64,16 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
   customerState.set('lastOrderTime', Date.now());
   customerState.set('lastOrderId',   data.id);
 
-  // Update Points if used
+  // Redeem Points via secure RPC (prevents client-side manipulation)
   if (totals.pointsUsed > 0) {
+    const { error: rpcErr } = await sb.rpc('sp_redeem_points', {
+      p_user_id: user.id,
+      p_points: totals.pointsUsed,
+      p_discount: Math.round(totals.pointsUsed * 10)
+    });
+    if (rpcErr) console.warn('[Points RPC] Failed:', rpcErr.message);
+    // Update local state for immediate UI feedback
     const newPoints = Math.max(0, (user.loyalty_points ?? 0) - totals.pointsUsed);
-    await sb.from(T.USERS).update({ loyalty_points: newPoints }).eq('id', user.id);
-    // Update local state to reflect new points immediately
     customerState.set('user', { ...user, loyalty_points: newPoints });
   }
 
