@@ -99,3 +99,27 @@
 .status-cancelled { background: #fee2e2; color: #b91c1c; }
 
 .category-badge { padding: 2px 6px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 700; }
+
+/* Responsive Grid Layouts for Desktop/Tablet Viewports */
+@media (min-width: 769px) {
+  #olist {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+  
+  #products-list-admin {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 16px;
+    align-items: start;
+  }
+
+  #staff-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 12px;
+    align-items: start;
+  }
+}

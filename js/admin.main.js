@@ -588,7 +588,8 @@ function renderResearch() {
   const statusLabels = {
     pending: '🕐 معلق',
     in_progress: '⚙️ قيد العمل',
-    completed: '✅ مكتمل'
+    completed: '✅ مكتمل',
+    cancelled: '❌ ملغى'
   };
 
   listContainer.innerHTML = `
@@ -635,6 +636,7 @@ function renderResearch() {
                   <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>🕐 معلق</option>
                   <option value="in_progress" ${r.status === 'in_progress' ? 'selected' : ''}>⚙️ قيد العمل</option>
                   <option value="completed" ${r.status === 'completed' ? 'selected' : ''}>✅ مكتمل</option>
+                  <option value="cancelled" ${r.status === 'cancelled' ? 'selected' : ''}>❌ ملغى</option>
                 </select>
               </td>
             </tr>
@@ -684,14 +686,45 @@ function bindResearchFilters() {
 
       // إرسال إشعار تيليجرام للزبون بالتحديث الجديد
       const request = list.find(r => r.id == rid);
-      if (request && request.user_id) {
-        const { data: userData } = await sb
-          .from('users')
-          .select('telegram_id')
-          .eq('id', request.user_id)
-          .maybeSingle();
+      if (request) {
+        let chatId = null;
 
-        let chatId = userData?.telegram_id;
+        // 1. مسار أول: البحث بـ user_id في جدول المستخدمين
+        if (request.user_id) {
+          try {
+            const { data: userData } = await sb
+              .from('users')
+              .select('telegram_id')
+              .eq('id', request.user_id)
+              .maybeSingle();
+
+            if (userData?.telegram_id && !isNaN(Number(userData.telegram_id))) {
+              chatId = userData.telegram_id;
+            }
+          } catch (err) {
+            console.error('[TG Research Notify] Error fetching user_id:', err);
+          }
+        }
+
+        // 2. مسار ثانٍ: البحث برقم الهاتف كبديل آمن ومضمون
+        if (!chatId && request.phone) {
+          try {
+            const cleanPhone = String(request.phone).trim();
+            const { data: userData } = await sb
+              .from('users')
+              .select('telegram_id')
+              .eq('phone', cleanPhone)
+              .maybeSingle();
+
+            if (userData?.telegram_id && !isNaN(Number(userData.telegram_id))) {
+              chatId = userData.telegram_id;
+            }
+          } catch (err) {
+            console.error('[TG Research Notify] Error fetching by phone:', err);
+          }
+        }
+
+        // 3. مسار ثالث: التحقق إذا كان المعرّف نفسه هو الرقم المباشر لتيليجرام
         if (!chatId && !isNaN(Number(request.user_id)) && !String(request.user_id).includes('-')) {
           chatId = request.user_id;
         }
@@ -700,23 +733,28 @@ function bindResearchFilters() {
           const statusLabels = {
             pending: 'معلق 🕐',
             in_progress: 'قيد العمل ⚙️',
-            completed: 'مكتمل ✅'
+            completed: 'مكتمل ✅',
+            cancelled: 'ملغى ❌'
           };
           
           let msg = `✨ <b>تحديث طلب البحث من الشاطر</b> ✨\n\n`;
           msg += `📚 <b>نوع الطلب:</b> ${request.type}\n`;
           msg += `📖 <b>الموضوع:</b> ${request.subject}\n\n`;
           msg += `🚦 <b>تم تحديث الحالة إلى:</b> ${statusLabels[newStatus] || newStatus}\n\n`;
+          
           if (newStatus === 'in_progress') {
             msg += `👨‍💻 فريقنا بدأ العمل على بحثك الأكاديمي وسنحرص على تقديمه بأعلى جودة وفي الوقت المحدد.`;
           } else if (newStatus === 'completed') {
             msg += `🎉 خبر سعيد! تم الانتهاء من إعداد بحثك بالكامل وأصبح جاهزاً للتسليم. سنقوم بالتواصل معك لتسليمه.`;
+          } else if (newStatus === 'cancelled') {
+            msg += `⚠️ نعتذر منك، تم إلغاء طلب البحث الخاص بك. يرجى التواصل معنا للاستفسار عن التفاصيل.`;
           } else {
             msg += `🕐 طلبك الآن معلق بانتظار المراجعة، سنتواصل معك قريباً لمناقشة التفاصيل.`;
           }
           msg += `\n\nشكراً لاختيارك "الشاطر". 🚀`;
 
           const sendNotification = async () => {
+            console.log(`[TG Research Notify] Attempting delivery to Telegram ID: ${chatId}`);
             for (let i = 0; i < 3; i++) {
               try {
                 const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/send-tg`, {
@@ -732,17 +770,25 @@ function bindResearchFilters() {
                     parse_mode: 'HTML'
                   })
                 });
-                if (res.ok) {
-                  console.log('[TG Research Notify Success]');
+
+                if (!res.ok) {
+                  const errText = await res.text();
+                  console.error(`[TG Research Notify Failed - Attempt ${i+1}] Status: ${res.status}`, errText);
+                  if (i === 2) throw new Error(`HTTP ${res.status}: ${errText}`);
+                } else {
+                  console.log('[TG Research Notify Success] Message sent successfully');
                   break;
                 }
               } catch (e) {
-                console.error('[TG Research Notify Attempt failed]', e);
+                console.error(`[TG Research Notify Exception - Attempt ${i+1}]`, e.message);
+                if (i === 2) throw e;
                 await new Promise(r => setTimeout(r, 1000 * (i + 1)));
               }
             }
           };
           sendNotification().catch(() => {});
+        } else {
+          console.warn('[TG Research Notify] Could not resolve a valid Telegram ID for user:', request.user_id, 'or phone:', request.phone);
         }
       }
     } catch (e) {
