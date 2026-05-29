@@ -48,7 +48,11 @@ export async function authenticateTelegramUser() {
       `${Config.SUPABASE.URL}/functions/v1/telegram-auth`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${Config.SUPABASE.ANON_KEY}`,
+          'apikey': Config.SUPABASE.ANON_KEY
+        },
         body: JSON.stringify({ initData }),
         signal: controller.signal
       }
