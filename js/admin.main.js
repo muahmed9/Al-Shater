@@ -681,6 +681,70 @@ function bindResearchFilters() {
       const updated = list.map(r => r.id == rid ? { ...r, status: newStatus } : r);
       adminState.set('allResearch', updated);
       renderResearch();
+
+      // إرسال إشعار تيليجرام للزبون بالتحديث الجديد
+      const request = list.find(r => r.id == rid);
+      if (request && request.user_id) {
+        const { data: userData } = await sb
+          .from('users')
+          .select('telegram_id')
+          .eq('id', request.user_id)
+          .maybeSingle();
+
+        let chatId = userData?.telegram_id;
+        if (!chatId && !isNaN(Number(request.user_id)) && !String(request.user_id).includes('-')) {
+          chatId = request.user_id;
+        }
+
+        if (chatId && !isNaN(Number(chatId))) {
+          const statusLabels = {
+            pending: 'معلق 🕐',
+            in_progress: 'قيد العمل ⚙️',
+            completed: 'مكتمل ✅'
+          };
+          
+          let msg = `✨ <b>تحديث طلب البحث من الشاطر</b> ✨\n\n`;
+          msg += `📚 <b>نوع الطلب:</b> ${request.type}\n`;
+          msg += `📖 <b>الموضوع:</b> ${request.subject}\n\n`;
+          msg += `🚦 <b>تم تحديث الحالة إلى:</b> ${statusLabels[newStatus] || newStatus}\n\n`;
+          if (newStatus === 'in_progress') {
+            msg += `👨‍💻 فريقنا بدأ العمل على بحثك الأكاديمي وسنحرص على تقديمه بأعلى جودة وفي الوقت المحدد.`;
+          } else if (newStatus === 'completed') {
+            msg += `🎉 خبر سعيد! تم الانتهاء من إعداد بحثك بالكامل وأصبح جاهزاً للتسليم. سنقوم بالتواصل معك لتسليمه.`;
+          } else {
+            msg += `🕐 طلبك الآن معلق بانتظار المراجعة، سنتواصل معك قريباً لمناقشة التفاصيل.`;
+          }
+          msg += `\n\nشكراً لاختيارك "الشاطر". 🚀`;
+
+          const sendNotification = async () => {
+            for (let i = 0; i < 3; i++) {
+              try {
+                const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/send-tg`, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${Config.SUPABASE.ANON_KEY}`,
+                    'apikey': Config.SUPABASE.ANON_KEY,
+                  },
+                  body: JSON.stringify({
+                    chat_id: Number(chatId),
+                    text: msg,
+                    parse_mode: 'HTML'
+                  })
+                });
+                if (res.ok) {
+                  console.log('[TG Research Notify Success]');
+                  break;
+                }
+              } catch (e) {
+                console.error('[TG Research Notify Attempt failed]', e);
+                await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+              }
+            }
+          };
+          sendNotification().catch(() => {});
+        }
+      }
     } catch (e) {
       showToast('❌ تعذر التحديث: ' + e.message, 'error');
     }
