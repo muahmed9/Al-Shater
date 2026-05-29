@@ -41,6 +41,7 @@ export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelRea
   // 🔔 Notify customer via Telegram
   if (order.user_id) {
     const { esc } = await import('../core/utils.js');
+    const shortId = String(orderId).slice(0, 8);
     const msg = Config.customerMessage(orderId, toStatus, esc(cancelReason));
     if (msg) {
       try {
@@ -107,8 +108,12 @@ async function _retryInvoke(funcName, body, retries = 3) {
       }
     } catch (e) {
       console.error(`[RetryInvoke] Attempt ${i+1} exception:`, e.message);
-      if (i === retries - 1) throw e;
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      if (i === retries - 1) {
+        console.warn('[AdminNotify] فشل الإشعار — الطلب محفوظ:', e.message);
+        // لا throw — الإشعار يفشل بصمت
+      } else {
+        await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+      }
     }
   }
 }

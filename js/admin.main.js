@@ -46,7 +46,16 @@ function bindLoginForm() {
   });
 }
 
+let _loginAttempts = 0
+let _loginBlockedUntil = 0
+
 async function handleLogin() {
+  if (Date.now() < _loginBlockedUntil) {
+    const remaining = Math.ceil((_loginBlockedUntil - Date.now()) / 1000)
+    showToast(`⏳ انتظر ${remaining} ثانية قبل المحاولة مجدداً`, 'error')
+    return
+  }
+
   const userEl = document.getElementById('adm-user');
   const passEl = document.getElementById('adm-pass');
   const errEl = document.getElementById('loginerr');
@@ -57,7 +66,14 @@ async function handleLogin() {
   try {
     await adminLogin(email, pass);
     enterDashboard();
+    _loginAttempts = 0
   } catch (e) {
+    _loginAttempts++
+    if (_loginAttempts >= 5) {
+      _loginBlockedUntil = Date.now() + 30_000
+      _loginAttempts = 0
+      showToast('⚠️ تم تجاوز عدد المحاولات. انتظر 30 ثانية.', 'error')
+    }
     if (errEl) {
       errEl.textContent = '❌ ' + e.message;
       errEl.style.display = 'block';

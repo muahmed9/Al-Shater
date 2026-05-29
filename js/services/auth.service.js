@@ -35,13 +35,35 @@ export async function adminLogout() {
 }
 
 export async function authenticateTelegramUser() {
-  const tg = window.Telegram?.WebApp;
-  const initData = tg?.initData;
-  if (!initData) { console.info('[auth] وضع ضيف'); return false; }
-  
-  // The telegram-auth Edge Function is missing CORS headers on Supabase.
-  // We bypass it here to prevent the red CORS console error, as we already extract the user data locally.
-  return true;
+  const tg = window.Telegram?.WebApp
+  const initData = tg?.initData
+  if (!initData) {
+    console.info('[auth] وضع ضيف — بدون Telegram initData')
+    return false
+  }
+  try {
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), 8000)
+    const res = await fetch(
+      `${Config.SUPABASE.URL}/functions/v1/telegram-auth`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData }),
+        signal: controller.signal
+      }
+    )
+    clearTimeout(timeout)
+    if (!res.ok) throw new Error(`فشل التحقق: ${res.status}`)
+    const { access_token, refresh_token } = await res.json()
+    const { error } = await sb.auth.setSession({ access_token, refresh_token })
+    if (error) throw error
+    console.log('[auth] ✅ Telegram auth ناجح')
+    return true
+  } catch (e) {
+    console.warn('[auth] فشل المصادقة:', e.message)
+    return false
+  }
 }
 
 export function canChangeStatus(fromStatus, toStatus) {

@@ -166,6 +166,11 @@ async function init() {
   }
   applyTheme(dark);
 
+  const authOk = await authenticateTelegramUser()
+  if (!authOk && tg?.initData) {
+    showToast('⚠️ تعذّر التحقق من هويتك. بعض الميزات قد لا تعمل.', 'error', 8000)
+  }
+
   // Telegram Back Button
   if (tg) {
     tg.BackButton.onClick(() => {
@@ -209,8 +214,6 @@ async function init() {
   bindSuccessOverlay();
   bindHomeTrackingCard();
   Modal.init();
-
-  await authenticateTelegramUser();
 
   // Stable ID for tracking: use Telegram ID if available, otherwise persist a guest ID
   let userId;
@@ -1219,6 +1222,18 @@ function updateInvoice() {
 
 
 
+async function uploadWithRetry(file, userId, onProgress, maxRetries = 2) {
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    try {
+      return await uploadFile(file.file, userId, onProgress)
+    } catch (err) {
+      if (attempt === maxRetries) throw err
+      await new Promise(r => setTimeout(r, 1500 * (attempt + 1)))
+      showToast(`⚠️ إعادة رفع ${file.name} (${attempt + 1}/${maxRetries})...`, 'info')
+    }
+  }
+}
+
 async function sendOrder() {
   const errEl = document.getElementById('errbox');
   errEl.style.display = 'none';
@@ -1239,7 +1254,7 @@ async function sendOrder() {
         stxt.textContent = `جاري رفع ${f.name} (${i + 1}/${files.length})...`;
         pbar.style.width = `${((i) / files.length) * 100}%`;
         try {
-          const url = await uploadFile(f.file, userId, pct => {
+          const url = await uploadWithRetry(f, userId, pct => {
             pbar.style.width = `${((i + pct / 100) / files.length) * 100}%`;
           });
           f.uploadedUrl = url;
@@ -2214,26 +2229,33 @@ function handleRealtimeUpdate(item, isResearch = false) {
   }
 }
 
-window.addEventListener('online', () => {
-  const b = document.getElementById('conn-badge');
-  if (!b) return;
-  b.className = 'online';
-  b.innerHTML = '✅ عاد الاتصال';
-  b.style.display = 'block';
-  window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
-  setTimeout(() => { b.style.display = 'none'; }, 3000);
-  const currentTab = document.querySelector('.tab.active')?.id?.replace('tab-', '');
-  if (currentTab === 'orders') loadOrders();
-  if (currentTab === 'market') loadMktProducts();
-});
+window.addEventListener('online', async () => {
+  const b = document.getElementById('conn-badge')
+  if (b) {
+    b.className = 'online'
+    b.innerHTML = '✅ عاد الاتصال'
+    b.style.display = 'block'
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success')
+    setTimeout(() => { b.style.display = 'none' }, 3000)
+  }
+  try {
+    const { data: { session } } = await sb.auth.getSession()
+    if (!session) await authenticateTelegramUser()
+  } catch {}
+  const tab = document.querySelector('.tab.active')?.id?.replace('tab-', '')
+  if (tab === 'orders') loadOrders()
+  if (tab === 'market') loadMktProducts()
+})
+
 window.addEventListener('offline', () => {
-  const b = document.getElementById('conn-badge');
-  if (!b) return;
-  b.className = 'offline';
-  b.innerHTML = '📡 لا يوجد اتصال';
-  b.style.display = 'block';
-  window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
-});
+  const b = document.getElementById('conn-badge')
+  if (b) {
+    b.className = 'offline'
+    b.innerHTML = '📡 لا يوجد اتصال'
+    b.style.display = 'block'
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning')
+  }
+})
 
 function bindLaunchpad() {
   // 1. Printing Portal
