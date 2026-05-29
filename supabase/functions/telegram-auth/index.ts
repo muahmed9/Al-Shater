@@ -36,7 +36,7 @@ Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   try {
     const { initData } = await req.json()
-    const botToken = Deno.env.get('BOT_TOKEN')!
+    const botToken = Deno.env.get('TELEGRAM_BOT_TOKEN') || Deno.env.get('BOT_TOKEN')!
     const verified = await verifyTelegram(initData, botToken)
     if (!verified) return new Response(
       JSON.stringify({ error: 'توقيع Telegram غير صحيح' }),
