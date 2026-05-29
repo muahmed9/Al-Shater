@@ -194,6 +194,13 @@ async function init() {
       }
     });
 
+    tg.MainButton.onClick(() => {
+      const currentTab = document.querySelector('.tab.active')?.id?.replace('tab-', '');
+      if (currentTab === 'order' && stepper?.current === 4) {
+        withLoading('sendbtn', sendOrder);
+      }
+    });
+
     customerState.subscribe('currentStep', step => {
       step > 1 ? tg.BackButton.show() : tg.BackButton.hide();
     });
@@ -704,7 +711,6 @@ function bindStepper() {
       if (step === 4) {
         tg.MainButton.setText('🚀 تأكيد وإرسال الطلب');
         tg.MainButton.show();
-        tg.MainButton.onClick(() => withLoading('sendbtn', sendOrder));
       } else {
         tg.MainButton.hide();
       }
@@ -1319,6 +1325,7 @@ async function sendOrder() {
     document.getElementById('success-order-status').textContent = 'مستلم 📥';
     updateSuccessTracking('received');
     document.getElementById('success-overlay').classList.add('open');
+    window.Telegram?.WebApp?.MainButton?.hide();
     
     // Refresh orders in background
     loadOrders();
@@ -1556,6 +1563,7 @@ async function checkoutMarket() {
     document.getElementById('success-order-status').textContent = 'مستلم 📥';
     updateSuccessTracking('received');
     document.getElementById('success-overlay').classList.add('open');
+    window.Telegram?.WebApp?.MainButton?.hide();
 
     await loadOrders();
   } catch (e) {
