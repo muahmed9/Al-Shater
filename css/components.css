@@ -74,4 +74,11 @@
   #conn-badge {
     right: calc(50% - 280px) !important;
   }
+  #toast {
+    left: 50% !important;
+    transform: translateX(-50%) translateY(20px) !important;
+  }
+  #toast.show {
+    transform: translateX(-50%) translateY(0) !important;
+  }
 }

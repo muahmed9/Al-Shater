@@ -15,7 +15,9 @@
   --gold:         #f59e0b;
   --blue:         #2563eb;
   --bg:           #f4f7f9;
-  --html-bg:      #e2e8f0;
+  --html-bg:      #c9d5e0;
+  --light-orange: rgba(232, 107, 36, 0.08);
+  --teal-soft:    rgba(90, 179, 196, 0.25);
   --card:         #ffffff;
   --input-bg:     #f8fafc;
   --light-teal:   #eef9fa;
@@ -106,7 +108,9 @@
   --gold:         #fbbf24;
   --blue:         #60a5fa;
   --bg:           #0b0f19; /* Cyber midnight dark background */
-  --html-bg:      #05070c;
+  --html-bg:      #020305; /* Deep ambient midnight */
+  --light-orange: rgba(251, 146, 60, 0.1);
+  --teal-soft:    rgba(45, 212, 191, 0.2);
   --card:         #151f32; /* high premium card background */
   --input-bg:     #1e293b;
   --light-teal:   rgba(45, 212, 191, 0.08);

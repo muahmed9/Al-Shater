@@ -1,4 +1,4 @@
-body{padding-bottom:100px}
+body{padding-bottom:120px}
 .bottom-nav {
   position: fixed;
   bottom: 16px;
@@ -1032,4 +1032,51 @@ body{padding-bottom:100px}
 .portal-market {
   background: var(--light-orange);
   color: var(--orange);
+}
+
+/* ==========================================
+   Desktop Fixed-Layout Sync (600px Frame)
+   Centers ALL fixed elements within the
+   app frame on wide screens.
+   ========================================== */
+@media (min-width: 601px) {
+  /* --- Floating Bottom Nav Dock --- */
+  .bottom-nav {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    max-width: 536px;
+  }
+
+  /* --- Sheet Overlays (Order Details, Cart) --- */
+  .shov .sheet {
+    max-width: 560px;
+  }
+
+  /* --- Toast Notification --- */
+  #toast {
+    max-width: 480px;
+  }
+
+  /* --- Product Detail Page --- */
+  #product-detail-page {
+    max-width: 600px;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  /* --- Modal Overlays (Rating, Success) --- */
+  .modal-overlay .modal-box {
+    max-width: 460px;
+  }
+
+  /* --- Tab Content Safe Margins --- */
+  .tab {
+    padding-left: 20px;
+    padding-right: 20px;
+  }
+
+  /* --- Launchpad Dashboard Extra Breathing --- */
+  .launchpad-container {
+    padding: 20px 4px;
+  }
 }
