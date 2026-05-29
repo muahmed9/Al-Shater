@@ -296,6 +296,9 @@ async function init() {
   refreshPtsUI();
   startRealtime(userId);
 
+  customerState.subscribe('files', updatePrintBadge);
+  updatePrintBadge(customerState.get('files') ?? []);
+
   // Bind Launchpad transitions and buttons
   bindLaunchpad();
 
@@ -1414,6 +1417,27 @@ function updateCartBadge() {
   if (fab) fab.style.display = count > 0 ? 'flex' : 'none';
 }
 
+function updatePrintBadge(files) {
+  const count = (files ?? []).length;
+  const badge = document.getElementById('print-badge');
+  if (badge) {
+    badge.textContent = count || '';
+    badge.style.display = count > 0 ? '' : 'none';
+  }
+  const banner = document.getElementById('pending-files-banner');
+  const bannerText = document.getElementById('pending-files-banner-text');
+  if (banner) {
+    if (count > 0) {
+      banner.style.display = 'flex';
+      if (bannerText) {
+        bannerText.textContent = `اضغط هنا لمتابعة إرسال ${count} ملف/صورة معلقة.`;
+      }
+    } else {
+      banner.style.display = 'none';
+    }
+  }
+}
+
 function updateUnifiedCart() {
   const cart = customerState.get('cart') ?? [];
   const sugCart = customerState.get('suggestedCart') ?? {};
@@ -2241,6 +2265,20 @@ function bindLaunchpad() {
   document.getElementById('btn-exit-print-wizard')?.addEventListener('click', () => {
     document.getElementById('print-wizard-container').style.display = 'none';
     document.getElementById('launchpad-dashboard').style.display = 'block';
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 6. Back buttons to launchpad across tabs
+  document.querySelectorAll('.btn-back-to-launchpad').forEach(btn => {
+    btn.addEventListener('click', () => {
+      goTab('order');
+    });
+  });
+
+  // 7. Click pending files banner to open print wizard
+  document.getElementById('pending-files-banner')?.addEventListener('click', () => {
+    document.getElementById('launchpad-dashboard').style.display = 'none';
+    document.getElementById('print-wizard-container').style.display = 'block';
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
   });
 }
