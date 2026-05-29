@@ -590,7 +590,7 @@ function bindSuccessOverlay() {
 
   document.getElementById('success-close')?.addEventListener('click', () => {
     document.getElementById('success-overlay').classList.remove('open');
-    goTab('home');
+    goTab('order');
   });
 
   document.getElementById('success-refresh-status')?.addEventListener('click', async () => {
@@ -656,6 +656,9 @@ function goTab(t) {
     const printWizard = document.getElementById('print-wizard-container');
     if (dashboard) dashboard.style.display = 'block';
     if (printWizard) printWizard.style.display = 'none';
+  } else {
+    // Hide Telegram MainButton when navigating away from the order tab
+    window.Telegram?.WebApp?.MainButton?.hide();
   }
 
   // انتقال الخروج

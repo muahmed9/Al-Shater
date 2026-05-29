@@ -17,7 +17,13 @@ export class Stepper {
   prev() { if (this.#currentStep > 1) this.#goTo(this.#currentStep - 1); }
   goTo(step) { if (step >= 1 && step < this.#currentStep) this.#goTo(step); }
   get current() { return this.#currentStep; }
-  reset() { this.#currentStep = 1; customerState.set('currentStep', 1); this.render(); window.scrollTo({ top: 0, behavior: 'smooth' }); }
+  reset() {
+    this.#currentStep = 1;
+    customerState.set('currentStep', 1);
+    this.render();
+    this.#onStepChange?.(1);
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
   renderHeader() {
     document.querySelectorAll('.step-item').forEach((item, i) => {
       const step = i + 1;
