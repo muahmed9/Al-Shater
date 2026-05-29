@@ -235,11 +235,14 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   const afterDisc   = Math.max(0, subtotal - discount);
   const deliveryFee = afterDisc >= P.delivery_free_threshold ? 0 : P.delivery_fee;
   
+  const rawTotal     = afterDisc + deliveryFee;
+  const roundedTotal = Math.round(rawTotal / 250) * 250;
+  
   return { 
     subtotal, 
     discount, 
     deliveryFee, 
-    total: afterDisc + deliveryFee,
+    total: roundedTotal,
     pointsUsed: usePoints ? Math.round(pointsSaving / 10) : 0,
     printSubtotal,
     cartSubtotal
