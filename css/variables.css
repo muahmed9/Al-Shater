@@ -1,30 +1,42 @@
-@import url('https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Tajawal:wght@300;400;500;700;800;900&display=swap');
 
 :root {
-  --glass-bg:    rgba(255, 255, 255, 0.7);
-  --glass-bd:    rgba(255, 255, 255, 0.4);
-  --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.07);
-  --glass-blur:   blur(12px);
+  --glass-bg:     rgba(255, 255, 255, 0.65);
+  --glass-bd:     rgba(255, 255, 255, 0.45);
+  --glass-shadow: 0 12px 40px rgba(13, 59, 102, 0.08);
+  --glass-blur:   blur(20px);
 
-  --navy:        #0d3b66;
-  --teal:        #5ab3c4;
-  --orange:      #e86b24;
-  --express:     #9333ea;
-  --green:       #10b981;
-  --red:         #ef4444;
-  --gold:        #f59e0b;
-  --blue:        #2563eb;
-  --bg:          #f4f7f9;
-  --card:        #ffffff;
-  --input-bg:    #f8fafc;
-  --light-teal:  #eef9fa;
-  --inv-bg:      #0d3b66;
-  --text-main:   #1e293b;
-  --text-muted:  #64748b;
-  --border:      rgba(0,0,0,0.05);
-  --border-soft: #e2e8f0;
-  --shadow:      rgba(13,59,102,0.08);
-  --shadow-md:   rgba(13,59,102,0.12);
+  --navy:         #0d3b66;
+  --teal:         #5ab3c4;
+  --orange:       #e86b24;
+  --express:      #9333ea;
+  --green:        #10b981;
+  --red:          #ef4444;
+  --gold:         #f59e0b;
+  --blue:         #2563eb;
+  --bg:           #f4f7f9;
+  --html-bg:      #e2e8f0;
+  --card:         #ffffff;
+  --input-bg:     #f8fafc;
+  --light-teal:   #eef9fa;
+  --inv-bg:       #0d3b66;
+  --text-main:    #1e293b;
+  --text-muted:   #64748b;
+  --border:       rgba(0,0,0,0.05);
+  --border-soft:  #e2e8f0;
+  --shadow:       rgba(13,59,102,0.08);
+  --shadow-md:    rgba(13,59,102,0.12);
+
+  /* Neo-Gradients & Glow tokens */
+  --grad-primary:    linear-gradient(135deg, #e86b24 0%, #ff8c42 100%);
+  --grad-secondary:  linear-gradient(135deg, #5ab3c4 0%, #38bdf8 100%);
+  --grad-cyber:      linear-gradient(135deg, #9333ea 0%, #d946ef 100%);
+  --grad-success:    linear-gradient(135deg, #10b981 0%, #34d399 100%);
+  --grad-navy:       linear-gradient(135deg, #0d3b66 0%, #1e3a8a 100%);
+
+  --glow-primary:    0 0 15px rgba(232, 107, 36, 0.35);
+  --glow-secondary:  0 0 15px rgba(90, 179, 196, 0.35);
+  --glow-cyber:      0 0 15px rgba(147, 51, 234, 0.35);
   --status-received-bg:   #dbeafe;
   --status-received-fg:   #1e40af;
   --status-printing-bg:   #fef9c3;
@@ -76,38 +88,47 @@
   --sidebar-text:            rgba(255,255,255,0.75);
   --sidebar-text-active:     #ffffff;
   --sidebar-border:          rgba(255,255,255,0.07);
+  --navy-soft: #e0e7ff;
 }
 
 [data-theme="dark"] {
-  --glass-bg:    rgba(30, 41, 59, 0.7);
-  --glass-bd:    rgba(255, 255, 255, 0.08);
-  --glass-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
-  --glass-blur:   blur(16px);
+  --glass-bg:     rgba(15, 23, 42, 0.7);
+  --glass-bd:     rgba(255, 255, 255, 0.05);
+  --glass-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+  --glass-blur:   blur(20px);
 
-  --navy:        #60b4f0;
-  --teal:        #5ab3c4;
-  --orange:      #ff8c42;
-  --green:       #34d399;
-  --red:         #f87171;
-  --bg:          #0f172a;
-  --card:        #1e293b;
-  --input-bg:    #273549;
-  --light-teal:  rgba(90,179,196,0.12);
-  --inv-bg:      #0a1628;
-  --text-main:   #e2e8f0;
-  --text-muted:  #94a3b8;
-  --border:      rgba(255,255,255,0.07);
-  --border-soft: #334155;
-  --shadow:      rgba(0,0,0,0.35);
-  --shadow-md:   rgba(0,0,0,0.5);
-  --status-received-bg:   rgba(37,99,235,0.25);   --status-received-fg:   #93c5fd;
-  --status-printing-bg:   rgba(161,98,7,0.25);    --status-printing-fg:   #fde047;
-  --status-delivering-bg: rgba(194,65,12,0.2);    --status-delivering-fg: #fdba74;
-  --status-delivered-bg:  rgba(22,101,52,0.2);    --status-delivered-fg:  #86efac;
-  --status-delivered-bd:  rgba(134,239,172,0.25);
-  --status-cancelled-bg:  rgba(153,27,27,0.2);    --status-cancelled-fg:  #fca5a5;
+  --navy:         #38bdf8; /* cyber cyan */
+  --teal:         #2dd4bf; /* neon teal */
+  --orange:       #fb923c; /* neon orange */
+  --express:      #a855f7;
+  --green:        #4ade80;
+  --red:          #f87171;
+  --gold:         #fbbf24;
+  --blue:         #60a5fa;
+  --bg:           #0b0f19; /* Cyber midnight dark background */
+  --html-bg:      #05070c;
+  --card:         #151f32; /* high premium card background */
+  --input-bg:     #1e293b;
+  --light-teal:   rgba(45, 212, 191, 0.08);
+  --inv-bg:       #080c14;
+  --text-main:    #f8fafc;
+  --text-muted:   #94a3b8;
+  --border:       rgba(255,255,255,0.05);
+  --border-soft:  #1e293b;
+  --shadow:       rgba(0,0,0,0.5);
+  --shadow-md:    rgba(0,0,0,0.7);
+
+  --glow-primary:    0 0 15px rgba(251, 146, 60, 0.4);
+  --glow-secondary:  0 0 15px rgba(45, 212, 191, 0.4);
+  --glow-cyber:      0 0 15px rgba(168, 85, 247, 0.4);
+
+  --status-received-bg:   rgba(37,99,235,0.2);    --status-received-fg:   #93c5fd;
+  --status-printing-bg:   rgba(161,98,7,0.2);     --status-printing-fg:   #fde047;
+  --status-delivering-bg: rgba(194,65,12,0.15);   --status-delivering-fg: #fdba74;
+  --status-delivered-bg:  rgba(22,101,52,0.15);   --status-delivered-fg:  #86efac;
+  --status-delivered-bd:  rgba(134,239,172,0.2);
+  --status-cancelled-bg:  rgba(153,27,27,0.15);   --status-cancelled-fg:  #fca5a5;
   --sidebar-bg:    #080f1e;
   --topbar-bg:     #0d2a45;
+  --navy-soft:     #1e293b;
 }
-
-  --navy-soft: #e0e7ff;

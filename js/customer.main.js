@@ -113,7 +113,7 @@ async function processFilePages(f) {
 
 function _getFilePreviewHTML(f) {
   const ext = f.name.split('.').pop().toLowerCase();
-  const badge = `<span class="file-preview-badge">${ext.toUpperCase()}</span>`;
+  const badge = `<span class="file-preview-badge file-badge-${ext}">${ext.toUpperCase()}</span>`;
 
   if (['jpg', 'jpeg', 'png', 'webp'].includes(ext) && f.file) {
     const url = URL.createObjectURL(f.file);

@@ -90,8 +90,7 @@
   </div>
 
   <!-- صفحة تفاصيل المنتج -->
-  <div id="product-detail-page"
-    style="display:none;position:fixed;inset:0;background:var(--bg);z-index:250;overflow-y:auto;">
+  <div id="product-detail-page">
     <div class="pdp-header">
       <button id="pdp-back" class="pdp-back">←</button>
       <span id="pdp-title" style="font-weight:800;font-size:1rem;flex:1;">تفاصيل المنتج</span>
@@ -203,7 +202,7 @@
       </div>
     </div>
 
-    <div class="stepper-wrap">
+    <div class="stepper-wrap" data-current-step="1">
       <div class="stepper-header" id="stepper-header">
         <div class="step-item active" data-step="1">
           <div class="step-circle">1</div><span class="step-label">الملفات</span>
