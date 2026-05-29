@@ -825,13 +825,19 @@ function renderFileList() {
   // Restore Counters Summary Box
   const sumBox = document.getElementById('upload-summary-box');
   if (files.length && sumBox) {
-    let imgs = 0, pages = 0;
+    let docFilesCount = 0;
+    let imgs = 0;
+    let pages = 0;
     files.forEach(f => {
       const ext = f.name.split('.').pop().toLowerCase();
-      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) { imgs++; pages += (f.copies ?? 1); }
-      else { pages += (f.pages ?? 1) * (f.copies ?? 1); }
+      if (['jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+        imgs += (f.copies ?? 1);
+      } else {
+        docFilesCount++;
+        pages += (f.pages ?? 1) * (f.copies ?? 1);
+      }
     });
-    document.getElementById('s1-tot-files').textContent = files.length;
+    document.getElementById('s1-tot-files').textContent = docFilesCount;
     document.getElementById('s1-tot-imgs').textContent = imgs;
     document.getElementById('s1-tot-pages').textContent = pages;
     sumBox.style.display = 'block';
