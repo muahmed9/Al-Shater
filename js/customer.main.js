@@ -436,12 +436,14 @@ function updateHomeOrderTrackingCard(order) {
   const card = document.getElementById('home-order-tracking-card');
   const stepper = document.querySelector('.stepper-wrap');
   const activeBanner = document.getElementById('home-active-order-banner');
+  const stepPanels = document.querySelectorAll('.step-panel');
 
   if (!card || !stepper) return;
 
   if (!order || customerState.get('hideHomeTracking') === true) {
     card.style.display = 'none';
     stepper.style.display = 'block';
+    stepPanels.forEach(p => p.style.display = ''); // Restore normal stylesheet controls
     if (order && activeBanner) {
       activeBanner.style.display = 'block';
     } else if (activeBanner) {
@@ -452,6 +454,7 @@ function updateHomeOrderTrackingCard(order) {
 
   card.style.display = 'block';
   stepper.style.display = 'none';
+  stepPanels.forEach(p => p.style.display = 'none'); // Hide all active wizard panels under tracking card
   if (activeBanner) activeBanner.style.display = 'none';
 
   const orderIdShort = order.id.length > 8 ? order.id.slice(0, 8) : order.id;
