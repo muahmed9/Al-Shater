@@ -34,6 +34,89 @@ input:focus,textarea:focus,select:focus{border-color:var(--teal);background:var(
 .error-box.visible{display:block}
 @keyframes skeleton-pulse{0%,100%{opacity:1}50%{opacity:.4}}
 .skeleton{background:var(--border-soft);border-radius:var(--radius-sm);animation:skeleton-pulse 1.5s ease-in-out infinite}
+
+/* ═══════════════════════════════════════
+   Skeleton Loader System
+   ═══════════════════════════════════════ */
+.skel {
+  background: linear-gradient(
+    90deg,
+    var(--input-bg) 25%,
+    var(--border-soft) 50%,
+    var(--input-bg) 75%
+  );
+  background-size: 200% 100%;
+  animation: skel-wave 1.4s ease-in-out infinite;
+  border-radius: var(--radius-sm);
+}
+@keyframes skel-wave {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+.skel-card {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 18px;
+  margin-bottom: 14px;
+}
+.skel-line { height: 14px; margin-bottom: 8px; }
+.skel-line.short  { width: 40%; }
+.skel-line.medium { width: 65%; }
+.skel-line.full   { width: 100%; }
+.skel-avatar { width: 44px; height: 44px; border-radius: 50%; flex-shrink: 0; }
+.skel-product-card {
+  background: var(--card);
+  border: 1px solid var(--border-soft);
+  border-radius: var(--radius-lg);
+  padding: 12px;
+  overflow: hidden;
+}
+
+/* ═══════════════════════════════════════
+   Empty States
+   ═══════════════════════════════════════ */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  animation: fadeInUp var(--transition-slow) ease;
+}
+.empty-state-icon {
+  font-size: 3.5rem;
+  opacity: 0.35;
+  margin-bottom: 14px;
+  display: block;
+}
+.empty-state-title {
+  color: var(--navy);
+  font-weight: 800;
+  font-size: 1.05rem;
+  margin: 0 0 6px;
+}
+.empty-state-sub {
+  color: var(--text-muted);
+  font-size: .85rem;
+  margin: 0 0 18px;
+  line-height: 1.6;
+  max-width: 240px;
+}
+.empty-state-btn {
+  background: var(--navy);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-md);
+  padding: 11px 24px;
+  font-weight: 800;
+  font-family: var(--font-main);
+  cursor: pointer;
+  font-size: .9rem;
+  transition: opacity var(--transition-fast);
+}
+.empty-state-btn:hover { opacity: .85; }
 @keyframes fadeInUp{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
 @keyframes popIn{0%{opacity:0;transform:scale(.88)}80%{transform:scale(1.03)}100%{opacity:1;transform:scale(1)}}
 @keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}

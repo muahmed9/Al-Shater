@@ -32,6 +32,8 @@ export class QtyControl {
       const delta = btn.classList.contains('qty-dec') ? -1 : +1;
       const next = Math.min(Math.max(cur + delta, min), max);
       valEl.textContent = next;
+      valEl.classList.add('bump');
+      setTimeout(() => valEl.classList.remove('bump'), 200);
       wrap.querySelector('.qty-dec').disabled = next <= min;
       wrap.querySelector('.qty-inc').disabled = next >= max;
       onAdjust(id, delta, next);

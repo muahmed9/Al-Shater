@@ -11,4 +11,7 @@ export function showToast(message, type = 'info', duration = Config.APP.TOAST_DU
   el.classList.add('show');
   clearTimeout(_toastTimer);
   _toastTimer = setTimeout(() => el.classList.remove('show'), duration);
+  // Haptic feedback للأخطاء والنجاح
+  if (type === 'error') window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+  if (type === 'success') window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
 }

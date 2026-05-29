@@ -42,7 +42,16 @@ export class Stepper {
     customerState.set('currentStep', step);
     this.render();
     this.#onStepChange?.(step);
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    // Set data attribute for CSS progress line
+    document.querySelector('.stepper-wrap')?.setAttribute('data-current-step', step);
+    // Smooth scroll to stepper header
+    const stepperHeader = document.querySelector('.stepper-wrap');
+    if (stepperHeader) {
+      const top = stepperHeader.getBoundingClientRect().top + window.scrollY - 10;
+      window.scrollTo({ top, behavior: 'smooth' });
+    } else {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   }
   #validate(step) { const fn = this.#validators[step]; if (!fn) return true; return fn() ?? true; }
 }

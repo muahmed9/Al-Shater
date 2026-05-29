@@ -5,7 +5,7 @@
 
 import { Config } from './core/config.js';
 import { adminState } from './core/state.js';
-import { esc, debounce, formatPrice, formatDate } from './core/utils.js';
+import { esc, debounce, formatPrice, formatDate, renderSkeletonResearch, renderSkeletonOrders, friendlyError } from './core/utils.js';
 import { adminLogin, checkExistingSession, adminLogout, canChangeStatus, isManager, hasPermission } from './services/auth.service.js';
 import { fetchAllOrders, changeOrderStatus, getFilteredOrders, subscribeToOrders } from './services/order-admin.service.js';
 import { savePricing, loadPricing, fetchAllProducts, saveProduct, deleteProduct, adjustProductStock, fetchSupplies, saveSupply, adjustSupplyStock } from './services/market.service.js';
@@ -241,7 +241,7 @@ function navigateTo(page) {
   if (titleEl) titleEl.textContent = titles[page] ?? page;
   sidebar?.setActive(page);
 
-  if (page === 'orders') { fetchAllOrders().then(renderOrders); }
+  if (page === 'orders') { document.getElementById('olist').innerHTML = renderSkeletonOrders(4); fetchAllOrders().then(renderOrders); }
   if (page === 'research') { loadResearchPage(); }
   if (page === 'market') { loadMarketPage(); }
   if (page === 'supplies') { loadSuppliesPage(); }
@@ -352,12 +352,23 @@ function buildActionBtns(o) {
 }
 
 async function changeStatus(orderId, from, to) {
+  const card = document.querySelector(`.order-card[data-oid="${orderId}"]`);
+  if (card) {
+    card.style.opacity = '0.6';
+    card.style.pointerEvents = 'none';
+    card.style.transition = 'opacity 0.2s';
+  }
   try {
     await changeOrderStatus(orderId, from, to);
     renderOrders();
     playAlert(to);
-    showToast(`✅ تم تغيير الحالة إلى ${Config.ORDER_STATUSES[to]?.label ?? to}`, 'success');
-  } catch (e) { showToast('❌ ' + e.message, 'error'); }
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+    showToast(`✅ تم التحديث إلى ${Config.ORDER_STATUSES[to]?.label ?? to}`, 'success');
+  } catch (e) {
+    if (card) { card.style.opacity = ''; card.style.pointerEvents = ''; }
+    showToast('❌ ' + friendlyError(e.message), 'error');
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+  }
 }
 
 function openOrderDetail(orderId) {
@@ -524,7 +535,7 @@ async function loadResearchPage() {
 
   const listContainer = document.getElementById('res-list');
   if (listContainer) {
-    listContainer.innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">⏳ جاري تحميل طلبات البحوث...</div>';
+    listContainer.innerHTML = renderSkeletonResearch(5);
   }
 
   try {

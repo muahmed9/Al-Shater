@@ -6,7 +6,7 @@
 import { sb } from './core/supabase.js';
 import { Config } from './core/config.js';
 import { customerState } from './core/state.js';
-import { esc, debounce, isValidIraqiPhone, isValidName, formatPrice } from './core/utils.js';
+import { esc, debounce, isValidIraqiPhone, isValidName, formatPrice, renderSkeletonOrders, renderSkeletonProducts, renderEmptyState, friendlyError } from './core/utils.js';
 import { authenticateTelegramUser } from './services/auth.service.js';
 import { submitOrder, fetchUserOrders, validateCoupon, calcOrderTotals } from './services/order.service.js';
 import { uploadFile } from './services/upload.service.js';
@@ -158,14 +158,48 @@ async function init() {
     }, 1000);
   }
 
-  const dark = localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER) === 'true';
+  // تطبيق الوضع الليلي تلقائياً إذا كان Telegram في الوضع الليلي
+  let dark = localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER) === 'true';
+  if (tg?.colorScheme === 'dark' && !localStorage.getItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER)) {
+    dark = true;
+    localStorage.setItem(Config.APP.STORAGE_KEYS.DARK_MODE_CUSTOMER, 'true');
+  }
   applyTheme(dark);
+
+  // Telegram Back Button
+  if (tg) {
+    tg.BackButton.onClick(() => {
+      const currentTab = document.querySelector('.tab.active')?.id?.replace('tab-', '');
+      const successOpen = document.getElementById('success-overlay')?.classList.contains('open');
+      const detOpen = document.getElementById('det-ov')?.classList.contains('open');
+      const cartOpen = document.getElementById('cart-drawer')?.classList.contains('open');
+
+      if (successOpen) {
+        document.getElementById('success-overlay').classList.remove('open');
+      } else if (detOpen) {
+        document.getElementById('det-ov').classList.remove('open');
+      } else if (cartOpen) {
+        document.getElementById('cart-drawer').classList.remove('open');
+      } else if (stepper?.current > 1) {
+        stepper.prev();
+      } else if (currentTab && currentTab !== 'order') {
+        goTab('order');
+      } else {
+        tg.BackButton.hide();
+      }
+    });
+
+    customerState.subscribe('currentStep', step => {
+      step > 1 ? tg.BackButton.show() : tg.BackButton.hide();
+    });
+  }
 
   bindNav();
   bindStepper();
   bindUpload();
   bindPrintOptions();
   bindOrderForm();
+  bindPhoneFields();
   bindCart();
   bindMarket();
   bindOrders();
@@ -601,13 +635,35 @@ function bindNav() {
 }
 
 function goTab(t) {
-  document.querySelectorAll('.tab').forEach(x => x.classList.remove('active'));
+  const currentTab = document.querySelector('.tab.active');
+
+  // انتقال الخروج
+  if (currentTab && currentTab.id !== 'tab-' + t) {
+    currentTab.classList.add('tab-exit');
+    setTimeout(() => {
+      currentTab.classList.remove('active', 'tab-exit');
+      currentTab.style.display = 'none';
+    }, 180);
+  }
+
+  // انتقال الدخول
+  const targetTab = document.getElementById('tab-' + t);
+  if (targetTab) {
+    targetTab.style.display = 'block';
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => targetTab.classList.add('active'));
+    });
+  }
+
   document.querySelectorAll('.nav-btn').forEach(x => x.classList.remove('active'));
-  document.getElementById('tab-' + t)?.classList.add('active');
   document.getElementById('nav-' + t)?.classList.add('active');
+
   if (t === 'orders') loadOrders();
   if (t === 'points') loadPtsTab();
   if (t === 'market') { const p = customerState.get('mktProducts'); if (!p?.length) loadMktProducts(); }
+
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
 }
 
 
@@ -617,6 +673,18 @@ function bindStepper() {
     updateSummaryBar();
     if (step === 3) updateStep3Summary();
     if (step === 4) updateInvoice();
+
+    // Telegram Main Button في الخطوة الأخيرة
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
+      if (step === 4) {
+        tg.MainButton.setText('🚀 تأكيد وإرسال الطلب');
+        tg.MainButton.show();
+        tg.MainButton.onClick(() => withLoading('sendbtn', sendOrder));
+      } else {
+        tg.MainButton.hide();
+      }
+    }
   });
 
   stepper.setValidator(1, () => {
@@ -678,28 +746,50 @@ async function handleFiles(newFiles) {
     const ext = f.name.split('.').pop().toLowerCase();
     return ['pdf', 'doc', 'docx', 'xls', 'xlsx', 'ppt', 'pptx', 'jpg', 'jpeg', 'png', 'webp'].includes(ext);
   });
-  if (!allowed.length) { showToast('❌ نوع الملف غير مدعوم', 'error'); return; }
+  if (!allowed.length) { showToast('❌ نوع الملف غير مدعوم', 'error'); window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error'); return; }
 
-  // Show a loading toast if many files
-  if (allowed.length > 2) showToast('⏳ جاري معالجة الملفات وحساب الصفحات...', 'info');
+  // مؤشر معالجة فوري في منطقة الرفع
+  const zone = document.getElementById('upload-zone');
+  const originalHTML = zone.innerHTML;
+  zone.innerHTML = `
+    <span class="upload-zone-icon" style="animation:spin .7s linear infinite;display:inline-block;">⚙️</span>
+    <span style="font-size:1rem;font-weight:700;color:var(--navy);">جاري قراءة الملفات...</span>
+    <p style="font-size:.82rem;margin:6px 0 0;color:var(--teal);">0 / ${allowed.length} ملف</p>`;
+  zone.style.pointerEvents = 'none';
 
-  for (const f of allowed) {
+  for (let idx = 0; idx < allowed.length; idx++) {
+    const f = allowed[idx];
+    zone.querySelector('p').textContent = `${idx + 1} / ${allowed.length} ملف`;
     const id = 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
     const pages = await processFilePages(f);
-    // Get fresh state to prevent race conditions during async operations
     const currentFiles = [...(customerState.get('files') ?? [])];
     currentFiles.push({ id, name: f.name, size: f.size, pages: pages, copies: 1, file: f });
     customerState.set('files', currentFiles);
   }
-  
+
+  zone.innerHTML = originalHTML;
+  zone.style.pointerEvents = '';
   renderFileList();
+  if (allowed.length > 1) showToast(`✅ تمت إضافة ${allowed.length} ملفات`, 'success');
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
 }
 
 
 function removeFile(id) {
-  const files = (customerState.get('files') ?? []).filter(f => f.id !== id);
-  customerState.set('files', files);
-  renderFileList();
+  const card = document.getElementById('fc-' + id);
+  if (card) {
+    card.classList.add('removing');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('soft');
+    setTimeout(() => {
+      const files = (customerState.get('files') ?? []).filter(f => f.id !== id);
+      customerState.set('files', files);
+      renderFileList();
+    }, 280);
+  } else {
+    const files = (customerState.get('files') ?? []).filter(f => f.id !== id);
+    customerState.set('files', files);
+    renderFileList();
+  }
 }
 
 function adjustFileCopies(id, delta) {
@@ -955,6 +1045,33 @@ function bindOrderForm() {
   });
 }
 
+function bindPhoneFields() {
+  const phoneFields = ['uPhone', 'res-phone', 'cart-phone'];
+  phoneFields.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    el.addEventListener('input', e => {
+      const cleaned = e.target.value.replace(/\D/g, '').slice(0, 11);
+      e.target.value = cleaned;
+      if (cleaned.length === 0) {
+        el.style.borderColor = '';
+      } else if (/^07[0-9]{9}$/.test(cleaned)) {
+        el.style.borderColor = 'var(--green)';
+      } else if (cleaned.length >= 3 && !cleaned.startsWith('07')) {
+        el.style.borderColor = 'var(--red)';
+      } else {
+        el.style.borderColor = 'var(--orange)';
+      }
+    });
+    el.addEventListener('blur', e => {
+      if (e.target.value && !/^07[0-9]{9}$/.test(e.target.value)) {
+        showToast('❌ رقم الهاتف يجب أن يبدأ بـ 07 ويكون 11 رقماً', 'error');
+        window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
+      }
+    });
+  });
+}
+
 async function applyCoupon() {
   const code = document.getElementById('couponInput').value.trim();
   const msgEl = document.getElementById('coupon-msg');
@@ -1163,13 +1280,22 @@ async function sendOrder() {
     
     // Refresh orders in background
     loadOrders();
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
   } catch (e) {
     const pcon = document.getElementById('pcon');
     const stxt = document.getElementById('statustxt');
     pcon.style.display = 'none';
     stxt.style.display = 'none';
-    errEl.textContent = '❌ ' + e.message;
+    errEl.innerHTML = `
+      <div style="display:flex;align-items:flex-start;gap:10px;">
+        <span style="font-size:1.3rem;flex-shrink:0;">❌</span>
+        <div>
+          <b style="display:block;margin-bottom:4px;">حدث خطأ</b>
+          <span style="font-weight:500;">${friendlyError(e.message)}</span>
+        </div>
+      </div>`;
     errEl.style.display = 'block';
+    window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('error');
   }
 }
 
@@ -1217,6 +1343,7 @@ function addToCart(product) {
   updateCartBadge();
   updateUnifiedCart();
   showToast('✅ أُضيف للسلة', 'success');
+  window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
 }
 
 function renderCart() {
@@ -1383,12 +1510,21 @@ async function bindMarket() {
 }
 
 async function loadMktProducts() {
+  const grid = document.getElementById('mkt-products-grid');
+  grid.style.display = 'grid';
+  grid.innerHTML = renderSkeletonProducts(4);
   try {
     const products = await fetchActiveProducts();
     customerState.set('mktProducts', products);
     filterMktProducts();
   } catch (e) {
-    document.getElementById('mkt-products-grid').innerHTML = `<div style="grid-column:span 2;text-align:center;padding:40px;color:var(--red);">❌ ${esc(e.message)}</div>`;
+    grid.innerHTML = renderEmptyState({
+      icon: '📡',
+      title: 'تعذّر تحميل المنتجات',
+      subtitle: friendlyError(e.message),
+      btnText: '🔄 إعادة المحاولة',
+      btnAction: 'this.closest(".empty-state").remove(); loadMktProducts()'
+    });
   }
 }
 
@@ -1405,7 +1541,13 @@ function filterMktProducts() {
 
   const grid = document.getElementById('mkt-products-grid');
   if (!filtered.length) {
-    grid.innerHTML = '<div style="grid-column:span 2;text-align:center;padding:40px;color:#94a3b8;"><p>لا توجد منتجات</p></div>';
+    grid.innerHTML = renderEmptyState({
+      icon: '🛒',
+      title: 'لا توجد منتجات',
+      subtitle: 'جرب تغيير الفلتر أو البحث بكلمة أخرى',
+      btnText: 'عرض الكل',
+      btnAction: `document.querySelector('#mkt-cat-bar .filter-tab').click()`
+    });
     return;
   }
 
@@ -1448,7 +1590,7 @@ async function loadOrders() {
   if (!user?.id) return;
 
   const box = document.getElementById('ordersbox');
-  box.innerHTML = '<div style="text-align:center;padding:40px;color:#94a3b8;">⏳</div>';
+  box.innerHTML = renderSkeletonOrders(3);
 
   try {
     const orders = await fetchUserOrders(user.id);
@@ -1456,11 +1598,14 @@ async function loadOrders() {
     renderOrders();
   } catch (err) { 
     console.error('[loadOrders Error]', err);
-    box.innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">
-      <p>❌ تعذّر تحميل الطلبات</p>
-      <p style="font-size:0.75rem;opacity:0.7;margin-top:8px;">${esc(err.message)}</p>
-      <button onclick="location.reload()" style="margin-top:12px;background:var(--navy);color:#fff;border:none;padding:8px 16px;border-radius:8px;">إعادة المحاولة</button>
-    </div>`; 
+    box.innerHTML = `
+      <div class="empty-state">
+        <span class="empty-state-icon">📡</span>
+        <h3 class="empty-state-title">تعذّر تحميل الطلبات</h3>
+        <p class="empty-state-sub">${friendlyError(err.message)}</p>
+        <button class="empty-state-btn" id="retry-orders-btn">🔄 إعادة المحاولة</button>
+      </div>`;
+    document.getElementById('retry-orders-btn')?.addEventListener('click', loadOrders);
   }
 }
 
@@ -1507,18 +1652,24 @@ function renderOrders() {
   }
 
   if (!filtered.length) {
-    box.innerHTML = '<div style="text-align:center;padding:60px;color:#94a3b8;"><div style="font-size:4rem;opacity:.4;">📦</div><p>لا توجد طلبات</p></div>';
+    box.innerHTML = renderEmptyState({
+      icon: '📦',
+      title: 'لا توجد طلبات بعد',
+      subtitle: 'ابدأ طلبك الأول الآن وسنوصله إليك بأسرع وقت!',
+      btnText: '➕ إنشاء طلب جديد',
+      btnAction: `document.getElementById('nav-order')?.click()`
+    });
     return;
   }
 
   const statusMap = Config.ORDER_STATUSES;
-  box.innerHTML = filtered.map(o => {
+  box.innerHTML = filtered.map((o, idx) => {
     const s = statusMap[o.status] ?? { label: o.status, css: 'sr', icon: '📦' };
     const filesCount = o.files_data?.length ?? 0;
     const cartCount = o.cart_items?.length ?? 0;
     const typeLabel = filesCount && cartCount ? '🔀 مشترك' : filesCount ? '🖨️ استنساخ' : '📦 قرطاسية';
     return `
-      <div class="ocard" data-oid="${esc(o.id)}">
+      <div class="ocard" data-oid="${esc(o.id)}" style="animation-delay:${idx * 45}ms;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
           <div>
             <b style="color:var(--navy);font-size:.9rem;">#${esc(o.id.slice(0, 8))}</b>
@@ -1805,16 +1956,17 @@ async function submitResearch() {
 // ═══════════════════════════════════════
 async function loadSuggestedProducts() {
   try {
+    const list = document.getElementById('suggested-products-list');
+    if (list) list.innerHTML = renderSkeletonProducts(2);
+
     const { fetchActiveProducts } = await import('./services/market.service.js');
     const products = await fetchActiveProducts();
     const suggested = products.filter(p => p.is_suggested);
-    if (!suggested.length) return;
+    if (!suggested.length) { if (list) list.innerHTML = ''; return; }
 
     customerState.set('suggestedProducts', suggested);
     const section = document.getElementById('suggested-products-section');
     section.style.display = 'block';
-
-    const list = document.getElementById('suggested-products-list');
     list.innerHTML = suggested.map(p => {
       const hasDiscount = p.discount && p.discount > 0;
       const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
@@ -1894,7 +2046,25 @@ function startRealtime(userId) {
   } catch { }
 }
 
-window.addEventListener('online', () => { const b = document.getElementById('conn-badge'); b.className = 'online'; b.textContent = '✅ اتصال يعمل'; setTimeout(() => b.className = '', 3000); });
-window.addEventListener('offline', () => { const b = document.getElementById('conn-badge'); b.className = 'offline'; b.textContent = '❌ لا يوجد اتصال'; });
+window.addEventListener('online', () => {
+  const b = document.getElementById('conn-badge');
+  if (!b) return;
+  b.className = 'online';
+  b.innerHTML = '✅ عاد الاتصال';
+  b.style.display = 'block';
+  window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('success');
+  setTimeout(() => { b.style.display = 'none'; }, 3000);
+  const currentTab = document.querySelector('.tab.active')?.id?.replace('tab-', '');
+  if (currentTab === 'orders') loadOrders();
+  if (currentTab === 'market') loadMktProducts();
+});
+window.addEventListener('offline', () => {
+  const b = document.getElementById('conn-badge');
+  if (!b) return;
+  b.className = 'offline';
+  b.innerHTML = '📡 لا يوجد اتصال';
+  b.style.display = 'block';
+  window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
+});
 
 init().catch(console.error);

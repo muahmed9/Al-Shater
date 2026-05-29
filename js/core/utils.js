@@ -80,3 +80,81 @@ export function withTimeout(promise, ms, errorMsg = 'انتهت مهلة الط�
     timeoutPromise
   ]).finally(() => clearTimeout(timer));
 }
+
+// ═══════════════════════════════════════
+//  Skeleton Loaders
+// ═══════════════════════════════════════
+export function renderSkeletonOrders(count = 4) {
+  return Array.from({ length: count }, () => `
+    <div class="skel-card">
+      <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
+        <div class="skel skel-line" style="width:120px;"></div>
+        <div class="skel skel-line" style="width:80px;height:22px;border-radius:var(--radius-full);"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+        <div class="skel skel-line full"></div>
+        <div class="skel skel-line full"></div>
+        <div class="skel skel-line medium"></div>
+        <div class="skel skel-line short"></div>
+      </div>
+      <div class="skel skel-line" style="width:100px;height:10px;"></div>
+    </div>`).join('');
+}
+
+export function renderSkeletonProducts(count = 4) {
+  return Array.from({ length: count }, () => `
+    <div class="skel-product-card">
+      <div class="skel" style="width:100%;height:130px;border-radius:var(--radius-md);margin-bottom:10px;"></div>
+      <div class="skel skel-line medium" style="margin-bottom:8px;"></div>
+      <div class="skel skel-line short" style="height:18px;margin-bottom:10px;"></div>
+      <div class="skel" style="width:100%;height:38px;border-radius:var(--radius-md);"></div>
+    </div>`).join('');
+}
+
+export function renderSkeletonResearch(count = 3) {
+  return `<div style="overflow-x:auto;">
+    <table style="width:100%;border-collapse:collapse;">
+      ${Array.from({ length: count }, () => `
+        <tr style="border-bottom:1px solid var(--border-soft);">
+          ${Array.from({ length: 7 }, () => `<td style="padding:14px 10px;"><div class="skel skel-line" style="width:80%;"></div></td>`).join('')}
+        </tr>`).join('')}
+    </table>
+  </div>`;
+}
+
+// ═══════════════════════════════════════
+//  Empty State
+// ═══════════════════════════════════════
+export function renderEmptyState({ icon, title, subtitle, btnText, btnAction }) {
+  return `
+    <div class="empty-state">
+      <span class="empty-state-icon">${icon}</span>
+      <h3 class="empty-state-title">${title}</h3>
+      ${subtitle ? `<p class="empty-state-sub">${subtitle}</p>` : ''}
+      ${btnText ? `<button class="empty-state-btn" onclick="${btnAction}">${btnText}</button>` : ''}
+    </div>`;
+}
+
+// ═══════════════════════════════════════
+//  Friendly Error Messages
+// ═══════════════════════════════════════
+export function friendlyError(rawMessage) {
+  const map = {
+    'Failed to fetch': 'تحقق من اتصالك بالإنترنت وأعد المحاولة',
+    'NetworkError': 'حدث خطأ في الاتصال. يرجى المحاولة مرة أخرى',
+    'duplicate key value': 'هذا الطلب موجود بالفعل',
+    'violates unique constraint': 'البيانات موجودة مسبقاً',
+    'JWT expired': 'انتهت جلستك، يرجى إعادة فتح التطبيق',
+    'row-level security': 'ليس لديك صلاحية لإجراء هذه العملية',
+    'timeout': 'انتهت مهلة الاتصال، يرجى المحاولة مرة أخرى',
+    'storage/object-not-found': 'الملف غير موجود',
+    'Payload too large': 'حجم الملف كبير جداً (الحد الأقصى 50MB)',
+  };
+  for (const [key, val] of Object.entries(map)) {
+    if (rawMessage?.toLowerCase().includes(key.toLowerCase())) return val;
+  }
+  if (rawMessage?.includes('ERROR:') || rawMessage?.includes('error:')) {
+    return 'حدث خطأ. يرجى المحاولة مرة أخرى أو التواصل معنا';
+  }
+  return rawMessage ?? 'حدث خطأ غير متوقع';
+}
