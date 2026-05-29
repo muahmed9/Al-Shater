@@ -96,7 +96,7 @@
 .status-pending { background: #fef3c7; color: #d97706; }
 .status-in_progress { background: #e0e7ff; color: #4338ca; }
 .status-completed, .status-delivered { background: #dcfce7; color: #15803d; }
-.status-cancelled { background: #fee2e2; color: #b91c1c; }
+.status-cancelled, .status-rejected { background: #fee2e2; color: #b91c1c; }
 
 .category-badge { padding: 2px 6px; border-radius: var(--radius-sm); font-size: 0.72rem; font-weight: 700; }
 

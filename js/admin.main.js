@@ -589,7 +589,8 @@ function renderResearch() {
     pending: '🕐 معلق',
     in_progress: '⚙️ قيد العمل',
     completed: '✅ مكتمل',
-    cancelled: '❌ ملغى'
+    cancelled: '❌ ملغى',
+    rejected: '❌ مرفوض'
   };
 
   listContainer.innerHTML = `
@@ -636,6 +637,7 @@ function renderResearch() {
                   <option value="pending" ${r.status === 'pending' ? 'selected' : ''}>🕐 معلق</option>
                   <option value="in_progress" ${r.status === 'in_progress' ? 'selected' : ''}>⚙️ قيد العمل</option>
                   <option value="completed" ${r.status === 'completed' ? 'selected' : ''}>✅ مكتمل</option>
+                  <option value="rejected" ${r.status === 'rejected' ? 'selected' : ''}>❌ مرفوض</option>
                   <option value="cancelled" ${r.status === 'cancelled' ? 'selected' : ''}>❌ ملغى</option>
                 </select>
               </td>
@@ -734,7 +736,8 @@ function bindResearchFilters() {
             pending: 'معلق 🕐',
             in_progress: 'قيد العمل ⚙️',
             completed: 'مكتمل ✅',
-            cancelled: 'ملغى ❌'
+            cancelled: 'ملغى ❌',
+            rejected: 'مرفوض ❌'
           };
           
           let msg = `✨ <b>تحديث طلب البحث من الشاطر</b> ✨\n\n`;
@@ -746,6 +749,8 @@ function bindResearchFilters() {
             msg += `👨‍💻 فريقنا بدأ العمل على بحثك الأكاديمي وسنحرص على تقديمه بأعلى جودة وفي الوقت المحدد.`;
           } else if (newStatus === 'completed') {
             msg += `🎉 خبر سعيد! تم الانتهاء من إعداد بحثك بالكامل وأصبح جاهزاً للتسليم. سنقوم بالتواصل معك لتسليمه.`;
+          } else if (newStatus === 'rejected') {
+            msg += `❌ نعتذر منك، تم رفض طلب البحث الخاص بك لعدم مطابقة الشروط أو عدم توفر الإمكانية حالياً. يرجى التواصل معنا للاستفسار.`;
           } else if (newStatus === 'cancelled') {
             msg += `⚠️ نعتذر منك، تم إلغاء طلب البحث الخاص بك. يرجى التواصل معنا للاستفسار عن التفاصيل.`;
           } else {
