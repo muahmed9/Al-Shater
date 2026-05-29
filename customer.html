@@ -501,6 +501,15 @@
       <textarea id="res-details" placeholder="📝 تفاصيل إضافية..." rows="3"></textarea>
       <button id="res-btn" class="btn-primary btn-action" data-loading-text="جاري الإرسال ⏳...">📨 إرسال طلب البحث</button>
     </div>
+
+    <!-- قائمة طلبات البحوث المضافة للزبون -->
+    <div id="user-research-section" style="margin-top:25px; display:none;">
+      <h3 style="color:var(--navy);margin:0 0 14px; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
+        <span>📝 طلبات بحوثك السابقة</span>
+        <span id="user-research-badge" style="background:var(--teal); color:#fff; border-radius:50%; width:22px; height:22px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; font-weight:800;">0</span>
+      </h3>
+      <div id="user-research-list" style="display:flex; flex-direction:column; gap:12px;"></div>
+    </div>
   </div>
 
   <!-- TAB 3 — طلباتي -->

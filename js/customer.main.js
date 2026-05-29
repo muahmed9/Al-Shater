@@ -298,6 +298,7 @@ async function init() {
 
   // Load suggested products for step 3
   loadSuggestedProducts();
+  loadUserResearch();
 }
 
 function applyPricingToUI(pricing) {
@@ -661,6 +662,7 @@ function goTab(t) {
   if (t === 'orders') loadOrders();
   if (t === 'points') loadPtsTab();
   if (t === 'market') { const p = customerState.get('mktProducts'); if (!p?.length) loadMktProducts(); }
+  if (t === 'research') loadUserResearch();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
@@ -1943,6 +1945,7 @@ async function submitResearch() {
     document.getElementById('res-details').value = '';
 
     showToast('✅ تم إرسال طلب البحث بنجاح!', 'success', 5000);
+    loadUserResearch(); // تحديث فوري للمجموعة السابقة بعد الإرسال
 
     // Notify admin via TG
     try {
@@ -1955,6 +1958,74 @@ async function submitResearch() {
     errEl.textContent = '❌ فشل إرسال الطلب: ' + e.message;
     errEl.style.display = 'block';
   }
+}
+
+async function loadUserResearch() {
+  const userId = customerState.get('user')?.id;
+  if (!userId) return;
+
+  const listContainer = document.getElementById('user-research-list');
+  if (listContainer) {
+    listContainer.innerHTML = renderSkeletonOrders(2);
+  }
+
+  try {
+    const { data, error } = await sb
+      .from(Config.TABLES.RESEARCH)
+      .select('*')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (error) throw error;
+    renderUserResearch(data ?? []);
+  } catch (e) {
+    console.error('[loadUserResearch Error]', e);
+    if (listContainer) {
+      listContainer.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:0.85rem;">❌ تعذّر تحميل البحوث السابقة</div>`;
+    }
+  }
+}
+
+function renderUserResearch(requests) {
+  const section = document.getElementById('user-research-section');
+  const list = document.getElementById('user-research-list');
+  const badge = document.getElementById('user-research-badge');
+  if (!section || !list) return;
+
+  if (!requests.length) {
+    section.style.display = 'none';
+    return;
+  }
+
+  section.style.display = 'block';
+  if (badge) badge.textContent = requests.length;
+
+  const statusMap = {
+    pending: { label: 'معلق', class: 'sr', icon: '🕐' },
+    in_progress: { label: 'قيد العمل', class: 'sp', icon: '⚙️' },
+    completed: { label: 'مكتمل', class: 'sv', icon: '✅' }
+  };
+
+  list.innerHTML = requests.map((r, idx) => {
+    const s = statusMap[r.status] ?? { label: r.status, class: 'sr', icon: '📝' };
+    const date = new Date(r.created_at).toLocaleDateString('ar-IQ');
+    const deadline = r.deadline ? new Date(r.deadline).toLocaleDateString('ar-IQ') : 'غير محدد';
+    const accentColor = r.status === 'completed' ? 'var(--green)' : r.status === 'in_progress' ? 'var(--teal)' : 'var(--orange)';
+    return `
+      <div class="ocard" style="animation-delay:${idx * 45}ms; border-right: 4px solid ${accentColor}; margin-bottom: 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+          <b style="color:var(--navy);font-size:.9rem;">${esc(r.type)}</b>
+          <span class="sbadge ${s.class}">${s.icon} ${s.label}</span>
+        </div>
+        <div style="font-weight:700; color:var(--navy); font-size:0.95rem; margin-bottom:6px;">${esc(r.subject || r.title)}</div>
+        ${r.details ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px; line-height:1.4;">${esc(r.details)}</div>` : ''}
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border-soft); padding-top:8px; font-size:0.75rem; color:var(--text-muted);">
+          <span>📄 ${r.pages ?? '—'} صفحة</span>
+          <span>📅 التسليم: ${esc(deadline)}</span>
+          <span>📅 ${esc(date)}</span>
+        </div>
+      </div>`;
+  }).join('');
 }
 
 // ═══════════════════════════════════════
