@@ -296,9 +296,12 @@ async function init() {
   refreshPtsUI();
   startRealtime(userId);
 
+  // Bind Launchpad transitions and buttons
+  bindLaunchpad();
+
   // Load suggested products for step 3
   loadSuggestedProducts();
-  loadUserResearch();
+  loadOrders();
 }
 
 function applyPricingToUI(pricing) {
@@ -434,16 +437,16 @@ function populateSuccessDetails() {
 
 function updateHomeOrderTrackingCard(order) {
   const card = document.getElementById('home-order-tracking-card');
-  const stepper = document.querySelector('.stepper-wrap');
   const activeBanner = document.getElementById('home-active-order-banner');
-  const stepPanels = document.querySelectorAll('.step-panel');
+  const dashboard = document.getElementById('launchpad-dashboard');
+  const printWizard = document.getElementById('print-wizard-container');
 
-  if (!card || !stepper) return;
+  if (!card) return;
 
   if (!order || customerState.get('hideHomeTracking') === true) {
     card.style.display = 'none';
-    stepper.style.display = 'block';
-    stepPanels.forEach(p => p.style.display = ''); // Restore normal stylesheet controls
+    if (printWizard) printWizard.style.display = 'none';
+    if (dashboard) dashboard.style.display = 'block';
     if (order && activeBanner) {
       activeBanner.style.display = 'block';
     } else if (activeBanner) {
@@ -453,8 +456,8 @@ function updateHomeOrderTrackingCard(order) {
   }
 
   card.style.display = 'block';
-  stepper.style.display = 'none';
-  stepPanels.forEach(p => p.style.display = 'none'); // Hide all active wizard panels under tracking card
+  if (dashboard) dashboard.style.display = 'none';
+  if (printWizard) printWizard.style.display = 'none';
   if (activeBanner) activeBanner.style.display = 'none';
 
   const orderIdShort = order.id.length > 8 ? order.id.slice(0, 8) : order.id;
@@ -641,6 +644,14 @@ function bindNav() {
 function goTab(t) {
   const currentTab = document.querySelector('.tab.active');
 
+  // If returning to Home (order), reset to Launchpad dashboard
+  if (t === 'order') {
+    const dashboard = document.getElementById('launchpad-dashboard');
+    const printWizard = document.getElementById('print-wizard-container');
+    if (dashboard) dashboard.style.display = 'block';
+    if (printWizard) printWizard.style.display = 'none';
+  }
+
   // انتقال الخروج
   if (currentTab && currentTab.id !== 'tab-' + t) {
     currentTab.classList.add('tab-exit');
@@ -665,7 +676,6 @@ function goTab(t) {
   if (t === 'orders') loadOrders();
   if (t === 'points') loadPtsTab();
   if (t === 'market') { const p = customerState.get('mktProducts'); if (!p?.length) loadMktProducts(); }
-  if (t === 'research') loadUserResearch();
 
   window.scrollTo({ top: 0, behavior: 'smooth' });
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
@@ -1384,9 +1394,10 @@ function renderCart() {
   checkEl.style.display = 'block';
   const sub = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
   const del = sub >= pricing.delivery_free_threshold ? 0 : pricing.delivery_fee;
+  const roundedGrandTotal = Math.round((sub + del) / 250) * 250;
   document.getElementById('cart-items-total').textContent = formatPrice(sub);
   document.getElementById('cart-del-fee').textContent = del === 0 ? '🎁 مجاني' : formatPrice(del);
-  document.getElementById('cart-grand-total').textContent = formatPrice(sub + del);
+  document.getElementById('cart-grand-total').textContent = formatPrice(roundedGrandTotal);
   updateCartBadge();
 }
 
@@ -1476,13 +1487,18 @@ async function checkoutMarket() {
   }
 
   try {
+    const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
+    const totals = calcOrderTotals({
+      files: [],
+      cart: customerState.get('cart') ?? [],
+      sugCart: {},
+      pricing,
+      coupon: customerState.get('appliedCoupon'),
+      user: customerState.get('user')
+    });
+
     const orderId = await submitOrder({ name, phone, region, notes: document.getElementById('cart-notes').value });
     document.getElementById('cart-drawer').classList.remove('open');
-    
-    const cart = customerState.get('cart') ?? [];
-    const sub = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
-    const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
-    const del = sub >= pricing.delivery_free_threshold ? 0 : pricing.delivery_fee;
 
     customerState.set('hideHomeTracking', false);
     populateSuccessDetails();
@@ -1493,7 +1509,7 @@ async function checkoutMarket() {
     // Show Success Screen
     const orderIdShort = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
     document.getElementById('success-order-id').textContent = '#' + orderIdShort;
-    document.getElementById('success-order-total').textContent = formatPrice(sub + del);
+    document.getElementById('success-order-total').textContent = formatPrice(totals.total);
     document.getElementById('success-order-addr').textContent = region || 'استلام من المركز';
     document.getElementById('success-order-status').textContent = 'مستلم 📥';
     updateSuccessTracking('received');
@@ -1596,27 +1612,40 @@ function filterMktProducts() {
   });
 }
 
-async function loadOrders() {
+async function loadOrders(isBackground = false) {
   const user = customerState.get('user');
   if (!user?.id) return;
 
   const box = document.getElementById('ordersbox');
-  box.innerHTML = renderSkeletonOrders(3);
+  if (!isBackground) {
+    box.innerHTML = renderSkeletonOrders(3);
+  }
 
   try {
-    const orders = await fetchUserOrders(user.id);
-    customerState.set('allUserOrders', orders);
+    const [orders, researchRequests] = await Promise.all([
+      fetchUserOrders(user.id),
+      sb.from(Config.TABLES.RESEARCH).select('*').eq('user_id', user.id).order('created_at', { ascending: false })
+    ]);
+
+    const unifiedOrders = [
+      ...orders.map(o => ({ ...o, isResearch: false })),
+      ...(researchRequests.data ?? []).map(r => ({ ...r, isResearch: true, total: 0 }))
+    ].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    customerState.set('allUserOrders', unifiedOrders);
     renderOrders();
   } catch (err) { 
     console.error('[loadOrders Error]', err);
-    box.innerHTML = `
-      <div class="empty-state">
-        <span class="empty-state-icon">📡</span>
-        <h3 class="empty-state-title">تعذّر تحميل الطلبات</h3>
-        <p class="empty-state-sub">${friendlyError(err.message)}</p>
-        <button class="empty-state-btn" id="retry-orders-btn">🔄 إعادة المحاولة</button>
-      </div>`;
-    document.getElementById('retry-orders-btn')?.addEventListener('click', loadOrders);
+    if (!isBackground) {
+      box.innerHTML = `
+        <div class="empty-state">
+          <span class="empty-state-icon">📡</span>
+          <h3 class="empty-state-title">تعذّر تحميل الطلبات</h3>
+          <p class="empty-state-sub">${friendlyError(err.message)}</p>
+          <button class="empty-state-btn" id="retry-orders-btn">🔄 إعادة المحاولة</button>
+        </div>`;
+      document.getElementById('retry-orders-btn')?.addEventListener('click', () => loadOrders(false));
+    }
   }
 }
 
@@ -1627,20 +1656,41 @@ async function loadOrders() {
 function renderOrders() {
   const orders = customerState.get('allUserOrders') ?? [];
   const filter = customerState.get('orderFilter') ?? 'all';
-  const active = ['received', 'printing', 'delivering'];
+  const typeFilter = customerState.get('orderTypeFilter') ?? 'all';
+  const active = ['received', 'printing', 'delivering', 'pending', 'ready', 'in_progress'];
 
   const filtered = orders.filter(o => {
-    if (filter === 'active') return active.includes(o.status);
-    if (filter === 'delivered') return o.status === 'delivered';
-    if (filter === 'cancelled') return o.status === 'cancelled';
+    // 1. Status Filter
+    if (filter === 'active') {
+      if (!active.includes(o.status)) return false;
+    } else if (filter === 'delivered') {
+      if (o.status !== 'delivered' && o.status !== 'completed') return false;
+    } else if (filter === 'cancelled') {
+      if (o.status !== 'cancelled' && o.status !== 'rejected') return false;
+    }
+
+    // 2. Service Type Filter
+    if (typeFilter !== 'all') {
+      if (o.isResearch) {
+        if (typeFilter !== 'research') return false;
+      } else {
+        const filesCount = o.files_data?.length ?? 0;
+        const cartCount = o.cart_items?.length ?? 0;
+        const type = filesCount && cartCount ? 'combined' : filesCount ? 'print' : 'market';
+        
+        if (typeFilter === 'print' && type !== 'print' && type !== 'combined') return false;
+        if (typeFilter === 'market' && type !== 'market' && type !== 'combined') return false;
+        if (typeFilter === 'research') return false;
+      }
+    }
     return true;
   });
 
   const box = document.getElementById('ordersbox');
 
-  // Update Home Active Order Tracking Card / Banner
+  // Update Home Active Order Tracking Card / Banner (only for regular print/market orders)
   const activeStatuses = ['received', 'printing', 'delivering', 'pending', 'ready'];
-  const activeOrder = orders.find(o => activeStatuses.includes(o.status));
+  const activeOrder = orders.find(o => !o.isResearch && activeStatuses.includes(o.status));
   const homeBanner = document.getElementById('home-active-order-banner');
   
   if (activeOrder) {
@@ -1674,32 +1724,64 @@ function renderOrders() {
   }
 
   const statusMap = Config.ORDER_STATUSES;
+  const researchStatusMap = {
+    pending: { label: 'معلق', css: 'sr', icon: '🕐' },
+    in_progress: { label: 'قيد العمل', css: 'sp', icon: '⚙️' },
+    completed: { label: 'مكتمل', css: 'sv', icon: '✅' },
+    rejected: { label: 'مرفوض', css: 'sr', icon: '❌' }
+  };
+
   box.innerHTML = filtered.map((o, idx) => {
-    const s = statusMap[o.status] ?? { label: o.status, css: 'sr', icon: '📦' };
-    const filesCount = o.files_data?.length ?? 0;
-    const cartCount = o.cart_items?.length ?? 0;
-    const typeLabel = filesCount && cartCount ? '🔀 مشترك' : filesCount ? '🖨️ استنساخ' : '📦 قرطاسية';
-    return `
-      <div class="ocard" data-oid="${esc(o.id)}" style="animation-delay:${idx * 45}ms;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <div>
-            <b style="color:var(--navy);font-size:.9rem;">#${esc(o.id.slice(0, 8))}</b>
-            <span style="font-size:.72rem;color:var(--text-muted);margin-right:6px;">${typeLabel}</span>
+    if (o.isResearch) {
+      const s = researchStatusMap[o.status] ?? { label: o.status, css: 'sr', icon: '📝' };
+      const accentColor = o.status === 'completed' ? 'var(--green)' : o.status === 'in_progress' ? 'var(--teal)' : o.status === 'rejected' ? 'var(--red)' : 'var(--orange)';
+      return `
+        <div class="ocard" data-oid="${esc(o.id)}" data-is-research="true" style="animation-delay:${idx * 45}ms; border-right: 4px solid ${accentColor};">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <b style="color:var(--navy);font-size:.9rem;">#${esc(o.id.slice(0, 8))}</b>
+              <span style="font-size:.72rem;color:var(--text-muted);margin-right:6px;">📝 طلب بحث</span>
+            </div>
+            <span class="sbadge ${esc(s.css)}">${s.icon} ${s.label}</span>
           </div>
-          <span class="sbadge ${esc(s.css)}">${s.icon} ${s.label}</span>
-        </div>
-        <div style="font-size:.85rem;color:var(--text-muted);">
-          💰 ${formatPrice(o.total)} • ${new Date(o.created_at).toLocaleDateString('ar-IQ')}
-        </div>
-      </div>`;
+          <div style="font-weight:700; color:var(--navy); font-size:0.95rem; margin-bottom:6px;">${esc(o.type)} - ${esc(o.subject || o.title)}</div>
+          <div style="font-size:.85rem;color:var(--text-muted);">
+            📅 ${new Date(o.created_at).toLocaleDateString('ar-IQ')}
+          </div>
+        </div>`;
+    } else {
+      const s = statusMap[o.status] ?? { label: o.status, css: 'sr', icon: '📦' };
+      const filesCount = o.files_data?.length ?? 0;
+      const cartCount = o.cart_items?.length ?? 0;
+      const typeLabel = filesCount && cartCount ? '🔀 مشترك' : filesCount ? '🖨️ استنساخ' : '📦 قرطاسية';
+      return `
+        <div class="ocard" data-oid="${esc(o.id)}" data-is-research="false" style="animation-delay:${idx * 45}ms;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+            <div>
+              <b style="color:var(--navy);font-size:.9rem;">#${esc(o.id.slice(0, 8))}</b>
+              <span style="font-size:.72rem;color:var(--text-muted);margin-right:6px;">${typeLabel}</span>
+            </div>
+            <span class="sbadge ${esc(s.css)}">${s.icon} ${s.label}</span>
+          </div>
+          <div style="font-size:.85rem;color:var(--text-muted);">
+            💰 ${formatPrice(o.total)} • ${new Date(o.created_at).toLocaleDateString('ar-IQ')}
+          </div>
+        </div>`;
+    }
   }).join('');
-  // ← NO addEventListener. Delegation is in bindPoints().
 }
 
 function bindOrders() {
   document.getElementById('ordersbox').addEventListener('click', e => {
     const card = e.target.closest('.ocard[data-oid]');
-    if (card) showOrderDetail(card.dataset.oid);
+    if (card) {
+      const isResearch = card.dataset.isResearch === 'true';
+      if (isResearch) {
+        showResearchDetail(card.dataset.oid);
+      } else {
+        showOrderDetail(card.dataset.oid);
+      }
+    }
   });
 
   document.getElementById('orders-fbar').addEventListener('click', e => {
@@ -1708,6 +1790,15 @@ function bindOrders() {
     document.querySelectorAll('#orders-fbar .filter-tab').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
     customerState.set('orderFilter', btn.dataset.filter);
+    renderOrders();
+  });
+
+  document.getElementById('orders-type-fbar')?.addEventListener('click', e => {
+    const btn = e.target.closest('.filter-tab[data-type]');
+    if (!btn) return;
+    document.querySelectorAll('#orders-type-fbar .filter-tab').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    customerState.set('orderTypeFilter', btn.dataset.type);
     renderOrders();
   });
 }
@@ -1721,6 +1812,13 @@ function bindPoints() {
 function refreshPtsUI() {
   const user = customerState.get('user');
   const pts = user?.loyalty_points ?? 0;
+
+  // Update dashboard welcome name and points balance card
+  const dashName = document.getElementById('dash-user-name');
+  if (dashName && user?.name) dashName.textContent = user.name;
+  const dashPts = document.getElementById('dash-user-pts');
+  if (dashPts) dashPts.textContent = pts.toLocaleString();
+
   const el = document.getElementById('ptsnum');
   if (el) el.textContent = pts.toLocaleString();
   const ptscard = document.getElementById('ptscard');
@@ -1788,6 +1886,7 @@ async function redeemPts(pts, discount) {
 }
 
 function showOrderDetail(orderId) {
+  customerState.set('activeDetailOrderId', orderId);
   const orders = customerState.get('allUserOrders') ?? [];
   const o = orders.find(x => x.id === orderId);
   if (!o) return;
@@ -1927,7 +2026,7 @@ async function submitResearch() {
       user_id: userId,
       name,
       phone,
-      title: subject, // Satisfy NOT NULL constraint
+      title: subject,
       subject,
       type,
       pages: Number(pages) || null,
@@ -1948,7 +2047,7 @@ async function submitResearch() {
     document.getElementById('res-details').value = '';
 
     showToast('✅ تم إرسال طلب البحث بنجاح!', 'success', 5000);
-    loadUserResearch(); // تحديث فوري للمجموعة السابقة بعد الإرسال
+    loadOrders();
 
     // Notify admin via TG
     try {
@@ -1963,73 +2062,7 @@ async function submitResearch() {
   }
 }
 
-async function loadUserResearch() {
-  const userId = customerState.get('user')?.id;
-  if (!userId) return;
 
-  const listContainer = document.getElementById('user-research-list');
-  if (listContainer) {
-    listContainer.innerHTML = renderSkeletonOrders(2);
-  }
-
-  try {
-    const { data, error } = await sb
-      .from(Config.TABLES.RESEARCH)
-      .select('*')
-      .eq('user_id', userId)
-      .order('created_at', { ascending: false });
-
-    if (error) throw error;
-    renderUserResearch(data ?? []);
-  } catch (e) {
-    console.error('[loadUserResearch Error]', e);
-    if (listContainer) {
-      listContainer.innerHTML = `<div style="text-align:center;padding:20px;color:var(--red);font-size:0.85rem;">❌ تعذّر تحميل البحوث السابقة</div>`;
-    }
-  }
-}
-
-function renderUserResearch(requests) {
-  const section = document.getElementById('user-research-section');
-  const list = document.getElementById('user-research-list');
-  const badge = document.getElementById('user-research-badge');
-  if (!section || !list) return;
-
-  if (!requests.length) {
-    section.style.display = 'none';
-    return;
-  }
-
-  section.style.display = 'block';
-  if (badge) badge.textContent = requests.length;
-
-  const statusMap = {
-    pending: { label: 'معلق', class: 'sr', icon: '🕐' },
-    in_progress: { label: 'قيد العمل', class: 'sp', icon: '⚙️' },
-    completed: { label: 'مكتمل', class: 'sv', icon: '✅' }
-  };
-
-  list.innerHTML = requests.map((r, idx) => {
-    const s = statusMap[r.status] ?? { label: r.status, class: 'sr', icon: '📝' };
-    const date = new Date(r.created_at).toLocaleDateString('ar-IQ');
-    const deadline = r.deadline ? new Date(r.deadline).toLocaleDateString('ar-IQ') : 'غير محدد';
-    const accentColor = r.status === 'completed' ? 'var(--green)' : r.status === 'in_progress' ? 'var(--teal)' : 'var(--orange)';
-    return `
-      <div class="ocard" style="animation-delay:${idx * 45}ms; border-right: 4px solid ${accentColor}; margin-bottom: 0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-          <b style="color:var(--navy);font-size:.9rem;">${esc(r.type)}</b>
-          <span class="sbadge ${s.class}">${s.icon} ${s.label}</span>
-        </div>
-        <div style="font-weight:700; color:var(--navy); font-size:0.95rem; margin-bottom:6px;">${esc(r.subject || r.title)}</div>
-        ${r.details ? `<div style="font-size:0.8rem; color:var(--text-muted); margin-bottom:10px; line-height:1.4;">${esc(r.details)}</div>` : ''}
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px dashed var(--border-soft); padding-top:8px; font-size:0.75rem; color:var(--text-muted);">
-          <span>📄 ${r.pages ?? '—'} صفحة</span>
-          <span>📅 التسليم: ${esc(deadline)}</span>
-          <span>📅 ${esc(date)}</span>
-        </div>
-      </div>`;
-  }).join('');
-}
 
 // ═══════════════════════════════════════
 //  Suggested products for step 3
@@ -2099,31 +2132,62 @@ async function submitRating() {
 
 function startRealtime(userId) {
   try {
+    // 1. Listen to orders updates
     sb.channel('orders-user-' + userId)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: Config.TABLES.ORDERS, filter: `user_id=eq.${userId}` },
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: Config.TABLES.ORDERS },
         p => {
-          if (!p.new?.status) return;
-          const st = p.new.status;
-          const statusMap = Config.ORDER_STATUSES;
-          const s = statusMap[st] ?? { label: st, icon: '🔔' };
-          
-          showToast(`🔔 ${s.icon} ${s.label}`, st === 'cancelled' ? 'error' : 'info');
-          
-          // Update Success Overlay tracking if open
-          if (document.getElementById('success-overlay').classList.contains('open')) {
-            document.getElementById('success-order-status').textContent = `${s.label} ${s.icon}`;
-            updateSuccessTracking(st);
-          }
-
-          loadOrders();
-          if (st === 'delivered') {
-            customerState.set('rateOrderId', p.new.id);
-            customerState.set('rateStars', 0);
-            setTimeout(() => document.getElementById('rate-modal')?.classList.add('open'), 1500);
-          }
+          if (p.new?.user_id !== userId) return;
+          handleRealtimeUpdate(p.new, false);
         })
       .subscribe();
-  } catch { }
+
+    // 2. Listen to research requests updates
+    sb.channel('research-user-' + userId)
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: Config.TABLES.RESEARCH },
+        p => {
+          if (p.new?.user_id !== userId) return;
+          handleRealtimeUpdate(p.new, true);
+        })
+      .subscribe();
+  } catch (e) { console.warn('[Realtime error]', e); }
+}
+
+function handleRealtimeUpdate(item, isResearch = false) {
+  if (!item?.status) return;
+  const st = item.status;
+  
+  const statusMap = isResearch ? {
+    pending: { label: 'معلق', css: 'sr', icon: '🕐' },
+    in_progress: { label: 'قيد العمل', css: 'sp', icon: '⚙️' },
+    completed: { label: 'مكتمل', css: 'sv', icon: '✅' },
+    rejected: { label: 'مرفوض', css: 'sr', icon: '❌' }
+  } : Config.ORDER_STATUSES;
+  
+  const s = statusMap[st] ?? { label: st, icon: '🔔' };
+  showToast(`🔔 ${isResearch ? 'بحث: ' : ''}${s.icon} ${s.label}`, st === 'cancelled' || st === 'rejected' ? 'error' : 'info');
+
+  // Update Success Overlay tracking if open
+  if (!isResearch && document.getElementById('success-overlay')?.classList.contains('open')) {
+    document.getElementById('success-order-status').textContent = `${s.label} ${s.icon}`;
+    updateSuccessTracking(st);
+  }
+
+  loadOrders(true).then(() => {
+    const detOv = document.getElementById('det-ov');
+    if (detOv && detOv.classList.contains('open') && customerState.get('activeDetailOrderId') === item.id) {
+      if (isResearch) {
+        showResearchDetail(item.id);
+      } else {
+        showOrderDetail(item.id);
+      }
+    }
+  });
+
+  if (!isResearch && st === 'delivered') {
+    customerState.set('rateOrderId', item.id);
+    customerState.set('rateStars', 0);
+    setTimeout(() => document.getElementById('rate-modal')?.classList.add('open'), 1500);
+  }
 }
 
 window.addEventListener('online', () => {
@@ -2146,5 +2210,110 @@ window.addEventListener('offline', () => {
   b.style.display = 'block';
   window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred('warning');
 });
+
+function bindLaunchpad() {
+  // 1. Printing Portal
+  document.getElementById('portal-print-btn')?.addEventListener('click', () => {
+    document.getElementById('launchpad-dashboard').style.display = 'none';
+    document.getElementById('print-wizard-container').style.display = 'block';
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 2. Research Portal
+  document.getElementById('portal-research-btn')?.addEventListener('click', () => {
+    goTab('research');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 3. Market Portal
+  document.getElementById('portal-market-btn')?.addEventListener('click', () => {
+    goTab('market');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 4. Points holographic card click
+  document.getElementById('dash-points-trigger')?.addEventListener('click', () => {
+    goTab('points');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 5. Exit print wizard button
+  document.getElementById('btn-exit-print-wizard')?.addEventListener('click', () => {
+    document.getElementById('print-wizard-container').style.display = 'none';
+    document.getElementById('launchpad-dashboard').style.display = 'block';
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+}
+
+function showResearchDetail(orderId) {
+  customerState.set('activeDetailOrderId', orderId);
+  const orders = customerState.get('allUserOrders') ?? [];
+  const r = orders.find(x => x.id === orderId);
+  if (!r) return;
+
+  const statusMap = {
+    pending: { label: 'معلق', css: 'sr', icon: '🕐' },
+    in_progress: { label: 'قيد العمل', css: 'sp', icon: '⚙️' },
+    completed: { label: 'مكتمل', css: 'sv', icon: '✅' },
+    rejected: { label: 'مرفوض', css: 'sr', icon: '❌' }
+  };
+  const s = statusMap[r.status] ?? { label: r.status, css: 'sr', icon: '📝' };
+
+  const isCancelled = r.status === 'cancelled' || r.status === 'rejected';
+  
+  let stepperHTML = '';
+  if (!isCancelled) {
+    const nodes = [
+      { step: 'pending', num: 1, label: 'معلق' },
+      { step: 'in_progress', num: 2, label: 'قيد العمل' },
+      { step: 'completed', num: 3, label: 'مكتمل' }
+    ];
+    const currentIdx = nodes.findIndex(n => n.step === r.status);
+    
+    stepperHTML = `
+      <div id="det-tracking-steps" style="margin-top: 15px; margin-bottom: 25px; display: flex; justify-content: space-between; position: relative; padding: 0 10px;">
+        <div style="position: absolute; top: 15px; left: 10%; right: 10%; height: 2px; background: var(--border-soft); z-index: 0;"></div>
+        <div id="det-line-progress" style="position: absolute; top: 15px; left: 10%; width: ${currentIdx * 40}%; height: 2px; background: var(--teal); z-index: 1; transition: width 0.5s ease;"></div>
+        
+        ${nodes.map(n => {
+          const isActive = nodes.findIndex(x => x.step === r.status) >= nodes.findIndex(x => x.step === n.step);
+          return `
+            <div class="track-node ${isActive ? 'active' : ''}">
+              <div>${n.num}</div>
+              <div>${n.label}</div>
+            </div>`;
+        }).join('')}
+      </div>`;
+  }
+
+  const deadline = r.deadline ? new Date(r.deadline).toLocaleDateString('ar-IQ') : 'غير محدد';
+
+  document.getElementById('det-title').textContent = `طلب بحث #${r.id.slice(0, 8)}`;
+  document.getElementById('det-body').innerHTML = `
+    <div style="text-align:center;margin-bottom:16px;">
+      <span class="sbadge ${s.css}" style="font-size:1rem;padding:8px 20px;">${s.icon} ${s.label}</span>
+    </div>
+    ${stepperHTML}
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>نوع الطلب</span><b>${esc(r.type)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>الموضوع / العنوان</span><b>${esc(r.subject || r.title)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>تاريخ التقديم</span><b>${new Date(r.created_at).toLocaleString('ar-IQ')}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>موعد التسليم المطلوب</span><b>${esc(deadline)}</b>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);">
+      <span>عدد الصفحات التقريبي</span><b>${r.pages ?? 'غير محدد'}</b>
+    </div>
+    ${r.details ? `<div style="padding:12px 0; line-height: 1.5; border-bottom:1px solid var(--border);"><b style="font-size:.85rem;color:var(--navy);display:block;margin-bottom:4px;">تفاصيل البحث:</b><p style="margin:0;font-size:0.85rem;color:var(--text-muted);">${esc(r.details)}</p></div>` : ''}
+    ${r.cancel_reason ? `<div style="padding:10px;margin-top:10px;background:#fef2f2;border-radius:var(--radius-sm);color:var(--red);font-size:.88rem;">❌ سبب الإلغاء/الرفض: ${esc(r.cancel_reason)}</div>` : ''}
+  `;
+
+  document.getElementById('det-ov').classList.add('open');
+}
 
 init().catch(console.error);

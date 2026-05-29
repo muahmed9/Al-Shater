@@ -106,14 +106,9 @@
   <!-- BOTTOM NAVIGATION -->
   <nav class="bottom-nav" role="navigation" aria-label="التنقل الرئيسي">
     <button class="nav-btn active" id="nav-order" data-tab="order"><span
-        class="nav-icon">🖨️</span><span>الرئيسية</span></button>
-    <button class="nav-btn" id="nav-research" data-tab="research"><span
-        class="nav-icon">📝</span><span>بحوث</span></button>
+        class="nav-icon">🏠</span><span>الرئيسية</span></button>
     <button class="nav-btn" id="nav-orders" data-tab="orders" style="position:relative;"><span
         class="nav-icon">📋</span><span>طلباتي</span><span id="ordbadge" class="nav-badge"
-        style="display:none;"></span></button>
-    <button class="nav-btn" id="nav-market" data-tab="market" style="position:relative;"><span
-        class="nav-icon">📦</span><span>القرطاسية</span><span id="mkt-badge" class="nav-badge"
         style="display:none;"></span></button>
     <button class="nav-btn" id="nav-points" data-tab="points"><span
         class="nav-icon">🏆</span><span>مكافآت</span></button>
@@ -202,7 +197,68 @@
       </div>
     </div>
 
-    <div class="stepper-wrap" data-current-step="1">
+    <!-- بوابة الخدمات الموحدة (Launchpad Dashboard) -->
+    <div id="launchpad-dashboard" class="launchpad-container">
+      <div class="welcome-header">
+        <h2>أهلاً بك، <span id="dash-user-name">طالبنا العزيز</span> 👋</h2>
+        <p>ما الذي تريد إنجازه اليوم في الشاطر؟</p>
+      </div>
+
+      <!-- بطاقة النقاط الهولوغرافية -->
+      <div class="dash-points-card animate-glow" id="dash-points-trigger">
+        <div class="dash-points-header">
+          <span class="dash-points-title">🏆 نقاط ولاء الشاطر</span>
+          <span class="dash-points-badge">🥇 مستوى متميز</span>
+        </div>
+        <div class="dash-points-body">
+          <div class="dash-points-number"><span id="dash-user-pts">0</span> <span style="font-size: 1.1rem; font-weight: 700;">نقطة</span></div>
+          <div class="dash-points-action">استبدال المكافآت ◀</div>
+        </div>
+      </div>
+
+      <!-- شبكة الخدمات الثلاث -->
+      <div class="services-grid">
+        <!-- 1. الاستنساخ والطباعة -->
+        <div class="service-card" id="portal-print-btn">
+          <div class="service-icon-wrap portal-print">🖨️</div>
+          <div class="service-info">
+            <h3 class="service-title">الطباعة والاستنساخ الفوري</h3>
+            <p class="service-desc">ارفع ملازمك، مستنداتك، وصورك واحسب تسعيرتك فوراً</p>
+          </div>
+          <div class="service-arrow">◀</div>
+        </div>
+
+        <!-- 2. طلبات البحوث -->
+        <div class="service-card" id="portal-research-btn">
+          <div class="service-icon-wrap portal-research">📝</div>
+          <div class="service-info">
+            <h3 class="service-title">البحوث والتقارير الجامعية</h3>
+            <p class="service-desc">اطلب بحوث التخرج، التقارير الأكاديمية والعروض التقديمية</p>
+          </div>
+          <div class="service-arrow">◀</div>
+        </div>
+
+        <!-- 3. متجر القرطاسية -->
+        <div class="service-card" id="portal-market-btn" style="position: relative;">
+          <div class="service-icon-wrap portal-market">📦</div>
+          <div class="service-info">
+            <h3 class="service-title">متجر القرطاسية والكتب</h3>
+            <p class="service-desc">تصفح واشترِ الدفاتر، الأقلام، الملازم وكافة مستلزماتك</p>
+          </div>
+          <span id="mkt-badge" class="nav-badge" style="display:none; top: 12px; left: 16px;"></span>
+          <div class="service-arrow">◀</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- حاوية معالج الطباعة والاستنساخ -->
+    <div id="print-wizard-container" style="display: none;">
+      <div style="display: flex; align-items: center; gap: 10px; margin: 15px 0 5px; padding: 12px 16px; background: var(--card); border-radius: var(--radius-lg); border: 1.5px solid var(--border-soft); box-shadow: var(--shadow-sm);">
+        <button id="btn-exit-print-wizard" style="border: none; background: var(--input-bg); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; font-weight: bold; color: var(--navy); transition: all 0.2s;" title="إغلاق والرجوع للبوابة">✕</button>
+        <b style="color: var(--navy); font-size: 0.88rem;">الرجوع إلى البوابة الرئيسية للخدمات</b>
+      </div>
+
+      <div class="stepper-wrap" data-current-step="1">
       <div class="stepper-header" id="stepper-header">
         <div class="step-item active" data-step="1">
           <div class="step-circle">1</div><span class="step-label">الملفات</span>
@@ -445,7 +501,8 @@
         <button id="step4-prev" class="btn-prev btn-primary" style="max-width:140px;">→ رجوع</button>
       </div>
     </div>
-  </div>
+  </div> <!-- end of print-wizard-container -->
+</div> <!-- end of tab-order -->
 
   <!-- TAB 2 — البحوث -->
   <div class="tab" id="tab-research">
@@ -501,14 +558,6 @@
       <button id="res-btn" class="btn-primary btn-action" data-loading-text="جاري الإرسال ⏳...">📨 إرسال طلب البحث</button>
     </div>
 
-    <!-- قائمة طلبات البحوث المضافة للزبون -->
-    <div id="user-research-section" style="margin-top:25px; display:none;">
-      <h3 style="color:var(--navy);margin:0 0 14px; font-weight:800; font-size:1.1rem; display:flex; align-items:center; gap:8px;">
-        <span>📝 طلبات بحوثك السابقة</span>
-        <span id="user-research-badge" style="background:var(--teal); color:#fff; border-radius:50%; width:22px; height:22px; font-size:0.78rem; display:flex; align-items:center; justify-content:center; font-weight:800;">0</span>
-      </h3>
-      <div id="user-research-list" style="display:flex; flex-direction:column; gap:12px;"></div>
-    </div>
   </div>
 
   <!-- TAB 3 — طلباتي -->
@@ -519,6 +568,12 @@
       <button class="filter-tab" data-filter="active">🔄 نشطة</button>
       <button class="filter-tab" data-filter="delivered">✅ مكتملة</button>
       <button class="filter-tab" data-filter="cancelled">❌ ملغاة</button>
+    </div>
+    <div class="filter-bar" id="orders-type-fbar" style="margin-top: 8px; background: rgba(0,0,0,0.02); padding: 4px; border-radius: var(--radius-md);">
+      <button class="filter-tab active" data-type="all" style="font-size: 0.8rem; padding: 6px 12px;">الكل</button>
+      <button class="filter-tab" data-type="print" style="font-size: 0.8rem; padding: 6px 12px;">🖨️ طباعة</button>
+      <button class="filter-tab" data-type="research" style="font-size: 0.8rem; padding: 6px 12px;">📝 بحوث</button>
+      <button class="filter-tab" data-type="market" style="font-size: 0.8rem; padding: 6px 12px;">📦 قرطاسية</button>
     </div>
     <div id="ordersbox">
       <div style="text-align:center;padding:60px 20px;color:#94a3b8;">
