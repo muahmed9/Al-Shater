@@ -457,8 +457,8 @@ function openOrderDetail(orderId) {
 
     ${o.cancel_reason ? `<div style="margin-top:12px;padding:12px;background:#fef2f2;border-radius:var(--radius-sm);color:var(--red);">❌ سبب الإلغاء: ${esc(o.cancel_reason)}</div>` : ''}
     <div style="margin-top:16px;">
-      <a href="https://t.me/${esc(o.phone)}" target="_blank" style="display:flex;align-items:center;gap:8px;background:#dbeafe;color:#1e40af;padding:10px 14px;border-radius:var(--radius-sm);font-weight:800;text-decoration:none;">
-        📱 تواصل عبر تيليجرام
+      <a href="tel:${esc(o.phone)}" style="display:flex;align-items:center;gap:8px;background:#dbeafe;color:#1e40af;padding:10px 14px;border-radius:var(--radius-sm);font-weight:800;text-decoration:none;">
+        📞 اتصال هاتفي مباشر
       </a>
     </div>`;
 
