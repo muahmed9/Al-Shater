@@ -25,6 +25,15 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
   const coupon  = customerState.get('appliedCoupon');
   const totals  = calcOrderTotals({ files, cart, sugCart, pricing, coupon, user });
 
+  if (coupon?.id && coupon.max_uses > 0) {
+    const { count, error: countErr } = await sb.from(T.ORDERS)
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .eq('coupon_code', coupon.code)
+      .not('status', 'eq', 'cancelled');
+    if (!countErr && count > 0) throw new Error('لقد قمت باستخدام هذا الكوبون مسبقاً');
+  }
+
   const orderPayload = {
     user_id:       user.id,
     customer_name: sanitize(name, 60),
@@ -133,6 +142,23 @@ export async function validateCoupon(code) {
   if (error || !data)                                         throw new Error('كود الخصم غير صالح');
   if (data.max_uses > 0 && data.used_count >= data.max_uses) throw new Error('تم استنفاد هذا الكوبون');
   if (data.expires_at && new Date(data.expires_at) < new Date()) throw new Error('انتهت صلاحية هذا الكوبون');
+
+  // منع نفس المستخدم من إعادة استخدام الكوبون المحدود الاستخدام (إذا كان max_uses > 0)
+  if (data.max_uses > 0) {
+    const user = customerState.get('user');
+    if (user?.id) {
+      const { count, error: countErr } = await sb.from(T.ORDERS)
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user.id)
+        .eq('coupon_code', code.trim().toUpperCase())
+        .not('status', 'eq', 'cancelled');
+      
+      if (!countErr && count > 0) {
+        throw new Error('لقد قمت باستخدام هذا الكوبون مسبقاً');
+      }
+    }
+  }
+
   // تطبيق نطاق الكوبون (scope) — يُعاد data كما هو ويُحسب في calcOrderTotals
   return data;
 }

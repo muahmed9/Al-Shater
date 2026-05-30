@@ -317,6 +317,8 @@ async function init() {
   loadOrders();
 }
 
+window.loadMktProducts = loadMktProducts;
+
 function applyPricingToUI(pricing) {
   const P = pricing ?? Config.DEFAULT_PRICING;
   const cardboardPrice = P.packaging?.cardboard ?? 500;
@@ -2184,7 +2186,12 @@ function startRealtime(userId) {
   try {
     // 1. Listen to orders updates
     sb.channel('orders-user-' + userId)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: Config.TABLES.ORDERS },
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: Config.TABLES.ORDERS,
+        filter: `user_id=eq.${userId}`
+      },
         p => {
           if (p.new?.user_id !== userId) return;
           handleRealtimeUpdate(p.new, false);
@@ -2193,7 +2200,12 @@ function startRealtime(userId) {
 
     // 2. Listen to research requests updates
     sb.channel('research-user-' + userId)
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: Config.TABLES.RESEARCH },
+      .on('postgres_changes', { 
+        event: 'UPDATE', 
+        schema: 'public', 
+        table: Config.TABLES.RESEARCH,
+        filter: `user_id=eq.${userId}`
+      },
         p => {
           if (p.new?.user_id !== userId) return;
           handleRealtimeUpdate(p.new, true);

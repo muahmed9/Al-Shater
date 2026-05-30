@@ -923,6 +923,7 @@ function bindSettings() {
   });
 
   // Reports export bindings
+  document.getElementById('export-orders-csv')?.addEventListener('click', exportOrdersCSV);
   document.getElementById('export-orders-excel')?.addEventListener('click', exportOrdersExcel);
   document.getElementById('export-market-csv')?.addEventListener('click', exportMarketCSV);
   document.getElementById('export-supplies-csv')?.addEventListener('click', exportSuppliesCSV);
@@ -1283,18 +1284,6 @@ async function confirmSupplyTx() {
 }
 
 function loadReportsPage() {
-  const csvBtn = document.getElementById('export-orders-csv');
-  if (csvBtn) csvBtn.onclick = exportOrdersCSV;
-
-  const xlsBtn = document.getElementById('export-orders-excel');
-  if (xlsBtn) xlsBtn.onclick = exportOrdersExcel;
-
-  const mktBtn = document.getElementById('export-market-csv');
-  if (mktBtn) mktBtn.onclick = exportMarketCSV;
-
-  const supBtn = document.getElementById('export-supplies-csv');
-  if (supBtn) supBtn.onclick = exportSuppliesCSV;
-
   // Load preview tables
   loadOrdersReportPreview();
   loadMarketReportPreview();

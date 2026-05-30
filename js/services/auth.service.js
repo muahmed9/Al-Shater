@@ -29,6 +29,7 @@ export async function adminLogout() {
   const channel = adminState.get('realtimeChannel');
   if (channel) { try { sb.removeChannel(channel); } catch {} }
   await sb.auth.signOut();
+  localStorage.removeItem('sb-' + Config.SUPABASE.URL.split('//')[1].split('.')[0] + '-auth-token');
   adminState.set('currentUser', null); adminState.set('currentProfile', null);
   adminState.set('currentRole', '');   adminState.set('customPermissions', []);
   adminState.set('realtimeChannel', null);
