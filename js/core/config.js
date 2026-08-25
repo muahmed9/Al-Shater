@@ -83,6 +83,10 @@ export const Config = Object.freeze({
       label: 'أمين مخزن', emoji: '🏪', isManager: false,
       can: [], sees: null, extra: ['manage_supplies'],
     },
+    custom: {
+      label: 'موظف مخصص', emoji: '👤', isManager: false,
+      can: [], sees: null,
+    },
   },
   customerMessage(orderId, status, cancelReason = '') {
     const shortId = orderId ? String(orderId).slice(0, 8) : '';

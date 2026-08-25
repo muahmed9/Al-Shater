@@ -86,10 +86,9 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
     customerState.set('user', { ...user, loyalty_points: newPoints });
   }
 
-  if (coupon?.id) {
-    await sb.from(T.COUPONS).update({ used_count: (coupon.used_count ?? 0) + 1 }).eq('id', coupon.id);
-  }
+  // تحديث used_count يتم تلقائياً عبر Database Trigger (trg_auto_increment_coupon)
   _notifyAdmin(data.id, orderPayload).catch(() => {});
+
   _notifyCustomer(data.id, orderPayload).catch(() => {});
   return data.id;
 }

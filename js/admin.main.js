@@ -991,8 +991,19 @@ async function createStaffAccount() {
   const pass = document.getElementById('new-staff-pass').value;
   const emoji = document.getElementById('new-staff-emoji').value || '👤';
 
+  const msgEl = document.getElementById('staff-create-msg');
+  if (msgEl) msgEl.style.display = 'none';
+
   if (!name || !email || pass.length < 6) {
-    showToast('❌ يرجى إدخال الاسم والبريد وكلمة المرور (6+ أحرف)', 'error');
+    const err = '❌ يرجى إدخال الاسم والبريد وكلمة المرور (6+ أحرف)';
+    showToast(err, 'error');
+    if (msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fef2f2';
+      msgEl.style.color = '#991b1b';
+      msgEl.style.border = '1px solid #fecaca';
+      msgEl.textContent = err;
+    }
     return;
   }
 
@@ -1001,14 +1012,50 @@ async function createStaffAccount() {
     .filter(el => el?.checked)
     .map(el => el.value);
 
-  if (!perms.length) { showToast('❌ اختر صلاحية واحدة على الأقل', 'error'); return; }
+  if (!perms.length) {
+    const err = '❌ اختر صلاحية واحدة على الأقل';
+    showToast(err, 'error');
+    if (msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fef2f2';
+      msgEl.style.color = '#991b1b';
+      msgEl.style.border = '1px solid #fecaca';
+      msgEl.textContent = err;
+    }
+    return;
+  }
 
   try {
-    const { data, error } = await sb.functions.invoke(Config.FUNCTIONS.CREATE_STAFF, {
-      body: { email, password: pass, name, emoji, permissions: perms }
+    const { data: { session } } = await sb.auth.getSession();
+    const accessToken = session?.access_token;
+    console.log('[createStaffAccount] session user:', session?.user?.email, 'has token:', !!accessToken);
+    if (!accessToken) throw new Error('يرجى تسجيل الدخول أولاً كمدير');
+
+    console.log('[createStaffAccount] Sending request to create-staff Edge Function...');
+    const res = await fetch(`${Config.SUPABASE.URL}/functions/v1/${Config.FUNCTIONS.CREATE_STAFF}`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${accessToken}`,
+        'apikey': Config.SUPABASE.ANON_KEY,
+      },
+      body: JSON.stringify({ email, password: pass, name, emoji, permissions: perms }),
     });
-    if (error) throw error;
-    showToast('✅ تم إنشاء الحساب بنجاح', 'success');
+
+    console.log('[createStaffAccount] Response status:', res.status);
+    const result = await res.json();
+    console.log('[createStaffAccount] Response body:', result);
+
+    if (result.error) throw new Error(result.error);
+
+    showToast('✅ تم إنشاء حساب الموظف بنجاح', 'success');
+    if (msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#f0fdf4';
+      msgEl.style.color = '#166534';
+      msgEl.style.border = '1px solid #bbf7d0';
+      msgEl.textContent = '✅ تم إنشاء حساب الموظف (' + name + ') بنجاح!';
+    }
     // Clear form and reload list
     document.getElementById('new-staff-name').value = '';
     document.getElementById('new-staff-user').value = '';
@@ -1017,8 +1064,18 @@ async function createStaffAccount() {
     ['perm-rp', 'perm-pd', 'perm-dd', 'perm-canc', 'perm-market', 'perm-supplies'].forEach(id => {
       const el = document.getElementById(id); if (el) el.checked = false;
     });
-    loadStaffList();
-  } catch (e) { showToast('❌ ' + e.message, 'error'); }
+    await loadStaffList();
+  } catch (e) {
+    console.error('[createStaffAccount] Error:', e);
+    showToast('❌ ' + e.message, 'error');
+    if (msgEl) {
+      msgEl.style.display = 'block';
+      msgEl.style.background = '#fef2f2';
+      msgEl.style.color = '#991b1b';
+      msgEl.style.border = '1px solid #fecaca';
+      msgEl.textContent = '❌ ' + e.message;
+    }
+  }
 }
 
 async function createCoupon() {

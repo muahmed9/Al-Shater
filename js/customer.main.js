@@ -1017,6 +1017,14 @@ function updateStep3Summary() {
   document.getElementById('s3-sum-print').textContent = formatPrice(printSubtotal);
   document.getElementById('s3-sum-market').textContent = formatPrice(cartSubtotal);
 
+  // تحديث رسوم التوصيل
+  const deliveryVal = document.getElementById('s3-sum-delivery');
+  if (deliveryVal) {
+    deliveryVal.innerHTML = totals.deliveryFee === 0 
+      ? '<span style="color:var(--green)">🎁 مجاني</span>' 
+      : formatPrice(totals.deliveryFee);
+  }
+
   const ptsRow = document.getElementById('s3-pts-row');
   const ptsVal = document.getElementById('s3-sum-pts');
   const usePoints = document.getElementById('ptstog')?.checked;
@@ -1029,6 +1037,18 @@ function updateStep3Summary() {
     if (ptsVal) ptsVal.textContent = '- ' + formatPrice(Math.round(pointsSaving));
   } else {
     if (ptsRow) ptsRow.style.display = 'none';
+  }
+
+  // تحديث خصم الكوبون
+  const couponRow = document.getElementById('s3-coupon-row');
+  const couponVal = document.getElementById('s3-sum-coupon');
+  const couponDiscount = Math.max(0, totals.discount - pointsSaving);
+
+  if (couponDiscount > 0) {
+    if (couponRow) couponRow.style.display = 'flex';
+    if (couponVal) couponVal.textContent = '- ' + formatPrice(Math.round(couponDiscount));
+  } else {
+    if (couponRow) couponRow.style.display = 'none';
   }
 
   document.getElementById('s3-sum-total').textContent = formatPrice(totals.total);
