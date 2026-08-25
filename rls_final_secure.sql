@@ -147,29 +147,22 @@ CREATE POLICY orders_full_operator_admin ON public.orders
   USING (public.check_is_operator_or_admin());
 
 -- ----------------------------------------------------------
--- 4️⃣ profiles — المستخدم يقرأ/يعدل بروفايله + admin يدير الكل
+-- 4️⃣ profiles — الجميع يقرأ + admin يدير الكل + المستخدم يعدل بروفايله
 -- ----------------------------------------------------------
 ALTER TABLE public.profiles ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY profiles_self_select ON public.profiles
+CREATE POLICY profiles_select_authenticated ON public.profiles
   FOR SELECT TO PUBLIC
-  USING (id::text = (auth.jwt() ->> 'sub'));
+  USING (true);
+
+CREATE POLICY profiles_admin_all ON public.profiles
+  FOR ALL TO PUBLIC
+  USING (public.check_is_admin())
+  WITH CHECK (public.check_is_admin());
 
 CREATE POLICY profiles_self_update ON public.profiles
   FOR UPDATE TO PUBLIC
   USING (id::text = (auth.jwt() ->> 'sub'));
-
-CREATE POLICY profiles_admin_select ON public.profiles
-  FOR SELECT TO PUBLIC
-  USING (public.check_is_admin());
-
-CREATE POLICY profiles_admin_update ON public.profiles
-  FOR UPDATE TO PUBLIC
-  USING (public.check_is_admin());
-
-CREATE POLICY profiles_admin_delete ON public.profiles
-  FOR DELETE TO PUBLIC
-  USING (public.check_is_admin());
 
 -- ----------------------------------------------------------
 -- 5️⃣ users — المستخدم يقرأ/يعدل بياناته + admin يقرأ الكل

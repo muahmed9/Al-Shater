@@ -1509,8 +1509,10 @@ async function loadStaffList() {
   if (!listEl) return;
   try {
     const { sb } = await import('./core/supabase.js');
-    const { data } = await sb.from('profiles').select('id, name, emoji, role, permissions').order('name');
+    const { data, error } = await sb.from('profiles').select('id, name, emoji, role, permissions').order('name');
+    if (error) throw error;
     const profiles = data ?? [];
+    console.log('[loadStaffList] profiles loaded:', profiles.length, profiles);
     if (!profiles.length) { listEl.innerHTML = '<p style="color:var(--text-muted);text-align:center;padding:10px;">لا يوجد موظفون</p>'; return; }
     
     const currentUserId = adminState.get('currentUser')?.id;
