@@ -1761,6 +1761,7 @@ function showProductDetailPage(product) {
   const page = document.getElementById('product-detail-page');
   const titleEl = document.getElementById('pdp-title');
   const contentEl = document.getElementById('pdp-content');
+  const footerEl = document.getElementById('pdp-footer-bar');
   if (titleEl) titleEl.textContent = product.name;
 
   const images = (product.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -1780,24 +1781,25 @@ function showProductDetailPage(product) {
   const inCartItem = cart.find(i => i.id === product.id);
   let initialQty = inCartItem ? inCartItem.qty : 1;
 
+  // Render Scrollable Body Cards
   contentEl.innerHTML = `
-    <!-- معرض الصور -->
-    <div class="pdp-gallery-wrap" style="position:relative;margin-bottom:16px;">
-      <div id="pdp-main-img-box" style="width:100%;height:240px;border-radius:var(--radius-lg);background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);position:relative;">
+    <!-- 1. معرض الصور -->
+    <div style="background:#fff;border-radius:var(--radius-lg);padding:14px;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);text-align:center;">
+      <div style="position:relative;width:100%;height:210px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8fafc;border-radius:var(--radius-md);">
         ${images.length > 0
-          ? `<img id="pdp-active-img" src="${esc(images[0])}" alt="${esc(product.name)}" style="width:100%;height:100%;object-fit:contain;transition:opacity 0.25s ease;">`
-          : `<span style="font-size:4.5rem;opacity:0.3;">📦</span>`
+          ? `<img id="pdp-active-img" src="${esc(images[0])}" alt="${esc(product.name)}" style="max-width:100%;max-height:100%;object-fit:contain;transition:opacity 0.2s ease;">`
+          : `<span style="font-size:4rem;opacity:0.3;">📦</span>`
         }
         ${hasMultipleImages
-          ? `<span id="pdp-img-counter" style="position:absolute;bottom:10px;left:10px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 10px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;">📷 1/${images.length}</span>`
+          ? `<span id="pdp-img-counter" style="position:absolute;bottom:8px;left:8px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:2px 8px;border-radius:var(--radius-full);font-size:0.72rem;font-weight:700;">📷 1/${images.length}</span>`
           : ''
         }
       </div>
       ${hasMultipleImages ? `
-        <div class="pdp-thumbnails" style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px;">
+        <div class="pdp-thumbnails" style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px;justify-content:center;">
           ${images.map((img, idx) => `
             <div class="pdp-thumb ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-src="${esc(img)}"
-              style="width:58px;height:58px;border-radius:var(--radius-sm);background:#fff;border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
+              style="width:52px;height:52px;border-radius:var(--radius-sm);background:#fff;border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
               <img src="${esc(img)}" alt="صورة ${idx + 1}" style="width:100%;height:100%;object-fit:cover;">
             </div>
           `).join('')}
@@ -1805,9 +1807,9 @@ function showProductDetailPage(product) {
       ` : ''}
     </div>
 
-    <!-- معلومات المنتج والأسعار -->
-    <div style="margin-bottom:16px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
+    <!-- 2. معلومات المنتج والأسعار -->
+    <div style="background:#fff;border-radius:var(--radius-lg);padding:16px;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px;">
         <span style="font-size:0.75rem;background:rgba(20,184,166,0.12);color:var(--teal);padding:4px 10px;border-radius:var(--radius-full);font-weight:800;">
           ${catLabel}
         </span>
@@ -1818,45 +1820,34 @@ function showProductDetailPage(product) {
         }
       </div>
 
-      <h1 style="color:var(--navy);font-size:1.3rem;font-weight:900;margin:0 0 12px;line-height:1.4;">${esc(product.name)}</h1>
+      <h1 style="color:var(--navy);font-size:1.25rem;font-weight:900;margin:0 0 10px;line-height:1.4;">${esc(product.name)}</h1>
 
-      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+      <div style="display:flex;align-items:baseline;gap:8px;">
         <span style="font-size:1.55rem;font-weight:900;color:var(--orange);font-family:'Plus Jakarta Sans',sans-serif;">${formatPrice(effectivePrice)}</span>
         ${hasDiscount ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.95rem;opacity:0.6;">${formatPrice(product.price)}</span>` : ''}
         <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">/ ${esc(product.unit ?? 'قطعة')}</span>
       </div>
 
-      ${hasDiscount ? `<div style="display:inline-block;background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:var(--radius-sm);font-size:0.78rem;font-weight:800;margin-top:4px;">🎉 وفرت ${formatPrice(product.discount)} على هذا المنتج</div>` : ''}
+      ${hasDiscount ? `<div style="display:inline-block;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:800;margin-top:6px;">🎉 وفرت ${formatPrice(product.discount)} على هذا المنتج</div>` : ''}
     </div>
 
-    <!-- بطاقة وصف المنتج البارزة -->
-    <div style="margin-bottom:16px;padding:18px;background:#f8fafc;border:1.5px solid #e2e8f0;border-right:5px solid var(--teal);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-      <div style="font-weight:800;color:var(--navy);font-size:0.98rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
-        <span style="font-size:1.15rem;">📝</span>
-        <span>وصف وتفاصيل المنتج:</span>
-      </div>
-      <div style="font-size:0.92rem;color:#334155;line-height:1.8;white-space:pre-wrap;font-weight:500;">
-        ${product.description ? esc(product.description) : '<span style="color:var(--text-muted);font-size:0.85rem;">لا يوجد وصف إضافي متوفر لهذا المنتج.</span>'}
-      </div>
-    </div>
-
-    <!-- بطاقة خيارات وتخصيصات المنتج -->
+    <!-- 3. خيارات وتفاصيل المنتج (إن وجدت) -->
     ${(variants.length > 0) ? `
-      <div style="margin-bottom:16px;padding:18px;background:#faf5ff;border:1.5px solid #e9d5ff;border-right:5px solid #8b5cf6;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-        <div style="font-weight:800;color:#5b21b6;font-size:0.98rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
-          <span style="font-size:1.15rem;">🎨</span>
+      <div style="background:#faf5ff;border-radius:var(--radius-lg);padding:16px;border:1.5px solid #e9d5ff;border-right:5px solid #8b5cf6;box-shadow:var(--shadow-sm);">
+        <div style="font-weight:800;color:#5b21b6;font-size:0.95rem;margin-bottom:12px;display:flex;align-items:center;gap:6px;">
+          <span>🎨</span>
           <span>اختر المواصفات والتفاصيل:</span>
         </div>
         <div id="pdp-variants-container">
           ${variants.map((vg, idx) => `
-            <div class="pdp-vg-group" data-vg-name="${esc(vg.name)}" data-vg-required="${vg.required ? 'true' : 'false'}" style="margin-bottom:14px;">
-              <label style="font-size:0.88rem;font-weight:800;color:var(--navy);display:block;margin-bottom:8px;">
-                ${esc(vg.name)}: ${vg.required ? '<span style="color:var(--red);font-weight:900;">* (إلزامي)</span>' : '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
+            <div class="pdp-vg-group" data-vg-name="${esc(vg.name)}" data-vg-required="${vg.required ? 'true' : 'false'}" style="margin-bottom:12px;">
+              <label style="font-size:0.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
+                ${esc(vg.name)}: ${vg.required ? '<span style="color:var(--red);font-weight:900;">* (إلزامي)</span>' : '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
               </label>
               <div style="display:flex;flex-wrap:wrap;gap:8px;">
                 ${(vg.options || []).map(opt => `
                   <button type="button" class="pdp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
-                    style="border:2px solid #ddd6fe;background:#fff;color:var(--navy);padding:8px 16px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.85rem;transition:all 0.2s;">
+                    style="border:2px solid #ddd6fe;background:#fff;color:var(--navy);padding:7px 16px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.85rem;transition:all 0.2s;">
                     ${esc(opt)}
                   </button>
                 `).join('')}
@@ -1864,27 +1855,37 @@ function showProductDetailPage(product) {
             </div>
           `).join('')}
         </div>
-        <div id="pdp-var-error" style="display:none;color:var(--red);font-size:0.85rem;font-weight:800;margin-top:8px;"></div>
+        <div id="pdp-var-error" style="display:none;color:var(--red);font-size:0.82rem;font-weight:800;margin-top:6px;"></div>
       </div>
     ` : ''}
 
-    <!-- شريط الإضافة للسلة الثابت أسفل صفحة المنتج -->
-    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1.5px solid var(--border-soft);padding:14px 18px;box-shadow:0 -6px 25px rgba(0,0,0,0.12);z-index:350;display:flex;align-items:center;gap:12px;">
-      <!-- عداد الكمية -->
-      <div style="display:flex;align-items:center;background:var(--input-bg);border:1.5px solid var(--border-soft);border-radius:var(--radius-md);overflow:hidden;height:46px;">
-        <button id="pdp-qty-minus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.2rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;">−</button>
-        <span id="pdp-qty-val" style="min-width:34px;text-align:center;font-weight:900;font-size:1rem;color:var(--navy);">${initialQty}</span>
-        <button id="pdp-qty-plus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.2rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;">+</button>
+    <!-- 4. وصف وتفاصيل المنتج -->
+    <div style="background:#fff;border-radius:var(--radius-lg);padding:16px;border:1.5px solid var(--border-soft);border-right:5px solid var(--teal);box-shadow:var(--shadow-sm);">
+      <div style="font-weight:800;color:var(--navy);font-size:0.95rem;margin-bottom:8px;display:flex;align-items:center;gap:6px;">
+        <span>📝</span>
+        <span>وصف وتفاصيل المنتج:</span>
       </div>
-
-      <!-- زر الإضافة -->
-      <button id="pdp-add-btn" class="btn-primary" style="flex:1;height:46px;background:var(--grad-navy);color:#fff;border:none;border-radius:var(--radius-md);font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(13,59,102,0.25);">
-        <span>🛒 أضف للسلة</span>
-        <span style="opacity:0.8;font-size:0.85rem;">•</span>
-        <span id="pdp-btn-total">${formatPrice(effectivePrice * initialQty)}</span>
-      </button>
+      <div style="font-size:0.9rem;color:#334155;line-height:1.75;white-space:pre-wrap;font-weight:500;">
+        ${product.description ? esc(product.description) : '<span style="color:var(--text-muted);font-size:0.82rem;">لا يوجد وصف إضافي متوفر لهذا المنتج.</span>'}
+      </div>
     </div>
   `;
+
+  // Render Docked Footer Bar
+  if (footerEl) {
+    footerEl.innerHTML = `
+      <div class="pdp-qty-stepper">
+        <button id="pdp-qty-minus" class="pdp-qty-btn">−</button>
+        <span id="pdp-qty-val" class="pdp-qty-num">${initialQty}</span>
+        <button id="pdp-qty-plus" class="pdp-qty-btn">+</button>
+      </div>
+      <button id="pdp-add-btn" class="pdp-add-action-btn">
+        <span>🛒 أضف للسلة</span>
+        <span>•</span>
+        <span id="pdp-btn-total">${formatPrice(effectivePrice * initialQty)}</span>
+      </button>
+    `;
+  }
 
   // Bind thumbnails click
   contentEl.querySelectorAll('.pdp-thumb').forEach(thumb => {
@@ -1916,13 +1917,13 @@ function showProductDetailPage(product) {
     btn.addEventListener('click', () => {
       const groupName = btn.dataset.vgName;
       contentEl.querySelectorAll(`.pdp-opt-btn[data-vg-name="${groupName}"]`).forEach(b => {
-        b.style.background = 'var(--input-bg)';
-        b.style.borderColor = 'var(--border-soft)';
+        b.style.background = '#fff';
+        b.style.borderColor = '#ddd6fe';
         b.style.color = 'var(--navy)';
         b.classList.remove('selected');
       });
-      btn.style.background = 'var(--teal)';
-      btn.style.borderColor = 'var(--teal)';
+      btn.style.background = '#7c3aed';
+      btn.style.borderColor = '#7c3aed';
       btn.style.color = '#fff';
       btn.classList.add('selected');
       const errEl = document.getElementById('pdp-var-error');
@@ -1998,7 +1999,7 @@ function showProductDetailPage(product) {
     const addBtn = document.getElementById('pdp-add-btn');
     if (addBtn) {
       addBtn.innerHTML = `<span>✅ تم التحديث في السلة</span> • <span>${formatPrice(effectivePrice * qty)}</span>`;
-      addBtn.style.background = 'var(--grad-success)';
+      addBtn.style.background = 'var(--green)';
       setTimeout(() => {
         if (document.getElementById('pdp-add-btn')) {
           document.getElementById('pdp-add-btn').innerHTML = `<span>🛒 أضف للسلة</span> • <span>${formatPrice(effectivePrice * qty)}</span>`;
@@ -2008,8 +2009,9 @@ function showProductDetailPage(product) {
     }
   });
 
-  // Open PDP
-  page.style.display = 'block';
+  // Open PDP (Use flex so flex-column layout works perfectly)
+  page.style.display = 'flex';
+  contentEl.scrollTop = 0;
   window.Telegram?.WebApp?.BackButton?.show();
 }
 

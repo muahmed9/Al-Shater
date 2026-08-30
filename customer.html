@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/customer.css?v=20260830_v4">
+  <link rel="stylesheet" href="css/customer.css?v=20260830_pdp_v2">
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.4.21/mammoth.browser.min.js"></script>
@@ -93,16 +93,17 @@
   </div>
 
   <!-- صفحة تفاصيل المنتج -->
-  <div id="product-detail-page">
+  <div id="product-detail-page" style="display:none;">
     <div class="pdp-header">
       <button id="pdp-back" class="pdp-back" aria-label="الرجوع">←</button>
-      <span id="pdp-title" style="font-weight:800;font-size:1.05rem;flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--navy);">تفاصيل المنتج</span>
-      <button id="pdp-cart-btn" style="border:none;background:var(--input-bg);width:38px;height:38px;border-radius:50%;cursor:pointer;position:relative;display:flex;align-items:center;justify-content:center;font-size:1.1rem;" title="عرض السلة">
+      <span id="pdp-title" class="pdp-title-text">تفاصيل المنتج</span>
+      <button id="pdp-cart-btn" class="pdp-cart-btn" title="عرض السلة">
         🛒
-        <span id="pdp-cart-badge" style="display:none;position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:var(--radius-full);min-width:18px;height:18px;font-size:.68rem;font-weight:800;align-items:center;justify-content:center;padding:0 3px;"></span>
+        <span id="pdp-cart-badge" class="pdp-cart-badge" style="display:none;"></span>
       </button>
     </div>
-    <div id="pdp-content" style="padding:16px 16px 120px;"></div>
+    <div id="pdp-content" class="pdp-content-scroll"></div>
+    <div id="pdp-footer-bar" class="pdp-footer"></div>
   </div>
 
   <div id="toast" role="alert" aria-live="polite"></div>
@@ -796,7 +797,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/customer.main.js?v=20260830_final"></script>
+  <script type="module" src="js/customer.main.js?v=20260830_pdp_v2"></script>
 </body>
 
 </html>
