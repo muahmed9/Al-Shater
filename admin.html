@@ -8,7 +8,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260830_v3">
+  <link rel="stylesheet" href="css/admin.css?v=20260830_v4">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -431,14 +431,35 @@
         </div>
       </div>
 
-      <!-- قسم خيارات المنتج (Variants) -->
-      <div style="margin-bottom:14px;border:1.5px dashed var(--border-soft);border-radius:var(--radius-sm);padding:12px;background:var(--input-bg);">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-          <label style="font-size:.82rem;color:var(--navy);font-weight:800;">🎨 خيارات المنتج (اختياري)</label>
-          <button type="button" id="add-variant-group-btn"
-            style="border:none;background:var(--teal);color:#fff;padding:5px 12px;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:.75rem;">➕ مجموعة جديدة</button>
+      <!-- قسم خيارات وتخصيصات المنتج (Variants) -->
+      <div style="margin-bottom:16px;border:2px solid #8b5cf6;border-radius:var(--radius-md);padding:14px;background:#f5f3ff;">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+          <div>
+            <label style="font-size:.92rem;color:#5b21b6;font-weight:900;display:block;">🎨 تخصيصات وخيارات المنتج (الألوان، الأشكال، إلخ)</label>
+            <p style="font-size:.75rem;color:#6b21a8;margin:2px 0 0;">حدد الخيارات التي يمكن للزبون الاختيار منها قبل إضافة المنتج للسلة</p>
+          </div>
         </div>
-        <p style="font-size:.72rem;color:var(--text-muted);margin:0 0 8px;">أضف خيارات ليختار منها الزبون (مثال: اللون، الشكل، نوع الرسومات)</p>
+
+        <!-- أزرار القوالب السريعة -->
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+          <button type="button" class="preset-vg-btn" data-name="اللون" data-options="أحمر، أزرق، أخضر، وردي، أسود"
+            style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+            🎨 + خيار اللون
+          </button>
+          <button type="button" class="preset-vg-btn" data-name="نوع الرسومات" data-options="ولادي، بناتي، سادة"
+            style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+            ✨ + خيار الرسومات
+          </button>
+          <button type="button" class="preset-vg-btn" data-name="الحجم / المقاس" data-options="صغير، وسط، كبير"
+            style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+            📐 + خيار الحجم
+          </button>
+          <button type="button" id="add-variant-group-btn"
+            style="border:none;background:#7c3aed;color:#fff;padding:5px 13px;border-radius:var(--radius-full);font-size:.78rem;font-weight:800;cursor:pointer;font-family:var(--font-main);">
+            ➕ خيار مخصص
+          </button>
+        </div>
+
         <div id="variant-groups-container"></div>
       </div>
       <div style="display:flex;gap:16px;margin-bottom:14px;">
@@ -490,7 +511,7 @@
     </div>
   </div>
 
-  <script type="module" src="js/admin.main.js?v=20260830_v3"></script>
+  <script type="module" src="js/admin.main.js?v=20260830_v4"></script>
 </body>
 
 </html>

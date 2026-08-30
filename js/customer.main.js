@@ -1783,13 +1783,13 @@ function showProductDetailPage(product) {
   contentEl.innerHTML = `
     <!-- معرض الصور -->
     <div class="pdp-gallery-wrap" style="position:relative;margin-bottom:16px;">
-      <div id="pdp-main-img-box" style="width:100%;height:280px;border-radius:var(--radius-lg);background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);position:relative;">
+      <div id="pdp-main-img-box" style="width:100%;height:240px;border-radius:var(--radius-lg);background:#f8fafc;display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);position:relative;">
         ${images.length > 0
           ? `<img id="pdp-active-img" src="${esc(images[0])}" alt="${esc(product.name)}" style="width:100%;height:100%;object-fit:contain;transition:opacity 0.25s ease;">`
           : `<span style="font-size:4.5rem;opacity:0.3;">📦</span>`
         }
         ${hasMultipleImages
-          ? `<span id="pdp-img-counter" style="position:absolute;bottom:12px;left:12px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 10px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;">📷 1/${images.length}</span>`
+          ? `<span id="pdp-img-counter" style="position:absolute;bottom:10px;left:10px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 10px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;">📷 1/${images.length}</span>`
           : ''
         }
       </div>
@@ -1797,7 +1797,7 @@ function showProductDetailPage(product) {
         <div class="pdp-thumbnails" style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px;">
           ${images.map((img, idx) => `
             <div class="pdp-thumb ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-src="${esc(img)}"
-              style="width:60px;height:60px;border-radius:var(--radius-sm);background:var(--input-bg);border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
+              style="width:58px;height:58px;border-radius:var(--radius-sm);background:#fff;border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
               <img src="${esc(img)}" alt="صورة ${idx + 1}" style="width:100%;height:100%;object-fit:cover;">
             </div>
           `).join('')}
@@ -1805,9 +1805,9 @@ function showProductDetailPage(product) {
       ` : ''}
     </div>
 
-    <!-- معلومات المنتج الأساسية -->
-    <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+    <!-- معلومات المنتج والأسعار -->
+    <div style="margin-bottom:16px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:10px;">
         <span style="font-size:0.75rem;background:rgba(20,184,166,0.12);color:var(--teal);padding:4px 10px;border-radius:var(--radius-full);font-weight:800;">
           ${catLabel}
         </span>
@@ -1818,43 +1818,45 @@ function showProductDetailPage(product) {
         }
       </div>
 
-      <h1 style="color:var(--navy);font-size:1.25rem;font-weight:900;margin:0 0 10px;line-height:1.4;">${esc(product.name)}</h1>
+      <h1 style="color:var(--navy);font-size:1.3rem;font-weight:900;margin:0 0 12px;line-height:1.4;">${esc(product.name)}</h1>
 
       <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
-        <span style="font-size:1.45rem;font-weight:900;color:var(--orange);font-family:'Plus Jakarta Sans',sans-serif;">${formatPrice(effectivePrice)}</span>
+        <span style="font-size:1.55rem;font-weight:900;color:var(--orange);font-family:'Plus Jakarta Sans',sans-serif;">${formatPrice(effectivePrice)}</span>
         ${hasDiscount ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.95rem;opacity:0.6;">${formatPrice(product.price)}</span>` : ''}
         <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">/ ${esc(product.unit ?? 'قطعة')}</span>
       </div>
 
-      ${hasDiscount ? `<div style="display:inline-block;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:800;margin-top:2px;">🎉 وفرت ${formatPrice(product.discount)} على هذا المنتج</div>` : ''}
+      ${hasDiscount ? `<div style="display:inline-block;background:#fef3c7;color:#92400e;padding:4px 10px;border-radius:var(--radius-sm);font-size:0.78rem;font-weight:800;margin-top:4px;">🎉 وفرت ${formatPrice(product.discount)} على هذا المنتج</div>` : ''}
     </div>
 
-    <!-- وصف المنتج -->
-    <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-      <h3 style="margin:0 0 8px;color:var(--navy);font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:6px;">
-        <span>📝</span> وصف المنتج
-      </h3>
-      <div style="font-size:0.88rem;color:var(--text);line-height:1.7;white-space:pre-line;">
-        ${product.description ? esc(product.description) : '<span style="color:var(--text-muted);font-size:0.82rem;">لا يوجد وصف إضافي متوفر لهذا المنتج.</span>'}
+    <!-- بطاقة وصف المنتج البارزة -->
+    <div style="margin-bottom:16px;padding:18px;background:#f8fafc;border:1.5px solid #e2e8f0;border-right:5px solid var(--teal);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+      <div style="font-weight:800;color:var(--navy);font-size:0.98rem;margin-bottom:10px;display:flex;align-items:center;gap:8px;">
+        <span style="font-size:1.15rem;">📝</span>
+        <span>وصف وتفاصيل المنتج:</span>
+      </div>
+      <div style="font-size:0.92rem;color:#334155;line-height:1.8;white-space:pre-wrap;font-weight:500;">
+        ${product.description ? esc(product.description) : '<span style="color:var(--text-muted);font-size:0.85rem;">لا يوجد وصف إضافي متوفر لهذا المنتج.</span>'}
       </div>
     </div>
 
-    <!-- خيارات المنتج (إن وجدت) -->
+    <!-- بطاقة خيارات وتخصيصات المنتج -->
     ${(variants.length > 0) ? `
-      <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
-        <h3 style="margin:0 0 12px;color:var(--navy);font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:6px;">
-          <span>🎨</span> اختر الخيارات والتفاصيل
-        </h3>
+      <div style="margin-bottom:16px;padding:18px;background:#faf5ff;border:1.5px solid #e9d5ff;border-right:5px solid #8b5cf6;border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+        <div style="font-weight:800;color:#5b21b6;font-size:0.98rem;margin-bottom:12px;display:flex;align-items:center;gap:8px;">
+          <span style="font-size:1.15rem;">🎨</span>
+          <span>اختر المواصفات والتفاصيل:</span>
+        </div>
         <div id="pdp-variants-container">
           ${variants.map((vg, idx) => `
             <div class="pdp-vg-group" data-vg-name="${esc(vg.name)}" data-vg-required="${vg.required ? 'true' : 'false'}" style="margin-bottom:14px;">
-              <label style="font-size:0.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
-                ${esc(vg.name)} ${vg.required ? '<span style="color:var(--red);">*</span>' : '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
+              <label style="font-size:0.88rem;font-weight:800;color:var(--navy);display:block;margin-bottom:8px;">
+                ${esc(vg.name)}: ${vg.required ? '<span style="color:var(--red);font-weight:900;">* (إلزامي)</span>' : '<span style="font-size:0.75rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
               </label>
-              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <div style="display:flex;flex-wrap:wrap;gap:8px;">
                 ${(vg.options || []).map(opt => `
                   <button type="button" class="pdp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
-                    style="border:2px solid var(--border-soft);background:var(--input-bg);color:var(--navy);padding:7px 14px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.82rem;transition:all 0.2s;">
+                    style="border:2px solid #ddd6fe;background:#fff;color:var(--navy);padding:8px 16px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.85rem;transition:all 0.2s;">
                     ${esc(opt)}
                   </button>
                 `).join('')}
@@ -1862,17 +1864,17 @@ function showProductDetailPage(product) {
             </div>
           `).join('')}
         </div>
-        <div id="pdp-var-error" style="display:none;color:var(--red);font-size:0.82rem;font-weight:700;margin-top:6px;"></div>
+        <div id="pdp-var-error" style="display:none;color:var(--red);font-size:0.85rem;font-weight:800;margin-top:8px;"></div>
       </div>
     ` : ''}
 
     <!-- شريط الإضافة للسلة الثابت أسفل صفحة المنتج -->
-    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;background:var(--card);border-top:1.5px solid var(--border-soft);padding:14px 16px;box-shadow:0 -6px 20px rgba(0,0,0,0.1);z-index:20;display:flex;align-items:center;gap:12px;">
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;background:rgba(255,255,255,0.96);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-top:1.5px solid var(--border-soft);padding:14px 18px;box-shadow:0 -6px 25px rgba(0,0,0,0.12);z-index:350;display:flex;align-items:center;gap:12px;">
       <!-- عداد الكمية -->
       <div style="display:flex;align-items:center;background:var(--input-bg);border:1.5px solid var(--border-soft);border-radius:var(--radius-md);overflow:hidden;height:46px;">
-        <button id="pdp-qty-minus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:800;color:var(--navy);display:flex;align-items:center;justify-content:center;">−</button>
-        <span id="pdp-qty-val" style="min-width:32px;text-align:center;font-weight:900;font-size:0.95rem;color:var(--navy);">${initialQty}</span>
-        <button id="pdp-qty-plus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:800;color:var(--navy);display:flex;align-items:center;justify-content:center;">+</button>
+        <button id="pdp-qty-minus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.2rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="pdp-qty-val" style="min-width:34px;text-align:center;font-weight:900;font-size:1rem;color:var(--navy);">${initialQty}</span>
+        <button id="pdp-qty-plus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.2rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;">+</button>
       </div>
 
       <!-- زر الإضافة -->

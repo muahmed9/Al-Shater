@@ -839,8 +839,9 @@ body{padding-bottom:120px}
   width: 100%;
   max-width: 600px;
   background: var(--bg);
-  z-index: 250;
+  z-index: 300;
   overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   box-shadow: 0 0 45px var(--shadow-md);
   border-left: 1px solid var(--border-soft);
   border-right: 1px solid var(--border-soft);
@@ -1107,15 +1108,16 @@ body{padding-bottom:120px}
   box-shadow: 0 0 10px rgba(20, 184, 166, 0.4);
 }
 .pdp-opt-btn:hover {
-  border-color: var(--teal) !important;
-  background: rgba(20, 184, 166, 0.08) !important;
+  border-color: #8b5cf6 !important;
+  background: #f5f3ff !important;
   transform: translateY(-1px);
 }
 .pdp-opt-btn.selected {
-  background: var(--teal) !important;
-  border-color: var(--teal) !important;
+  background: #7c3aed !important;
+  border-color: #7c3aed !important;
   color: #fff !important;
-  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+  box-shadow: 0 3px 12px rgba(124, 58, 237, 0.35) !important;
+  font-weight: 800 !important;
 }
 .pdp-opt-btn:active {
   transform: scale(0.96);

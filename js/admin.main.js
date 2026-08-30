@@ -195,6 +195,13 @@ function enterDashboard() {
 
   // Variant groups binding
   document.getElementById('add-variant-group-btn')?.addEventListener('click', () => addVariantGroupUI());
+  document.querySelectorAll('.preset-vg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      const options = btn.dataset.options ? btn.dataset.options.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
+      addVariantGroupUI({ name, required: true, options });
+    });
+  });
   document.getElementById('variant-groups-container')?.addEventListener('click', e => {
     const delBtn = e.target.closest('.del-variant-group');
     if (delBtn) delBtn.closest('.variant-group-row').remove();
@@ -1189,19 +1196,20 @@ function renderProductsList(products) {
 
 function addVariantGroupUI(v = null) {
   const container = document.getElementById('variant-groups-container');
+  if (!container) return;
   const row = document.createElement('div');
   row.className = 'variant-group-row';
-  row.style.cssText = 'background:var(--card);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;';
+  row.style.cssText = 'background:#fff;border:1.5px solid #c4b5fd;border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;box-shadow:0 2px 6px rgba(139,92,246,0.08);';
   row.innerHTML = `
     <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
-      <input type="text" class="vg-name" placeholder="اسم المجموعة (مثال: اللون)" value="${esc(v?.name ?? '')}" style="flex:1;margin-bottom:0;font-size:.82rem;">
-      <label style="display:flex;align-items:center;gap:4px;font-size:.72rem;white-space:nowrap;cursor:pointer;font-weight:700;">
-        <input type="checkbox" class="vg-required" ${v?.required ? 'checked' : ''} style="width:auto;margin:0;accent-color:var(--red);">
+      <input type="text" class="vg-name" placeholder="اسم الخاصية (مثال: اللون، نوع الغلاف)" value="${esc(v?.name ?? '')}" style="flex:1;margin-bottom:0;font-size:.82rem;font-weight:700;border:1px solid #ddd;">
+      <label style="display:flex;align-items:center;gap:4px;font-size:.75rem;white-space:nowrap;cursor:pointer;font-weight:800;color:#5b21b6;">
+        <input type="checkbox" class="vg-required" ${v?.required ? 'checked' : ''} style="width:auto;margin:0;accent-color:#7c3aed;">
         مطلوب
       </label>
-      <button type="button" class="del-variant-group" style="border:none;background:var(--red);color:#fff;width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;" title="حذف">✕</button>
+      <button type="button" class="del-variant-group" style="border:none;background:#fee2e2;color:#ef4444;width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;font-weight:800;" title="حذف">✕</button>
     </div>
-    <input type="text" class="vg-options" placeholder="الخيارات مفصولة بفاصلة (مثال: أحمر، أزرق، أخضر)" value="${esc((v?.options ?? []).join('، '))}" style="margin-bottom:0;font-size:.82rem;">
+    <input type="text" class="vg-options" placeholder="الخيارات المتاحة مفصولة بفاصلة (مثال: أحمر، أزرق، أسود)" value="${esc((v?.options ?? []).join('، '))}" style="margin-bottom:0;font-size:.82rem;border:1px solid #ddd;">
   `;
   container.appendChild(row);
 }
