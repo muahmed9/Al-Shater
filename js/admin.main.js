@@ -1250,9 +1250,15 @@ function showProductForm(product = null) {
 
   // Populate variant groups
   const vContainer = document.getElementById('variant-groups-container');
-  vContainer.innerHTML = '';
-  const variants = product?.variants ?? [];
-  variants.forEach(v => addVariantGroupUI(v));
+  if (vContainer) {
+    vContainer.innerHTML = '';
+    let variants = product?.variants ?? [];
+    if (typeof variants === 'string') {
+      try { variants = JSON.parse(variants); } catch (e) { variants = []; }
+    }
+    if (!Array.isArray(variants)) variants = [];
+    variants.forEach(v => addVariantGroupUI(v));
+  }
 
   document.getElementById('prod-delete-btn').style.display = isEdit ? '' : 'none';
   Modal.open('product-modal');

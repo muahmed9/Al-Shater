@@ -1416,12 +1416,16 @@ function openCartDrawer() {
 }
 
 function addToCart(product, selectedOptions = null) {
-  const variants = product.variants ?? [];
+  let variants = product.variants ?? [];
+  if (typeof variants === 'string') {
+    try { variants = JSON.parse(variants); } catch (e) { variants = []; }
+  }
+  if (!Array.isArray(variants)) variants = [];
   const hasVariants = variants.length > 0;
 
   // If product has variants and no options selected yet, open picker
   if (hasVariants && !selectedOptions) {
-    openVariantPicker(product);
+    openVariantPicker({ ...product, variants });
     return;
   }
 
@@ -1446,17 +1450,23 @@ function addToCart(product, selectedOptions = null) {
 }
 
 function openVariantPicker(product) {
-  customerState.set('_vpProduct', product);
+  let variants = product.variants ?? [];
+  if (typeof variants === 'string') {
+    try { variants = JSON.parse(variants); } catch (e) { variants = []; }
+  }
+  if (!Array.isArray(variants)) variants = [];
+
+  customerState.set('_vpProduct', { ...product, variants });
   document.getElementById('vp-product-name').textContent = product.name;
   document.getElementById('vp-error').style.display = 'none';
   const container = document.getElementById('vp-options-container');
-  container.innerHTML = (product.variants ?? []).map((vg, idx) => `
+  container.innerHTML = variants.map((vg, idx) => `
     <div class="vp-group" data-vg-idx="${idx}" style="margin-bottom:12px;">
       <label style="font-size:.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
         ${esc(vg.name)} ${vg.required ? '<span style="color:var(--red);">*</span>' : '<span style="font-size:.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
       </label>
       <div style="display:flex;flex-wrap:wrap;gap:6px;">
-        ${vg.options.map(opt => `
+        ${(vg.options || []).map(opt => `
           <button type="button" class="vp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
             style="border:2px solid var(--border-soft);background:var(--card);color:var(--navy);padding:7px 14px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:.82rem;transition:all .2s;">
             ${esc(opt)}
@@ -1739,7 +1749,14 @@ async function bindMarket() {
 
 function showProductDetailPage(product) {
   if (!product) return;
-  customerState.set('_currentPdpProduct', product);
+  
+  let variants = product.variants ?? [];
+  if (typeof variants === 'string') {
+    try { variants = JSON.parse(variants); } catch (e) { variants = []; }
+  }
+  if (!Array.isArray(variants)) variants = [];
+  const normalizedProduct = { ...product, variants };
+  customerState.set('_currentPdpProduct', normalizedProduct);
   
   const page = document.getElementById('product-detail-page');
   const titleEl = document.getElementById('pdp-title');
@@ -1823,19 +1840,19 @@ function showProductDetailPage(product) {
     </div>
 
     <!-- خيارات المنتج (إن وجدت) -->
-    ${(product.variants?.length) ? `
+    ${(variants.length > 0) ? `
       <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
         <h3 style="margin:0 0 12px;color:var(--navy);font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:6px;">
           <span>🎨</span> اختر الخيارات والتفاصيل
         </h3>
         <div id="pdp-variants-container">
-          ${product.variants.map((vg, idx) => `
+          ${variants.map((vg, idx) => `
             <div class="pdp-vg-group" data-vg-name="${esc(vg.name)}" data-vg-required="${vg.required ? 'true' : 'false'}" style="margin-bottom:14px;">
               <label style="font-size:0.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
                 ${esc(vg.name)} ${vg.required ? '<span style="color:var(--red);">*</span>' : '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
               </label>
               <div style="display:flex;flex-wrap:wrap;gap:6px;">
-                ${vg.options.map(opt => `
+                ${(vg.options || []).map(opt => `
                   <button type="button" class="pdp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
                     style="border:2px solid var(--border-soft);background:var(--input-bg);color:var(--navy);padding:7px 14px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.82rem;transition:all 0.2s;">
                     ${esc(opt)}
