@@ -1229,7 +1229,60 @@ function collectVariantGroups() {
   return groups;
 }
 
+function ensureVariantSectionInDOM() {
+  if (document.getElementById('variant-groups-container')) return;
+  const target = document.getElementById('prod-is-suggested')?.closest('div') || document.getElementById('prod-save-btn')?.closest('div');
+  if (!target) return;
+  
+  const section = document.createElement('div');
+  section.id = 'prod-variants-section';
+  section.style.cssText = 'margin-bottom:16px;border:2px solid #8b5cf6;border-radius:var(--radius-md);padding:14px;background:#f5f3ff;';
+  section.innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">
+      <div>
+        <label style="font-size:.92rem;color:#5b21b6;font-weight:900;display:block;">🎨 تخصيصات وخيارات المنتج (الألوان، الأشكال، إلخ)</label>
+        <p style="font-size:.75rem;color:#6b21a8;margin:2px 0 0;">حدد الخيارات التي يمكن للزبون الاختيار منها قبل إضافة المنتج للسلة</p>
+      </div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;">
+      <button type="button" class="preset-vg-btn" data-name="اللون" data-options="أحمر، أزرق، أخضر، وردي، أسود"
+        style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+        🎨 + خيار اللون
+      </button>
+      <button type="button" class="preset-vg-btn" data-name="نوع الرسومات" data-options="ولادي، بناتي، سادة"
+        style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+        ✨ + خيار الرسومات
+      </button>
+      <button type="button" class="preset-vg-btn" data-name="الحجم / المقاس" data-options="صغير، وسط، كبير"
+        style="border:1.5px solid #c4b5fd;background:#fff;color:#6d28d9;padding:5px 11px;border-radius:var(--radius-full);font-size:.78rem;font-weight:700;cursor:pointer;font-family:var(--font-main);">
+        📐 + خيار الحجم
+      </button>
+      <button type="button" id="add-variant-group-btn"
+        style="border:none;background:#7c3aed;color:#fff;padding:5px 13px;border-radius:var(--radius-full);font-size:.78rem;font-weight:800;cursor:pointer;font-family:var(--font-main);">
+        ➕ خيار مخصص
+      </button>
+    </div>
+    <div id="variant-groups-container"></div>
+  `;
+  target.parentNode.insertBefore(section, target);
+  
+  // Rebind events for newly created section
+  section.querySelector('#add-variant-group-btn')?.addEventListener('click', () => addVariantGroupUI());
+  section.querySelectorAll('.preset-vg-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const name = btn.dataset.name;
+      const options = btn.dataset.options ? btn.dataset.options.split(/[,،]/).map(s => s.trim()).filter(Boolean) : [];
+      addVariantGroupUI({ name, required: true, options });
+    });
+  });
+  section.querySelector('#variant-groups-container')?.addEventListener('click', e => {
+    const delBtn = e.target.closest('.del-variant-group');
+    if (delBtn) delBtn.closest('.variant-group-row').remove();
+  });
+}
+
 function showProductForm(product = null) {
+  ensureVariantSectionInDOM();
   const isEdit = !!product;
   document.getElementById('prod-modal-title').textContent = isEdit ? '✏️ تعديل المنتج' : '➕ إضافة منتج جديد';
   document.getElementById('prod-edit-id').value = product?.id ?? '';
