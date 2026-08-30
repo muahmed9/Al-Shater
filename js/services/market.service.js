@@ -32,6 +32,7 @@ export async function saveProduct(product) {
     active:          product.active           ?? true,
     is_suggested:    product.is_suggested     ?? false,
     min_stock:       Number(product.min_stock) || 0,
+    variants:        product.variants         ?? [],
   };
   if (product.id) {
     const { error } = await sb.from(T.MARKET_PRODUCTS).update(payload).eq('id', product.id);

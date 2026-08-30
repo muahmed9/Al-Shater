@@ -430,6 +430,17 @@
           <input type="file" id="prod-image-file" accept="image/*" multiple style="margin-bottom:0;font-size:.82rem;">
         </div>
       </div>
+
+      <!-- قسم خيارات المنتج (Variants) -->
+      <div style="margin-bottom:14px;border:1.5px dashed var(--border-soft);border-radius:var(--radius-sm);padding:12px;background:var(--input-bg);">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <label style="font-size:.82rem;color:var(--navy);font-weight:800;">🎨 خيارات المنتج (اختياري)</label>
+          <button type="button" id="add-variant-group-btn"
+            style="border:none;background:var(--teal);color:#fff;padding:5px 12px;border-radius:var(--radius-sm);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:.75rem;">➕ مجموعة جديدة</button>
+        </div>
+        <p style="font-size:.72rem;color:var(--text-muted);margin:0 0 8px;">أضف خيارات ليختار منها الزبون (مثال: اللون، الشكل، نوع الرسومات)</p>
+        <div id="variant-groups-container"></div>
+      </div>
       <div style="display:flex;gap:16px;margin-bottom:14px;">
         <label style="display:flex;align-items:center;gap:6px;font-size:.85rem;cursor:pointer;font-weight:700;">
           <input type="checkbox" id="prod-is-suggested" style="width:auto;margin:0;accent-color:var(--teal);">

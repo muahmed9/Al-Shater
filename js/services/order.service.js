@@ -275,7 +275,7 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
 }
 
 function _buildCartItems(cart, sugCart) {
-  const items = cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.effective_price ?? i.price, unit: i.unit }));
+  const items = cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.effective_price ?? i.price, unit: i.unit, selected_options: i.selected_options ?? null }));
   const suggested = customerState.get('suggestedProducts') ?? [];
   for (const [id, qty] of Object.entries(sugCart ?? {})) {
     const p = suggested.find(x => x.id === id);
@@ -286,7 +286,13 @@ function _buildCartItems(cart, sugCart) {
 
 async function _notifyAdmin(orderId, payload) {
   let fileList = payload.files_data.map(f => `📄 ${esc(f.name)} (${f.pages} ص × ${f.copies})`).join('\n');
-  let cartList = payload.cart_items.map(i => `📦 ${esc(i.name)} × ${i.qty}`).join('\n');
+  let cartList = payload.cart_items.map(i => {
+    let line = `📦 ${esc(i.name)} × ${i.qty}`;
+    if (i.selected_options && Object.keys(i.selected_options).length > 0) {
+      line += ' (' + Object.entries(i.selected_options).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join(', ') + ')';
+    }
+    return line;
+  }).join('\n');
   
   let msg = `🆕 <b>طلب جديد #${orderId}</b>\n\n`;
   msg += `👤 <b>العميل:</b> ${esc(payload.customer_name)}\n`;

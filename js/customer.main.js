@@ -174,12 +174,16 @@ async function init() {
   // Telegram Back Button
   if (tg) {
     tg.BackButton.onClick(() => {
+      const pdpPage = document.getElementById('product-detail-page');
+      const pdpOpen = pdpPage && pdpPage.style.display === 'block';
       const currentTab = document.querySelector('.tab.active')?.id?.replace('tab-', '');
       const successOpen = document.getElementById('success-overlay')?.classList.contains('open');
       const detOpen = document.getElementById('det-ov')?.classList.contains('open');
       const cartOpen = document.getElementById('cart-drawer')?.classList.contains('open');
 
-      if (successOpen) {
+      if (pdpOpen) {
+        closeProductDetailPage();
+      } else if (successOpen) {
         document.getElementById('success-overlay').classList.remove('open');
       } else if (detOpen) {
         document.getElementById('det-ov').classList.remove('open');
@@ -291,7 +295,8 @@ async function init() {
       ['uName', 'cart-name', 'res-name'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.value) el.value = fullName.trim();
-      });      ['uPhone', 'res-phone'].forEach(id => {
+      });
+      ['uPhone', 'res-phone', 'cart-phone'].forEach(id => {
         const el = document.getElementById(id);
         if (el && !el.value) el.value = phone;
       });
@@ -1371,11 +1376,12 @@ async function sendOrder() {
 }
 
 function bindCart() {
-  document.getElementById('cart-fab')?.addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
-  document.getElementById('open-cart-btn')?.addEventListener('click', () => document.getElementById('cart-drawer').classList.add('open'));
-  document.getElementById('cart-close').addEventListener('click', () => document.getElementById('cart-drawer').classList.remove('open'));
-  document.getElementById('add-more-market-btn').addEventListener('click', () => goTab('market'));
-  document.getElementById('checkout-btn').addEventListener('click', () => withLoading('checkout-btn', checkoutMarket));
+  document.getElementById('cart-fab')?.addEventListener('click', openCartDrawer);
+  document.getElementById('open-cart-btn')?.addEventListener('click', openCartDrawer);
+  document.getElementById('mkt-bar-checkout-btn')?.addEventListener('click', openCartDrawer);
+  document.getElementById('cart-close')?.addEventListener('click', () => document.getElementById('cart-drawer')?.classList.remove('open'));
+  document.getElementById('add-more-market-btn')?.addEventListener('click', () => goTab('market'));
+  document.getElementById('checkout-btn')?.addEventListener('click', () => withLoading('checkout-btn', checkoutMarket));
 
   QtyControl.delegate(document.getElementById('cart-items-list'), (id, delta) => {
     const cart = customerState.get('cart') ?? [];
@@ -1398,16 +1404,38 @@ function bindCart() {
   });
 }
 
-function addToCart(product) {
+function openCartDrawer() {
+  const activeUser = customerState.get('user');
+  if (activeUser) {
+    const nameEl = document.getElementById('cart-name');
+    const phoneEl = document.getElementById('cart-phone');
+    if (nameEl && !nameEl.value) nameEl.value = (activeUser.name || activeUser.first_name || '').trim();
+    if (phoneEl && !phoneEl.value && activeUser.phone) phoneEl.value = activeUser.phone;
+  }
+  document.getElementById('cart-drawer')?.classList.add('open');
+}
+
+function addToCart(product, selectedOptions = null) {
+  const variants = product.variants ?? [];
+  const hasVariants = variants.length > 0;
+
+  // If product has variants and no options selected yet, open picker
+  if (hasVariants && !selectedOptions) {
+    openVariantPicker(product);
+    return;
+  }
+
   const cart = customerState.get('cart') ?? [];
-  const existing = cart.find(i => i.id === product.id);
+  // Create a unique key combining product id + selected options for variants
+  const optionsKey = selectedOptions ? JSON.stringify(selectedOptions) : '';
+  const existing = cart.find(i => i.id === product.id && (JSON.stringify(i.selected_options ?? '') === (optionsKey || JSON.stringify(''))));
   if (existing) {
     existing.qty = Math.min(existing.qty + 1, product.stock);
   } else {
     const effectivePrice = (product.discount && product.discount > 0)
       ? Math.max(0, product.price - product.discount)
       : (product.effective_price ?? product.price);
-    cart.push({ ...product, qty: 1, effective_price: effectivePrice });
+    cart.push({ ...product, qty: 1, effective_price: effectivePrice, selected_options: selectedOptions || null });
   }
   customerState.set('cart', [...cart]);
   renderCart();
@@ -1415,6 +1443,49 @@ function addToCart(product) {
   updateUnifiedCart();
   showToast('✅ أُضيف للسلة', 'success');
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+}
+
+function openVariantPicker(product) {
+  customerState.set('_vpProduct', product);
+  document.getElementById('vp-product-name').textContent = product.name;
+  document.getElementById('vp-error').style.display = 'none';
+  const container = document.getElementById('vp-options-container');
+  container.innerHTML = (product.variants ?? []).map((vg, idx) => `
+    <div class="vp-group" data-vg-idx="${idx}" style="margin-bottom:12px;">
+      <label style="font-size:.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
+        ${esc(vg.name)} ${vg.required ? '<span style="color:var(--red);">*</span>' : '<span style="font-size:.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
+      </label>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;">
+        ${vg.options.map(opt => `
+          <button type="button" class="vp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
+            style="border:2px solid var(--border-soft);background:var(--card);color:var(--navy);padding:7px 14px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:.82rem;transition:all .2s;">
+            ${esc(opt)}
+          </button>
+        `).join('')}
+      </div>
+    </div>
+  `).join('');
+
+  // Bind option button clicks
+  container.querySelectorAll('.vp-opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const groupName = btn.dataset.vgName;
+      // Deselect others in same group
+      container.querySelectorAll(`.vp-opt-btn[data-vg-name="${groupName}"]`).forEach(b => {
+        b.style.background = 'var(--card)';
+        b.style.borderColor = 'var(--border-soft)';
+        b.style.color = 'var(--navy)';
+        b.classList.remove('selected');
+      });
+      // Select this one
+      btn.style.background = 'var(--teal)';
+      btn.style.borderColor = 'var(--teal)';
+      btn.style.color = '#fff';
+      btn.classList.add('selected');
+    });
+  });
+
+  Modal.open('variant-picker-modal');
 }
 
 function renderCart() {
@@ -1429,17 +1500,23 @@ function renderCart() {
     return;
   }
 
-  itemsEl.innerHTML = cart.map(i => `
+  itemsEl.innerHTML = cart.map(i => {
+    const optionsHtml = i.selected_options
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">${Object.entries(i.selected_options).map(([k, v]) => `<span style="font-size:.68rem;background:var(--input-bg);color:var(--navy);padding:2px 7px;border-radius:var(--radius-full);font-weight:700;">${esc(k)}: ${esc(v)}</span>`).join('')}</div>`
+      : '';
+    return `
     <div class="cart-item" style="gap: 12px;">
       <div style="flex: 1;">
         <b style="font-size:.9rem;color:var(--navy);">${esc(i.name)}</b>
+        ${optionsHtml}
         <p style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);">${formatPrice(i.effective_price ?? i.price)} / ${esc(i.unit ?? 'قطعة')}</p>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
         ${QtyControl.html({ id: i.id, value: i.qty, min: 0, max: i.stock })}
         <button class="delete-cart-item-btn" data-id="${i.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px; transition:color 0.2s;" title="حذف المنتج">🗑️</button>
       </div>
-    </div>`).join('');
+    </div>`;
+  }).join('');
 
   checkEl.style.display = 'block';
   const sub = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
@@ -1452,7 +1529,10 @@ function renderCart() {
 }
 
 function updateCartBadge() {
-  const count = (customerState.get('cart') ?? []).reduce((s, i) => s + (i.qty ?? 1), 0);
+  const cart = customerState.get('cart') ?? [];
+  const count = cart.reduce((s, i) => s + (i.qty ?? 1), 0);
+  const sub = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * (i.qty ?? 1), 0);
+
   const badges = ['cart-count', 'nav-cart-badge', 'mkt-badge'];
   badges.forEach(id => {
     const el = document.getElementById(id);
@@ -1462,6 +1542,23 @@ function updateCartBadge() {
   });
   const fab = document.getElementById('cart-fab');
   if (fab) fab.style.display = count > 0 ? 'flex' : 'none';
+
+  // Update PDP cart badge
+  const pdpBadge = document.getElementById('pdp-cart-badge');
+  if (pdpBadge) {
+    pdpBadge.textContent = count || '';
+    pdpBadge.style.display = count > 0 ? 'flex' : 'none';
+  }
+
+  // Update floating market cart bar
+  const mktBar = document.getElementById('mkt-floating-cart-bar');
+  if (mktBar) {
+    mktBar.style.display = count > 0 ? 'flex' : 'none';
+    const mktCount = document.getElementById('mkt-bar-count');
+    const mktTotal = document.getElementById('mkt-bar-total');
+    if (mktCount) mktCount.textContent = count;
+    if (mktTotal) mktTotal.textContent = formatPrice(sub);
+  }
 }
 
 function updatePrintBadge(files) {
@@ -1606,6 +1703,304 @@ async function bindMarket() {
     customerState.set('marketFilter', btn.dataset.cat);
     filterMktProducts();
   });
+
+  // Variant picker modal bindings
+  document.getElementById('vp-cancel-btn')?.addEventListener('click', () => Modal.close('variant-picker-modal'));
+  document.getElementById('vp-confirm-btn')?.addEventListener('click', () => {
+    const product = customerState.get('_vpProduct');
+    if (!product) return;
+    const variants = product.variants ?? [];
+    const selected = {};
+    const errEl = document.getElementById('vp-error');
+    errEl.style.display = 'none';
+
+    for (const vg of variants) {
+      const btn = document.querySelector(`.vp-opt-btn[data-vg-name="${vg.name}"].selected`);
+      if (btn) {
+        selected[vg.name] = btn.dataset.opt;
+      } else if (vg.required) {
+        errEl.textContent = `❌ يرجى اختيار ${vg.name}`;
+        errEl.style.display = 'block';
+        return;
+      }
+    }
+
+    Modal.close('variant-picker-modal');
+    addToCart(product, Object.keys(selected).length > 0 ? selected : null);
+  });
+
+  // PDP Header bindings
+  document.getElementById('pdp-back')?.addEventListener('click', closeProductDetailPage);
+  document.getElementById('pdp-cart-btn')?.addEventListener('click', () => {
+    closeProductDetailPage();
+    openCartDrawer();
+  });
+}
+
+function showProductDetailPage(product) {
+  if (!product) return;
+  customerState.set('_currentPdpProduct', product);
+  
+  const page = document.getElementById('product-detail-page');
+  const titleEl = document.getElementById('pdp-title');
+  const contentEl = document.getElementById('pdp-content');
+  if (titleEl) titleEl.textContent = product.name;
+
+  const images = (product.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
+  const hasMultipleImages = images.length > 1;
+  const hasDiscount = product.discount && product.discount > 0;
+  const effectivePrice = hasDiscount ? Math.max(0, product.price - product.discount) : (product.effective_price ?? product.price);
+  const categoryLabels = {
+    notebooks: '📓 دفاتر',
+    books: '📚 كتب',
+    stationery: '✏️ قرطاسية',
+    other: '📦 أخرى'
+  };
+  const catLabel = categoryLabels[product.category] || '📦 منتج';
+
+  // Check if item already in cart
+  const cart = customerState.get('cart') ?? [];
+  const inCartItem = cart.find(i => i.id === product.id);
+  let initialQty = inCartItem ? inCartItem.qty : 1;
+
+  contentEl.innerHTML = `
+    <!-- معرض الصور -->
+    <div class="pdp-gallery-wrap" style="position:relative;margin-bottom:16px;">
+      <div id="pdp-main-img-box" style="width:100%;height:280px;border-radius:var(--radius-lg);background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);position:relative;">
+        ${images.length > 0
+          ? `<img id="pdp-active-img" src="${esc(images[0])}" alt="${esc(product.name)}" style="width:100%;height:100%;object-fit:contain;transition:opacity 0.25s ease;">`
+          : `<span style="font-size:4.5rem;opacity:0.3;">📦</span>`
+        }
+        ${hasMultipleImages
+          ? `<span id="pdp-img-counter" style="position:absolute;bottom:12px;left:12px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 10px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:700;">📷 1/${images.length}</span>`
+          : ''
+        }
+      </div>
+      ${hasMultipleImages ? `
+        <div class="pdp-thumbnails" style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:4px;">
+          ${images.map((img, idx) => `
+            <div class="pdp-thumb ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-src="${esc(img)}"
+              style="width:60px;height:60px;border-radius:var(--radius-sm);background:var(--input-bg);border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
+              <img src="${esc(img)}" alt="صورة ${idx + 1}" style="width:100%;height:100%;object-fit:cover;">
+            </div>
+          `).join('')}
+        </div>
+      ` : ''}
+    </div>
+
+    <!-- معلومات المنتج الأساسية -->
+    <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:8px;">
+        <span style="font-size:0.75rem;background:rgba(20,184,166,0.12);color:var(--teal);padding:4px 10px;border-radius:var(--radius-full);font-weight:800;">
+          ${catLabel}
+        </span>
+        ${product.is_suggested ? `<span style="font-size:0.72rem;background:var(--teal);color:#fff;padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">🌟 مقترح</span>` : ''}
+        ${product.stock <= (product.min_stock ?? 3)
+          ? `<span style="font-size:0.72rem;background:#fef2f2;color:var(--red);padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">⚠️ متبقي ${product.stock} فقط</span>`
+          : `<span style="font-size:0.72rem;background:#f0fdf4;color:var(--green);padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">✅ متوفر بالمخزن</span>`
+        }
+      </div>
+
+      <h1 style="color:var(--navy);font-size:1.25rem;font-weight:900;margin:0 0 10px;line-height:1.4;">${esc(product.name)}</h1>
+
+      <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:6px;">
+        <span style="font-size:1.45rem;font-weight:900;color:var(--orange);font-family:'Plus Jakarta Sans',sans-serif;">${formatPrice(effectivePrice)}</span>
+        ${hasDiscount ? `<span style="text-decoration:line-through;color:var(--text-muted);font-size:0.95rem;opacity:0.6;">${formatPrice(product.price)}</span>` : ''}
+        <span style="font-size:0.85rem;color:var(--text-muted);font-weight:600;">/ ${esc(product.unit ?? 'قطعة')}</span>
+      </div>
+
+      ${hasDiscount ? `<div style="display:inline-block;background:#fef3c7;color:#92400e;padding:3px 8px;border-radius:var(--radius-sm);font-size:0.75rem;font-weight:800;margin-top:2px;">🎉 وفرت ${formatPrice(product.discount)} على هذا المنتج</div>` : ''}
+    </div>
+
+    <!-- وصف المنتج -->
+    <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+      <h3 style="margin:0 0 8px;color:var(--navy);font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:6px;">
+        <span>📝</span> وصف المنتج
+      </h3>
+      <div style="font-size:0.88rem;color:var(--text);line-height:1.7;white-space:pre-line;">
+        ${product.description ? esc(product.description) : '<span style="color:var(--text-muted);font-size:0.82rem;">لا يوجد وصف إضافي متوفر لهذا المنتج.</span>'}
+      </div>
+    </div>
+
+    <!-- خيارات المنتج (إن وجدت) -->
+    ${(product.variants?.length) ? `
+      <div class="card" style="margin-bottom:14px;padding:18px;background:var(--card);border:1.5px solid var(--border-soft);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);">
+        <h3 style="margin:0 0 12px;color:var(--navy);font-size:0.95rem;font-weight:800;display:flex;align-items:center;gap:6px;">
+          <span>🎨</span> اختر الخيارات والتفاصيل
+        </h3>
+        <div id="pdp-variants-container">
+          ${product.variants.map((vg, idx) => `
+            <div class="pdp-vg-group" data-vg-name="${esc(vg.name)}" data-vg-required="${vg.required ? 'true' : 'false'}" style="margin-bottom:14px;">
+              <label style="font-size:0.85rem;font-weight:800;color:var(--navy);display:block;margin-bottom:6px;">
+                ${esc(vg.name)} ${vg.required ? '<span style="color:var(--red);">*</span>' : '<span style="font-size:0.72rem;color:var(--text-muted);font-weight:500;">(اختياري)</span>'}
+              </label>
+              <div style="display:flex;flex-wrap:wrap;gap:6px;">
+                ${vg.options.map(opt => `
+                  <button type="button" class="pdp-opt-btn" data-vg-name="${esc(vg.name)}" data-opt="${esc(opt)}"
+                    style="border:2px solid var(--border-soft);background:var(--input-bg);color:var(--navy);padding:7px 14px;border-radius:var(--radius-full);font-weight:700;cursor:pointer;font-family:var(--font-main);font-size:0.82rem;transition:all 0.2s;">
+                    ${esc(opt)}
+                  </button>
+                `).join('')}
+              </div>
+            </div>
+          `).join('')}
+        </div>
+        <div id="pdp-var-error" style="display:none;color:var(--red);font-size:0.82rem;font-weight:700;margin-top:6px;"></div>
+      </div>
+    ` : ''}
+
+    <!-- شريط الإضافة للسلة الثابت أسفل صفحة المنتج -->
+    <div style="position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:600px;background:var(--card);border-top:1.5px solid var(--border-soft);padding:14px 16px;box-shadow:0 -6px 20px rgba(0,0,0,0.1);z-index:20;display:flex;align-items:center;gap:12px;">
+      <!-- عداد الكمية -->
+      <div style="display:flex;align-items:center;background:var(--input-bg);border:1.5px solid var(--border-soft);border-radius:var(--radius-md);overflow:hidden;height:46px;">
+        <button id="pdp-qty-minus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:800;color:var(--navy);display:flex;align-items:center;justify-content:center;">−</button>
+        <span id="pdp-qty-val" style="min-width:32px;text-align:center;font-weight:900;font-size:0.95rem;color:var(--navy);">${initialQty}</span>
+        <button id="pdp-qty-plus" style="border:none;background:none;width:38px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:800;color:var(--navy);display:flex;align-items:center;justify-content:center;">+</button>
+      </div>
+
+      <!-- زر الإضافة -->
+      <button id="pdp-add-btn" class="btn-primary" style="flex:1;height:46px;background:var(--grad-navy);color:#fff;border:none;border-radius:var(--radius-md);font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;box-shadow:0 4px 14px rgba(13,59,102,0.25);">
+        <span>🛒 أضف للسلة</span>
+        <span style="opacity:0.8;font-size:0.85rem;">•</span>
+        <span id="pdp-btn-total">${formatPrice(effectivePrice * initialQty)}</span>
+      </button>
+    </div>
+  `;
+
+  // Bind thumbnails click
+  contentEl.querySelectorAll('.pdp-thumb').forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      const src = thumb.dataset.src;
+      const idx = Number(thumb.dataset.idx) + 1;
+      const activeImg = document.getElementById('pdp-active-img');
+      if (activeImg) {
+        activeImg.style.opacity = '0';
+        setTimeout(() => {
+          activeImg.src = src;
+          activeImg.style.opacity = '1';
+        }, 150);
+      }
+      const counter = document.getElementById('pdp-img-counter');
+      if (counter) counter.textContent = `📷 ${idx}/${images.length}`;
+
+      contentEl.querySelectorAll('.pdp-thumb').forEach(t => {
+        t.style.borderColor = 'var(--border-soft)';
+        t.classList.remove('active');
+      });
+      thumb.style.borderColor = 'var(--teal)';
+      thumb.classList.add('active');
+    });
+  });
+
+  // Bind option buttons click
+  contentEl.querySelectorAll('.pdp-opt-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const groupName = btn.dataset.vgName;
+      contentEl.querySelectorAll(`.pdp-opt-btn[data-vg-name="${groupName}"]`).forEach(b => {
+        b.style.background = 'var(--input-bg)';
+        b.style.borderColor = 'var(--border-soft)';
+        b.style.color = 'var(--navy)';
+        b.classList.remove('selected');
+      });
+      btn.style.background = 'var(--teal)';
+      btn.style.borderColor = 'var(--teal)';
+      btn.style.color = '#fff';
+      btn.classList.add('selected');
+      const errEl = document.getElementById('pdp-var-error');
+      if (errEl) errEl.style.display = 'none';
+    });
+  });
+
+  // Quantity controls
+  let qty = initialQty;
+  const qtyValEl = document.getElementById('pdp-qty-val');
+  const btnTotalEl = document.getElementById('pdp-btn-total');
+  const minusBtn = document.getElementById('pdp-qty-minus');
+  const plusBtn = document.getElementById('pdp-qty-plus');
+
+  minusBtn?.addEventListener('click', () => {
+    if (qty > 1) {
+      qty--;
+      if (qtyValEl) qtyValEl.textContent = qty;
+      if (btnTotalEl) btnTotalEl.textContent = formatPrice(effectivePrice * qty);
+    }
+  });
+
+  plusBtn?.addEventListener('click', () => {
+    if (qty < product.stock) {
+      qty++;
+      if (qtyValEl) qtyValEl.textContent = qty;
+      if (btnTotalEl) btnTotalEl.textContent = formatPrice(effectivePrice * qty);
+    } else {
+      showToast(`⚠️ أقصى كمية متوفرة هي ${product.stock}`, 'warning');
+    }
+  });
+
+  // Add to cart button
+  document.getElementById('pdp-add-btn')?.addEventListener('click', () => {
+    const variants = product.variants ?? [];
+    const selected = {};
+    const errEl = document.getElementById('pdp-var-error');
+    if (errEl) errEl.style.display = 'none';
+
+    for (const vg of variants) {
+      const selectedBtn = contentEl.querySelector(`.pdp-opt-btn[data-vg-name="${vg.name}"].selected`);
+      if (selectedBtn) {
+        selected[vg.name] = selectedBtn.dataset.opt;
+      } else if (vg.required) {
+        if (errEl) {
+          errEl.textContent = `❌ يرجى تحديد ${vg.name}`;
+          errEl.style.display = 'block';
+        }
+        showToast(`❌ يرجى تحديد ${vg.name}`, 'error');
+        return;
+      }
+    }
+
+    const selectedOptions = Object.keys(selected).length > 0 ? selected : null;
+    
+    // Add multiple quantity
+    const cart = customerState.get('cart') ?? [];
+    const optionsKey = selectedOptions ? JSON.stringify(selectedOptions) : '';
+    const existing = cart.find(i => i.id === product.id && (JSON.stringify(i.selected_options ?? '') === (optionsKey || JSON.stringify(''))));
+    if (existing) {
+      existing.qty = Math.min(existing.qty + qty, product.stock);
+    } else {
+      cart.push({ ...product, qty, effective_price: effectivePrice, selected_options: selectedOptions });
+    }
+    customerState.set('cart', [...cart]);
+    renderCart();
+    updateCartBadge();
+    updateUnifiedCart();
+    showToast(`✅ تمت إضافة ${qty} × ${product.name} إلى السلة`, 'success');
+    window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
+
+    // Update PDP button text to show added
+    const addBtn = document.getElementById('pdp-add-btn');
+    if (addBtn) {
+      addBtn.innerHTML = `<span>✅ تم التحديث في السلة</span> • <span>${formatPrice(effectivePrice * qty)}</span>`;
+      addBtn.style.background = 'var(--grad-success)';
+      setTimeout(() => {
+        if (document.getElementById('pdp-add-btn')) {
+          document.getElementById('pdp-add-btn').innerHTML = `<span>🛒 أضف للسلة</span> • <span>${formatPrice(effectivePrice * qty)}</span>`;
+          document.getElementById('pdp-add-btn').style.background = 'var(--grad-navy)';
+        }
+      }, 2000);
+    }
+  });
+
+  // Open PDP
+  page.style.display = 'block';
+  window.Telegram?.WebApp?.BackButton?.show();
+}
+
+function closeProductDetailPage() {
+  const page = document.getElementById('product-detail-page');
+  if (page) page.style.display = 'none';
+  const currentStep = customerState.get('currentStep') ?? 1;
+  if (currentStep <= 1) {
+    window.Telegram?.WebApp?.BackButton?.hide();
+  }
 }
 
 async function loadMktProducts() {
@@ -1671,6 +2066,7 @@ function filterMktProducts() {
         <button class="btn-add-cart${inCart ? ' in-cart' : ''}" data-add-cart="${esc(p.id)}">
           ${inCart ? `✅ في السلة (${inCart.qty})` : '🛒 أضف للسلة'}
         </button>
+        ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:2px;">🎨 خيارات متوفرة</div>' : ''}
       </div>`;
   }).join('');
 
@@ -1680,6 +2076,16 @@ function filterMktProducts() {
       const pid = btn.dataset.addCart;
       const product = products.find(p => p.id === pid);
       if (product) addToCart(product);
+    });
+  });
+
+  // Click on product card opens PDP
+  grid.querySelectorAll('.product-card').forEach(card => {
+    card.addEventListener('click', e => {
+      if (e.target.closest('[data-add-cart]')) return;
+      const pid = card.dataset.pid;
+      const product = products.find(p => p.id === pid);
+      if (product) showProductDetailPage(product);
     });
   });
 }
@@ -1968,9 +2374,12 @@ function showOrderDetail(orderId) {
     `<div style="font-size:.82rem;color:var(--text-muted);padding:3px 0;">📄 ${esc(f.name)} × ${f.copies ?? 1} (${f.pages ?? 1} صفحة)</div>`
   ).join('');
 
-  const cartHTML = (o.cart_items ?? []).map(i =>
-    `<div style="font-size:.82rem;color:var(--text-muted);padding:3px 0;">📦 ${esc(i.name)} × ${i.qty}</div>`
-  ).join('');
+  const cartHTML = (o.cart_items ?? []).map(i => {
+    const optsHtml = i.selected_options && Object.keys(i.selected_options).length > 0
+      ? ` <span style="font-size:.7rem;color:#7c3aed;">(${Object.entries(i.selected_options).map(([k, v]) => `${esc(k)}: ${esc(v)}`).join('، ')})</span>`
+      : '';
+    return `<div style="font-size:.82rem;color:var(--text-muted);padding:3px 0;">📦 ${esc(i.name)} × ${i.qty}${optsHtml}</div>`;
+  }).join('');
 
   const isCancelled = o.status === 'cancelled';
   const stepperHTML = isCancelled ? '' : `
@@ -2175,18 +2584,27 @@ async function loadSuggestedProducts() {
 
     list.addEventListener('click', e => {
       const btn = e.target.closest('[data-sug-add]');
-      if (!btn) return;
-      const prodId = btn.dataset.sugAdd;
-      const product = suggested.find(p => p.id === prodId);
-      if (!product) return;
+      if (btn) {
+        const prodId = btn.dataset.sugAdd;
+        const product = suggested.find(p => p.id === prodId);
+        if (!product) return;
 
-      const sugCart = { ...(customerState.get('suggestedCart') ?? {}) };
-      sugCart[prodId] = (sugCart[prodId] ?? 0) + 1;
-      customerState.set('suggestedCart', sugCart);
-      btn.textContent = `✅ (${sugCart[prodId]})`;
-      btn.style.background = 'var(--green)';
-      showToast(`✅ تمت الإضافة: ${product.name}`, 'success');
-      updateUnifiedCart();
+        const sugCart = { ...(customerState.get('suggestedCart') ?? {}) };
+        sugCart[prodId] = (sugCart[prodId] ?? 0) + 1;
+        customerState.set('suggestedCart', sugCart);
+        btn.textContent = `✅ (${sugCart[prodId]})`;
+        btn.style.background = 'var(--green)';
+        showToast(`✅ تمت الإضافة: ${product.name}`, 'success');
+        updateUnifiedCart();
+        return;
+      }
+
+      const card = e.target.closest('[data-sug-id]');
+      if (card) {
+        const prodId = card.dataset.sugId;
+        const product = suggested.find(p => p.id === prodId);
+        if (product) showProductDetailPage(product);
+      }
     });
   } catch (e) { console.warn('[suggested]', e.message); }
 }

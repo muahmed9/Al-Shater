@@ -193,6 +193,13 @@ function enterDashboard() {
     } catch (err) { showToast('❌ فشل رفع الصور: ' + err.message, 'error'); }
   });
 
+  // Variant groups binding
+  document.getElementById('add-variant-group-btn')?.addEventListener('click', () => addVariantGroupUI());
+  document.getElementById('variant-groups-container')?.addEventListener('click', e => {
+    const delBtn = e.target.closest('.del-variant-group');
+    if (delBtn) delBtn.closest('.variant-group-row').remove();
+  });
+
   // Product stock adjustment modal bindings
   document.getElementById('adj-prod-cancel')?.addEventListener('click', () => Modal.close('prod-stock-modal'));
   document.getElementById('adj-prod-confirm')?.addEventListener('click', () => withLoading('adj-prod-confirm', confirmProductStockAdj));
@@ -446,8 +453,11 @@ function openOrderDetail(orderId) {
         <b style="color:var(--navy);font-size:.9rem;">🛒 القرطاسية (${o.cart_items.length}):</b>
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:8px;">
           ${o.cart_items.map(i => `
-            <div style="background:var(--input-bg);padding:8px 10px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;font-size:.85rem;">
-              <span>${esc(i.name)} × ${i.qty}</span>
+            <div style="background:var(--input-bg);padding:8px 10px;border-radius:var(--radius-sm);display:flex;justify-content:space-between;align-items:center;font-size:.85rem;">
+              <div>
+                <span>${esc(i.name)} × ${i.qty}</span>
+                ${i.selected_options && Object.keys(i.selected_options).length > 0 ? `<div style="display:flex;flex-wrap:wrap;gap:3px;margin-top:3px;">${Object.entries(i.selected_options).map(([k, v]) => `<span style="font-size:.68rem;background:#e0e7ff;color:#3730a3;padding:1px 6px;border-radius:var(--radius-full);font-weight:700;">${esc(k)}: ${esc(v)}</span>`).join('')}</div>` : ''}
+              </div>
               <b style="color:var(--teal);">${formatPrice(i.price * i.qty)}</b>
             </div>
           `).join('')}
@@ -1157,6 +1167,7 @@ function renderProductsList(products) {
             <b style="color:var(--navy);">${esc(p.name)}</b>
             ${p.is_suggested ? '<span style="font-size:.65rem;background:var(--teal);color:#fff;padding:2px 6px;border-radius:var(--radius-full);font-weight:800;">🌟 مقترح</span>' : ''}
             ${!p.active ? '<span style="font-size:.65rem;background:var(--red);color:#fff;padding:2px 6px;border-radius:var(--radius-full);font-weight:800;">معطّل</span>' : ''}
+            ${(p.variants?.length) ? `<span style="font-size:.65rem;background:#7c3aed;color:#fff;padding:2px 6px;border-radius:var(--radius-full);font-weight:800;">🎨 ${p.variants.length} خيارات</span>` : ''}
           </div>
           <div style="font-size:.78rem;color:var(--text-muted);margin-top:2px;">
             ${hasDiscount
@@ -1174,6 +1185,40 @@ function renderProductsList(products) {
       </div>
     </div>`;
   }).join('');
+}
+
+function addVariantGroupUI(v = null) {
+  const container = document.getElementById('variant-groups-container');
+  const row = document.createElement('div');
+  row.className = 'variant-group-row';
+  row.style.cssText = 'background:var(--card);border:1px solid var(--border-soft);border-radius:var(--radius-sm);padding:10px;margin-bottom:8px;';
+  row.innerHTML = `
+    <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">
+      <input type="text" class="vg-name" placeholder="اسم المجموعة (مثال: اللون)" value="${esc(v?.name ?? '')}" style="flex:1;margin-bottom:0;font-size:.82rem;">
+      <label style="display:flex;align-items:center;gap:4px;font-size:.72rem;white-space:nowrap;cursor:pointer;font-weight:700;">
+        <input type="checkbox" class="vg-required" ${v?.required ? 'checked' : ''} style="width:auto;margin:0;accent-color:var(--red);">
+        مطلوب
+      </label>
+      <button type="button" class="del-variant-group" style="border:none;background:var(--red);color:#fff;width:28px;height:28px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;" title="حذف">✕</button>
+    </div>
+    <input type="text" class="vg-options" placeholder="الخيارات مفصولة بفاصلة (مثال: أحمر، أزرق، أخضر)" value="${esc((v?.options ?? []).join('، '))}" style="margin-bottom:0;font-size:.82rem;">
+  `;
+  container.appendChild(row);
+}
+
+function collectVariantGroups() {
+  const rows = document.querySelectorAll('.variant-group-row');
+  const groups = [];
+  rows.forEach(row => {
+    const name = row.querySelector('.vg-name')?.value.trim();
+    const required = row.querySelector('.vg-required')?.checked ?? false;
+    const optionsStr = row.querySelector('.vg-options')?.value ?? '';
+    const options = optionsStr.split(/[,،]/).map(s => s.trim()).filter(Boolean);
+    if (name && options.length > 0) {
+      groups.push({ name, required, options });
+    }
+  });
+  return groups;
 }
 
 function showProductForm(product = null) {
@@ -1203,6 +1248,12 @@ function showProductForm(product = null) {
     preview.innerHTML = '';
   }
 
+  // Populate variant groups
+  const vContainer = document.getElementById('variant-groups-container');
+  vContainer.innerHTML = '';
+  const variants = product?.variants ?? [];
+  variants.forEach(v => addVariantGroupUI(v));
+
   document.getElementById('prod-delete-btn').style.display = isEdit ? '' : 'none';
   Modal.open('product-modal');
 }
@@ -1227,6 +1278,7 @@ async function saveProductForm() {
     min_stock: Number(document.getElementById('prod-min-stock').value) || 0,
     is_suggested: document.getElementById('prod-is-suggested').checked,
     active: document.getElementById('prod-active').checked,
+    variants: collectVariantGroups(),
   };
 
   try {

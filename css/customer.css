@@ -252,6 +252,7 @@ body{padding-bottom:120px}
 [data-theme="dark"] .option-btn{background:var(--card);border-color:var(--border-soft);color:var(--text-muted)}
 [data-theme="dark"] .option-btn.active{background:#2563eb;border-color:#2563eb;color:#fff}
 #cart-fab{position:fixed;bottom:90px;left:16px;background:var(--orange);color:#fff;width:56px;height:56px;border-radius:50%;border:none;display:none;align-items:center;justify-content:center;font-size:1.5rem;cursor:pointer;box-shadow:0 6px 18px rgba(232,107,36,.5);z-index:150;animation:pulseGlow 2s infinite}
+#cart-fab .cart-fab-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:#fff;border-radius:var(--radius-full);min-width:22px;height:22px;font-size:0.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--card);padding:0 4px}
 .cart-item{display:flex;justify-content:space-between;align-items:center;padding:12px 0;border-bottom:1px solid var(--border)}
 .cart-item:last-child{border-bottom:none}
 .cart-total-box{background:linear-gradient(135deg,var(--navy),#1e40af);color:#fff;border-radius:var(--radius-lg);padding:16px;margin:14px 0}
@@ -1079,4 +1080,43 @@ body{padding-bottom:120px}
   .launchpad-container {
     padding: 20px 4px;
   }
+}
+
+/* ═══ Variant Picker ═══ */
+.vp-opt-btn:hover {
+  border-color: var(--teal) !important;
+  background: rgba(20, 184, 166, 0.08) !important;
+  transform: translateY(-1px);
+}
+.vp-opt-btn.selected {
+  background: var(--teal) !important;
+  border-color: var(--teal) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+}
+.vp-opt-btn:active {
+  transform: scale(0.96);
+}
+
+/* ═══ Product Detail Page (PDP) ═══ */
+.pdp-thumb:hover {
+  transform: scale(1.05);
+}
+.pdp-thumb.active {
+  border-color: var(--teal) !important;
+  box-shadow: 0 0 10px rgba(20, 184, 166, 0.4);
+}
+.pdp-opt-btn:hover {
+  border-color: var(--teal) !important;
+  background: rgba(20, 184, 166, 0.08) !important;
+  transform: translateY(-1px);
+}
+.pdp-opt-btn.selected {
+  background: var(--teal) !important;
+  border-color: var(--teal) !important;
+  color: #fff !important;
+  box-shadow: 0 2px 8px rgba(20, 184, 166, 0.3);
+}
+.pdp-opt-btn:active {
+  transform: scale(0.96);
 }
