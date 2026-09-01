@@ -258,8 +258,9 @@ body{padding-bottom:120px}
 .cart-total-box{background:linear-gradient(135deg,var(--navy),#1e40af);color:#fff;border-radius:var(--radius-lg);padding:16px;margin:14px 0}
 .product-card{background:var(--glass-bg);backdrop-filter:var(--glass-blur);-webkit-backdrop-filter:var(--glass-blur);border:1.5px solid var(--glass-bd);border-radius:var(--radius-lg);padding:16px;box-shadow:var(--glass-shadow);transition:transform var(--transition-base),box-shadow var(--transition-base),border-color var(--transition-base);cursor:pointer}
 .product-card:active{transform:scale(.97)}
-.product-card:hover{transform:translateY(-5px);box-shadow:var(--glass-shadow),var(--glow-secondary);border-color:var(--teal)}
-.product-img{width:100%;height:140px;border-radius:var(--radius-md);object-fit:cover;background:var(--input-bg);display:flex;align-items:center;justify-content:center;font-size:3rem;margin-bottom:10px;overflow:hidden;border:1px solid var(--border)}
+.product-img{width:100%;height:145px;border-radius:var(--radius-md);background:#ffffff;display:flex;align-items:center;justify-content:center;font-size:3rem;margin-bottom:10px;overflow:hidden;border:1px solid var(--border-soft);position:relative}
+.product-img img{width:100%;height:100%;object-fit:contain;padding:6px;transition:transform .25s ease}
+.product-card:hover .product-img img{transform:scale(1.05)}
 .product-price{color:var(--orange);font-weight:900;font-size:1.05rem;font-family:'Plus Jakarta Sans',sans-serif}
 .btn-add-cart{width:100%;padding:11px;border:none;border-radius:var(--radius-md);background:var(--grad-navy);color:#fff;font-weight:800;font-family:var(--font-main);cursor:pointer;margin-top:10px;font-size:var(--font-size-md);transition:all var(--transition-base);box-shadow:0 4px 12px rgba(13,59,102,0.15)}
 .btn-add-cart:active{transform:scale(.97)}

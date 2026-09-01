@@ -2097,14 +2097,19 @@ function filterMktProducts() {
     const inCart = cart.find(i => i.id === p.id);
     const hasDiscount = p.discount && p.discount > 0;
     const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
+    const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
+    const primaryImg = images.length > 0 ? images[0] : null;
+    const multiBadge = images.length > 1 ? `<span style="position:absolute;bottom:6px;left:6px;background:rgba(13,59,102,0.8);backdrop-filter:blur(4px);color:#fff;font-size:0.68rem;padding:2px 7px;border-radius:var(--radius-full);font-weight:700;">📷 +${images.length}</span>` : '';
+
     return `
       <div class="product-card" data-pid="${esc(p.id)}">
-        <div class="product-img" style="display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:0;">
-          ${p.image_url ? p.image_url.split(',').map(s=>s.trim()).filter(Boolean).map(u => 
-            `<img src="${esc(u)}" alt="${esc(p.name)}" loading="lazy" style="flex:0 0 100%;width:100%;height:100%;object-fit:cover;scroll-snap-align:start;">`
-          ).join('') : '📦'}
+        <div class="product-img">
+          ${primaryImg 
+            ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" loading="lazy">` 
+            : '📦'}
+          ${multiBadge}
         </div>
-        <b style="font-size:.92rem;display:block;margin-bottom:4px;color:var(--navy);">${esc(p.name)}</b>
+        <b style="font-size:.92rem;display:block;margin-bottom:4px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.name)}">${esc(p.name)}</b>
         <span class="product-price">
           ${hasDiscount
         ? `<span style="text-decoration:line-through;opacity:.5;font-size:.78rem;">${formatPrice(p.price)}</span> <b style="color:var(--green);">${formatPrice(displayPrice)}</b>`
@@ -2114,7 +2119,7 @@ function filterMktProducts() {
         <button class="btn-add-cart${inCart ? ' in-cart' : ''}" data-add-cart="${esc(p.id)}">
           ${inCart ? `✅ في السلة (${inCart.qty})` : '🛒 أضف للسلة'}
         </button>
-        ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:2px;">🎨 خيارات متوفرة</div>' : ''}
+        ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:4px;">🎨 خيارات متوفرة</div>' : ''}
       </div>`;
   }).join('');
 
@@ -2636,10 +2641,13 @@ async function loadSuggestedProducts() {
       const btnText = totalInCart > 0 ? `✅ (${totalInCart})` : '➕ أضف';
       const btnBg = totalInCart > 0 ? 'var(--green)' : 'var(--teal)';
 
+      const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
+      const primaryImg = images.length > 0 ? images[0] : null;
+
       return `
       <div style="display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border-soft);cursor:pointer;" data-sug-id="${esc(p.id)}">
-        <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.4rem;">
-          ${p.image_url ? `<img src="${esc(p.image_url.split(',')[0].trim())}" style="width:100%;height:100%;object-fit:cover;">` : '📦'}
+        <div style="width:48px;height:48px;border-radius:var(--radius-sm);background:#ffffff;border:1px solid var(--border-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.4rem;">
+          ${primaryImg ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" style="max-width:100%;max-height:100%;object-fit:contain;padding:2px;">` : '📦'}
         </div>
         <div style="flex:1;min-width:0;">
           <b style="font-size:.85rem;color:var(--navy);">${esc(p.name)}</b>
