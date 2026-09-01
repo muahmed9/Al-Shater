@@ -1428,7 +1428,7 @@ function addToCart(product, selectedOptions = null) {
   const cart = customerState.get('cart') ?? [];
   const existing = cart.find(i => i.id === product.id && areOptionsEqual(i.selected_options, selectedOptions));
   if (existing) {
-    existing.qty = Math.min((existing.qty ?? 1) + 1, product.stock ?? 999);
+    existing.qty = (existing.qty ?? 1) + 1;
   } else {
     const effectivePrice = (product.discount && product.discount > 0)
       ? Math.max(0, product.price - product.discount)
@@ -1517,7 +1517,7 @@ function renderCart() {
         <p style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);">${formatPrice(i.effective_price ?? i.price)} / ${esc(i.unit ?? 'قطعة')}</p>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        ${QtyControl.html({ id: idx, value: i.qty, min: 0, max: i.stock ?? 999 })}
+        ${QtyControl.html({ id: idx, value: i.qty, min: 0, max: 9999 })}
         <button class="delete-cart-item-btn" data-idx="${idx}" data-id="${i.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px; transition:color 0.2s;" title="حذف المنتج">🗑️</button>
       </div>
     </div>`;
@@ -1655,9 +1655,6 @@ function updateUnifiedCart() {
       if (c[idx].qty <= 0) {
         c.splice(idx, 1);
         showToast('🗑️ تم إزالة المنتج', 'success');
-      } else if (c[idx] && c[idx].qty > (c[idx].stock ?? 999)) {
-        c[idx].qty = c[idx].stock ?? 999;
-        showToast(`⚠️ أقصى كمية متوفرة: ${c[idx].stock}`, 'warning');
       }
       customerState.set('cart', [...c]);
       renderCart();
@@ -1841,10 +1838,7 @@ function showProductDetailPage(product) {
           ${catLabel}
         </span>
         ${product.is_suggested ? `<span style="font-size:0.72rem;background:var(--teal);color:#fff;padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">🌟 مقترح</span>` : ''}
-        ${product.stock <= (product.min_stock ?? 3)
-          ? `<span style="font-size:0.72rem;background:#fef2f2;color:var(--red);padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">⚠️ متبقي ${product.stock} فقط</span>`
-          : `<span style="font-size:0.72rem;background:#f0fdf4;color:var(--green);padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">✅ متوفر بالمخزن</span>`
-        }
+        <span style="font-size:0.72rem;background:#f0fdf4;color:var(--green);padding:3px 8px;border-radius:var(--radius-full);font-weight:800;">✅ متوفر للطلب</span>
       </div>
 
       <h1 style="color:var(--navy);font-size:1.25rem;font-weight:900;margin:0 0 10px;line-height:1.4;">${esc(product.name)}</h1>
@@ -1974,13 +1968,9 @@ function showProductDetailPage(product) {
   });
 
   plusBtn?.addEventListener('click', () => {
-    if (qty < product.stock) {
-      qty++;
-      if (qtyValEl) qtyValEl.textContent = qty;
-      if (btnTotalEl) btnTotalEl.textContent = formatPrice(effectivePrice * qty);
-    } else {
-      showToast(`⚠️ أقصى كمية متوفرة هي ${product.stock}`, 'warning');
-    }
+    qty++;
+    if (qtyValEl) qtyValEl.textContent = qty;
+    if (btnTotalEl) btnTotalEl.textContent = formatPrice(effectivePrice * qty);
   });
 
   // Add to cart button
@@ -2010,7 +2000,7 @@ function showProductDetailPage(product) {
     const cart = customerState.get('cart') ?? [];
     const existing = cart.find(i => i.id === product.id && areOptionsEqual(i.selected_options, selectedOptions));
     if (existing) {
-      existing.qty = Math.min((existing.qty ?? 1) + qty, product.stock ?? 999);
+      existing.qty = (existing.qty ?? 1) + qty;
     } else {
       cart.push({ ...product, qty, effective_price: effectivePrice, selected_options: selectedOptions, is_suggested: product.is_suggested ?? false });
     }
