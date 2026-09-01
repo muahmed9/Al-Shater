@@ -1343,6 +1343,17 @@ async function sendOrder() {
   }
 }
 
+function areOptionsEqual(opt1, opt2) {
+  const o1 = opt1 && typeof opt1 === 'object' && Object.keys(opt1).length > 0 ? opt1 : null;
+  const o2 = opt2 && typeof opt2 === 'object' && Object.keys(opt2).length > 0 ? opt2 : null;
+  if (!o1 && !o2) return true;
+  if (!o1 || !o2) return false;
+  const keys1 = Object.keys(o1).sort();
+  const keys2 = Object.keys(o2).sort();
+  if (keys1.length !== keys2.length) return false;
+  return keys1.every(k => keys2.includes(k) && String(o1[k]).trim() === String(o2[k]).trim());
+}
+
 function bindCart() {
   document.getElementById('cart-fab')?.addEventListener('click', openCartDrawer);
   document.getElementById('open-cart-btn')?.addEventListener('click', openCartDrawer);
@@ -1351,24 +1362,41 @@ function bindCart() {
   document.getElementById('add-more-market-btn')?.addEventListener('click', () => goTab('market'));
   document.getElementById('checkout-btn')?.addEventListener('click', () => withLoading('checkout-btn', checkoutMarket));
 
-  QtyControl.delegate(document.getElementById('cart-items-list'), (id, delta) => {
+  QtyControl.delegate(document.getElementById('cart-items-list'), (idxOrId, delta) => {
     const cart = customerState.get('cart') ?? [];
-    const item = cart.find(i => i.id === id);
+    const idx = Number(idxOrId);
+    const item = !isNaN(idx) && cart[idx] ? cart[idx] : cart.find(i => i.id === idxOrId);
     if (!item) return;
     item.qty = Math.max(0, (item.qty ?? 1) + delta);
-    if (item.qty === 0) customerState.set('cart', cart.filter(i => i.id !== id));
-    else customerState.set('cart', [...cart]);
+    if (item.qty === 0) {
+      const targetIdx = cart.indexOf(item);
+      if (targetIdx > -1) cart.splice(targetIdx, 1);
+    }
+    customerState.set('cart', [...cart]);
     renderCart();
+    updateCartBadge();
+    updateUnifiedCart();
+    refreshSuggestedButtons();
   });
 
-  // Handle direct item deletion
+  // Handle direct item deletion in cart drawer
   document.getElementById('cart-items-list')?.addEventListener('click', e => {
     const btn = e.target.closest('.delete-cart-item-btn');
     if (!btn) return;
-    const id = btn.dataset.id;
+    const idx = Number(btn.dataset.idx);
     const cart = customerState.get('cart') ?? [];
-    customerState.set('cart', cart.filter(i => i.id !== id));
+    if (!isNaN(idx) && cart[idx]) {
+      cart.splice(idx, 1);
+    } else {
+      const id = btn.dataset.id;
+      const targetIdx = cart.findIndex(i => i.id === id);
+      if (targetIdx > -1) cart.splice(targetIdx, 1);
+    }
+    customerState.set('cart', [...cart]);
     renderCart();
+    updateCartBadge();
+    updateUnifiedCart();
+    refreshSuggestedButtons();
   });
 }
 
@@ -1398,21 +1426,20 @@ function addToCart(product, selectedOptions = null) {
   }
 
   const cart = customerState.get('cart') ?? [];
-  // Create a unique key combining product id + selected options for variants
-  const optionsKey = selectedOptions ? JSON.stringify(selectedOptions) : '';
-  const existing = cart.find(i => i.id === product.id && (JSON.stringify(i.selected_options ?? '') === (optionsKey || JSON.stringify(''))));
+  const existing = cart.find(i => i.id === product.id && areOptionsEqual(i.selected_options, selectedOptions));
   if (existing) {
-    existing.qty = Math.min(existing.qty + 1, product.stock);
+    existing.qty = Math.min((existing.qty ?? 1) + 1, product.stock ?? 999);
   } else {
     const effectivePrice = (product.discount && product.discount > 0)
       ? Math.max(0, product.price - product.discount)
       : (product.effective_price ?? product.price);
-    cart.push({ ...product, qty: 1, effective_price: effectivePrice, selected_options: selectedOptions || null });
+    cart.push({ ...product, qty: 1, effective_price: effectivePrice, selected_options: selectedOptions || null, is_suggested: product.is_suggested ?? false });
   }
   customerState.set('cart', [...cart]);
   renderCart();
   updateCartBadge();
   updateUnifiedCart();
+  refreshSuggestedButtons();
   showToast('✅ أُضيف للسلة', 'success');
   window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
 }
@@ -1478,20 +1505,20 @@ function renderCart() {
     return;
   }
 
-  itemsEl.innerHTML = cart.map(i => {
+  itemsEl.innerHTML = cart.map((i, idx) => {
     const optionsHtml = i.selected_options
       ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:3px;">${Object.entries(i.selected_options).map(([k, v]) => `<span style="font-size:.68rem;background:var(--input-bg);color:var(--navy);padding:2px 7px;border-radius:var(--radius-full);font-weight:700;">${esc(k)}: ${esc(v)}</span>`).join('')}</div>`
       : '';
     return `
     <div class="cart-item" style="gap: 12px;">
       <div style="flex: 1;">
-        <b style="font-size:.9rem;color:var(--navy);">${esc(i.name)}</b>
+        <b style="font-size:.9rem;color:var(--navy);">${i.is_suggested ? '✨' : '📦'} ${esc(i.name)}</b>
         ${optionsHtml}
         <p style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);">${formatPrice(i.effective_price ?? i.price)} / ${esc(i.unit ?? 'قطعة')}</p>
       </div>
       <div style="display: flex; align-items: center; gap: 8px;">
-        ${QtyControl.html({ id: i.id, value: i.qty, min: 0, max: i.stock })}
-        <button class="delete-cart-item-btn" data-id="${i.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px; transition:color 0.2s;" title="حذف المنتج">🗑️</button>
+        ${QtyControl.html({ id: idx, value: i.qty, min: 0, max: i.stock ?? 999 })}
+        <button class="delete-cart-item-btn" data-idx="${idx}" data-id="${i.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px; transition:color 0.2s;" title="حذف المنتج">🗑️</button>
       </div>
     </div>`;
   }).join('');
@@ -1612,6 +1639,7 @@ function updateUnifiedCart() {
       updateCartBadge();
       updateUnifiedCart();
       updateInvoice();
+      refreshSuggestedButtons();
       showToast('🗑️ تم إزالة المنتج', 'success');
     });
   });
@@ -1627,8 +1655,7 @@ function updateUnifiedCart() {
       if (c[idx].qty <= 0) {
         c.splice(idx, 1);
         showToast('🗑️ تم إزالة المنتج', 'success');
-      }
-      if (c[idx] && c[idx].qty > (c[idx].stock ?? 999)) {
+      } else if (c[idx] && c[idx].qty > (c[idx].stock ?? 999)) {
         c[idx].qty = c[idx].stock ?? 999;
         showToast(`⚠️ أقصى كمية متوفرة: ${c[idx].stock}`, 'warning');
       }
@@ -1637,6 +1664,7 @@ function updateUnifiedCart() {
       updateCartBadge();
       updateUnifiedCart();
       updateInvoice();
+      refreshSuggestedButtons();
     });
   });
 
@@ -1980,17 +2008,17 @@ function showProductDetailPage(product) {
     
     // Add multiple quantity
     const cart = customerState.get('cart') ?? [];
-    const optionsKey = selectedOptions ? JSON.stringify(selectedOptions) : '';
-    const existing = cart.find(i => i.id === product.id && (JSON.stringify(i.selected_options ?? '') === (optionsKey || JSON.stringify(''))));
+    const existing = cart.find(i => i.id === product.id && areOptionsEqual(i.selected_options, selectedOptions));
     if (existing) {
-      existing.qty = Math.min(existing.qty + qty, product.stock);
+      existing.qty = Math.min((existing.qty ?? 1) + qty, product.stock ?? 999);
     } else {
-      cart.push({ ...product, qty, effective_price: effectivePrice, selected_options: selectedOptions });
+      cart.push({ ...product, qty, effective_price: effectivePrice, selected_options: selectedOptions, is_suggested: product.is_suggested ?? false });
     }
     customerState.set('cart', [...cart]);
     renderCart();
     updateCartBadge();
     updateUnifiedCart();
+    refreshSuggestedButtons();
     showToast(`✅ تمت إضافة ${qty} × ${product.name} إلى السلة`, 'success');
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('medium');
 
@@ -2568,6 +2596,23 @@ async function submitResearch() {
 // ═══════════════════════════════════════
 //  Suggested products for step 3
 // ═══════════════════════════════════════
+function refreshSuggestedButtons() {
+  const cart = customerState.get('cart') ?? [];
+  const list = document.getElementById('suggested-products-list');
+  if (!list) return;
+  list.querySelectorAll('.sug-add-btn').forEach(btn => {
+    const prodId = btn.dataset.sugAdd;
+    const totalInCart = cart.filter(i => i.id === prodId).reduce((s, i) => s + (i.qty ?? 1), 0);
+    if (totalInCart > 0) {
+      btn.textContent = `✅ (${totalInCart})`;
+      btn.style.background = 'var(--green)';
+    } else {
+      btn.textContent = '➕ أضف';
+      btn.style.background = 'var(--teal)';
+    }
+  });
+}
+
 async function loadSuggestedProducts() {
   try {
     const list = document.getElementById('suggested-products-list');
@@ -2581,11 +2626,18 @@ async function loadSuggestedProducts() {
     customerState.set('suggestedProducts', suggested);
     const section = document.getElementById('suggested-products-section');
     section.style.display = 'block';
+
+    const cart = customerState.get('cart') ?? [];
+
     list.innerHTML = suggested.map(p => {
       const hasDiscount = p.discount && p.discount > 0;
       const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
+      const totalInCart = cart.filter(i => i.id === p.id).reduce((s, i) => s + (i.qty ?? 1), 0);
+      const btnText = totalInCart > 0 ? `✅ (${totalInCart})` : '➕ أضف';
+      const btnBg = totalInCart > 0 ? 'var(--green)' : 'var(--teal)';
+
       return `
-      <div style="display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border-soft);" data-sug-id="${esc(p.id)}">
+      <div style="display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border-soft);cursor:pointer;" data-sug-id="${esc(p.id)}">
         <div style="width:44px;height:44px;border-radius:var(--radius-sm);background:var(--input-bg);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.4rem;">
           ${p.image_url ? `<img src="${esc(p.image_url.split(',')[0].trim())}" style="width:100%;height:100%;object-fit:cover;">` : '📦'}
         </div>
@@ -2598,37 +2650,18 @@ async function loadSuggestedProducts() {
         }
           </div>
         </div>
-        <button class="sug-add-btn" data-sug-add="${esc(p.id)}" style="border:none;background:var(--teal);color:#fff;padding:8px 14px;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);font-size:.8rem;white-space:nowrap;">➕ أضف</button>
+        <button class="sug-add-btn" data-sug-add="${esc(p.id)}" style="border:none;background:${btnBg};color:#fff;padding:8px 14px;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);font-size:.8rem;white-space:nowrap;">${btnText}</button>
       </div>`;
     }).join('');
 
-    list.addEventListener('click', e => {
+    list.onclick = e => {
       const btn = e.target.closest('[data-sug-add]');
       if (btn) {
+        e.stopPropagation();
         const prodId = btn.dataset.sugAdd;
         const product = suggested.find(p => p.id === prodId);
         if (!product) return;
-
-        // Merge into unified cart instead of suggestedCart
-        const cart = customerState.get('cart') ?? [];
-        const existing = cart.find(i => i.id === prodId && !i.selected_options);
-        if (existing) {
-          existing.qty = Math.min((existing.qty ?? 1) + 1, product.stock ?? 999);
-        } else {
-          const effectivePrice = (product.discount && product.discount > 0)
-            ? Math.max(0, product.price - product.discount)
-            : (product.effective_price ?? product.price);
-          cart.push({ ...product, qty: 1, effective_price: effectivePrice, is_suggested: true, selected_options: null });
-        }
-        customerState.set('cart', [...cart]);
-
-        const currentQty = cart.find(i => i.id === prodId)?.qty ?? 1;
-        btn.textContent = `✅ (${currentQty})`;
-        btn.style.background = 'var(--green)';
-        showToast(`✅ تمت الإضافة: ${product.name}`, 'success');
-        renderCart();
-        updateCartBadge();
-        updateUnifiedCart();
+        addToCart(product);
         return;
       }
 
@@ -2638,7 +2671,7 @@ async function loadSuggestedProducts() {
         const product = suggested.find(p => p.id === prodId);
         if (product) showProductDetailPage(product);
       }
-    });
+    };
   } catch (e) { console.warn('[suggested]', e.message); }
 }
 
