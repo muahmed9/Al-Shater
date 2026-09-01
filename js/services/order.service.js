@@ -17,13 +17,12 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
 
   const files   = customerState.get('files') ?? [];
   const cart    = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
-  if (!files.length && !cart.length && !Object.keys(sugCart).length) throw new Error('يرجى إضافة ملف للطباعة أو منتج للسلة');
+  if (!files.length && !cart.length) throw new Error('يرجى إضافة ملف للطباعة أو منتج للسلة');
 
   const user    = customerState.get('user');
   const pricing = customerState.get('pricing') ?? Config.DEFAULT_PRICING;
   const coupon  = customerState.get('appliedCoupon');
-  const totals  = calcOrderTotals({ files, cart, sugCart, pricing, coupon, user });
+  const totals  = calcOrderTotals({ files, cart, sugCart: {}, pricing, coupon, user });
 
   if (coupon?.id && coupon.max_uses > 0) {
     const { count, error: countErr } = await sb.from(T.ORDERS)
@@ -46,14 +45,14 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
     packaging:     customerState.get('packaging'),
     express:       customerState.get('express'),
     files_data:    files.map(f => ({ name: f.name, pages: f.pages, copies: f.copies, size: f.size, url: f.uploadedUrl ?? null })),
-    cart_items:    _buildCartItems(cart, sugCart),
+    cart_items:    _buildCartItems(cart),
     subtotal:      totals.subtotal,
     delivery_fee:  totals.deliveryFee,
     discount:      totals.discount,
     total:         totals.total,
     coupon_code:   coupon?.code ?? null,
     status:        'received',
-    order_type:    files.length && (cart.length || Object.keys(sugCart).length) ? 'combined' : files.length ? 'print' : 'market',
+    order_type:    files.length && cart.length ? 'combined' : files.length ? 'print' : 'market',
   };
 
   const insertPromise = sb.from(T.ORDERS).insert(orderPayload).select('id').single();
@@ -233,10 +232,6 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   // سلة
   let cartSubtotal = 0;
   for (const item of cart) cartSubtotal += (item.effective_price ?? item.price) * (item.qty ?? 1);
-  for (const [id, qty] of Object.entries(sugCart ?? {})) {
-    const prod = customerState.get('suggestedProducts')?.find(p => p.id === id);
-    if (prod) cartSubtotal += prod.price * qty;
-  }
   const subtotal = printSubtotal + cartSubtotal;
 
   // نقاط
@@ -274,14 +269,8 @@ export function calcOrderTotals({ files, cart, sugCart, pricing, coupon, user })
   };
 }
 
-function _buildCartItems(cart, sugCart) {
-  const items = cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.effective_price ?? i.price, unit: i.unit, selected_options: i.selected_options ?? null }));
-  const suggested = customerState.get('suggestedProducts') ?? [];
-  for (const [id, qty] of Object.entries(sugCart ?? {})) {
-    const p = suggested.find(x => x.id === id);
-    if (p) items.push({ id, name: p.name, qty, price: p.price, unit: p.unit ?? 'قطعة', is_suggested: true });
-  }
-  return items;
+function _buildCartItems(cart) {
+  return cart.map(i => ({ id: i.id, name: i.name, qty: i.qty, price: i.effective_price ?? i.price, unit: i.unit, selected_options: i.selected_options ?? null, is_suggested: i.is_suggested ?? false }));
 }
 
 async function _notifyAdmin(orderId, payload) {

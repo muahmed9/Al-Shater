@@ -390,10 +390,8 @@ function populateSuccessDetails() {
   
   const files = customerState.get('files') ?? [];
   const cart = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
-  const suggestedProducts = customerState.get('suggestedProducts') ?? [];
 
-  if (files.length === 0 && cart.length === 0 && Object.keys(sugCart).length === 0) {
+  if (files.length === 0 && cart.length === 0) {
     detailsBox.style.display = 'none';
     return;
   }
@@ -421,37 +419,20 @@ function populateSuccessDetails() {
     itemsList.appendChild(itemEl);
   });
 
-  // Stationery
+  // Stationery (unified cart)
   cart.forEach(i => {
+    const prefix = i.is_suggested ? '✨' : '📦';
     const itemEl = document.createElement('div');
     itemEl.style.padding = '6px 0';
     itemEl.style.borderBottom = '1px solid #f1f5f9';
     itemEl.style.fontSize = '0.8rem';
     itemEl.innerHTML = `
-      <b style="color: var(--navy); display: block;">📦 ${esc(i.name)}</b>
+      <b style="color: var(--navy); display: block;">${prefix} ${esc(i.name)}</b>
       <span style="font-size: 0.72rem; color: var(--text-muted);">
         الكمية: ${i.qty} • السعر: ${formatPrice(i.effective_price ?? i.price)}
       </span>
     `;
     itemsList.appendChild(itemEl);
-  });
-
-  // Suggested Items
-  Object.entries(sugCart).forEach(([id, qty]) => {
-    const p = suggestedProducts.find(x => x.id === id);
-    if (p) {
-      const itemEl = document.createElement('div');
-      itemEl.style.padding = '6px 0';
-      itemEl.style.borderBottom = '1px solid #f1f5f9';
-      itemEl.style.fontSize = '0.8rem';
-      itemEl.innerHTML = `
-        <b style="color: var(--navy); display: block;">✨ ${esc(p.name)}</b>
-        <span style="font-size: 0.72rem; color: var(--text-muted);">
-          الكمية: ${qty} • السعر: ${formatPrice(p.price)}
-        </span>
-      `;
-      itemsList.appendChild(itemEl);
-    }
   });
 }
 
@@ -972,7 +953,7 @@ function renderPrintSummary() {
   const totals = calcOrderTotals({
     files,
     cart: customerState.get('cart') ?? [],
-    sugCart: customerState.get('suggestedCart') ?? {},
+    sugCart: {},
     pricing: P,
     coupon: customerState.get('appliedCoupon'),
     user: customerState.get('user'),
@@ -997,9 +978,8 @@ function updateStep3Summary() {
 
   const files = customerState.get('files') ?? [];
   const cart = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
 
-  if (files.length === 0 && cart.length === 0 && Object.keys(sugCart).length === 0) {
+  if (files.length === 0 && cart.length === 0) {
     box.style.display = 'none';
     return;
   }
@@ -1010,7 +990,7 @@ function updateStep3Summary() {
   const totals = calcOrderTotals({
     files,
     cart,
-    sugCart,
+    sugCart: {},
     pricing,
     coupon: customerState.get('appliedCoupon'),
     user: customerState.get('user')
@@ -1182,19 +1162,14 @@ function updateInvoice() {
   const totals = calcOrderTotals({
     files: customerState.get('files') ?? [],
     cart: customerState.get('cart') ?? [],
-    sugCart: customerState.get('suggestedCart') ?? {},
+    sugCart: {},
     pricing, coupon: customerState.get('appliedCoupon'),
     user: customerState.get('user'),
   });
 
   const files = customerState.get('files') ?? [];
   const cart = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
-  const suggestedProducts = customerState.get('suggestedProducts') ?? [];
 
-  const cartTotal = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * (i.qty ?? 1), 0);
-  let sugCartTotal = 0;
-  
   const rows = [];
   if (files.length > 0) {
     rows.push(['<b style="color:var(--navy);">الملفات المرفوعة:</b>', '']);
@@ -1228,16 +1203,10 @@ function updateInvoice() {
     rows.push([`<span style="margin-right:10px;font-size:0.85rem;color:var(--navy);font-weight:800">💰 السعر الكلي للطباعة</span>`, `<b style="color:var(--teal);font-weight:900">${formatPrice(printCost)}</b>`]);
   }
 
-  const cartItems = cart.map(i => ({...i, isSug: false}));
-  Object.entries(sugCart).forEach(([id, qty]) => {
-     const p = suggestedProducts.find(x => x.id === id);
-     if (p) cartItems.push({name: p.name, qty, price: p.price, isSug: true});
-  });
-
-  if (cartItems.length > 0) {
+  if (cart.length > 0) {
     rows.push(['<b style="color:var(--navy);margin-top:8px;display:block;">منتجات القرطاسية:</b>', '']);
     let allCartPrice = 0;
-    cartItems.forEach(i => {
+    cart.forEach(i => {
       const price = i.effective_price ?? i.price;
       const t = price * i.qty;
       allCartPrice += t;
@@ -1307,7 +1276,7 @@ async function sendOrder() {
     const totals = calcOrderTotals({
       files: customerState.get('files') ?? [],
       cart: customerState.get('cart') ?? [],
-      sugCart: customerState.get('suggestedCart') ?? {},
+      sugCart: {},
       pricing, coupon: customerState.get('appliedCoupon'),
       user: customerState.get('user'),
     });
@@ -1334,7 +1303,6 @@ async function sendOrder() {
     populateSuccessDetails();
     customerState.set('files', []);
     customerState.set('cart', []);
-    customerState.set('suggestedCart', {});
     customerState.set('appliedCoupon', null);
     customerState.set('locationUrl', '');
     customerState.set('express', false);
@@ -1594,54 +1562,85 @@ function updatePrintBadge(files) {
 
 function updateUnifiedCart() {
   const cart = customerState.get('cart') ?? [];
-  const sugCart = customerState.get('suggestedCart') ?? {};
-  const suggests = customerState.get('suggestedProducts') ?? [];
 
   const sec = document.getElementById('unified-cart-section');
   const list = document.getElementById('unified-cart-items');
 
-  const allItems = cart.map(i => ({ ...i, isSug: false }));
-  for (const [id, qty] of Object.entries(sugCart)) {
-    const p = suggests.find(x => x.id === id);
-    if (p) allItems.push({ ...p, qty, effective_price: p.price, isSug: true });
-  }
-
-  if (!allItems.length) { sec.style.display = 'none'; return; }
+  if (!cart.length) { sec.style.display = 'none'; return; }
   sec.style.display = 'block';
 
-  list.innerHTML = allItems.map(i => `
-    <div style="display:flex;justify-content:space-between;align-items:center;font-size:.85rem;padding:8px 0;border-bottom:1px solid var(--border-soft);">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <button class="delete-addon-btn" data-id="${i.id}" data-sug="${!!i.isSug}" 
-          style="border:none;background:#fef2f2;color:var(--red);width:26px;height:26px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.8rem;transition:all var(--transition-fast);" title="حذف">
+  list.innerHTML = cart.map((i, idx) => {
+    const price = i.effective_price ?? i.price;
+    const optionsHtml = i.selected_options
+      ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:4px;">${Object.entries(i.selected_options).map(([k, v]) => `<span style="font-size:.68rem;background:var(--input-bg);color:var(--navy);padding:2px 7px;border-radius:var(--radius-full);font-weight:700;">${esc(k)}: ${esc(v)}</span>`).join('')}</div>`
+      : '';
+    return `
+    <div style="padding:10px 0;border-bottom:1px solid var(--border-soft);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">
+        <div style="flex:1;min-width:0;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-weight:800;font-size:.88rem;color:var(--navy);">${i.is_suggested ? '✨' : '📦'} ${esc(i.name)}</span>
+          </div>
+          ${optionsHtml}
+        </div>
+        <button class="ucart-delete-btn" data-ucart-idx="${idx}"
+          style="border:none;background:#fef2f2;color:var(--red);width:28px;height:28px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:0.85rem;flex-shrink:0;transition:all .2s;" title="حذف">
           🗑️
         </button>
-        <span style="font-weight:700;color:var(--navy);">${esc(i.name)} <span style="color:var(--text-muted);font-weight:500;">× ${i.qty}</span></span>
       </div>
-      <b style="color:var(--teal);font-weight:800;">${formatPrice((i.effective_price ?? i.price) * i.qty)}</b>
-    </div>`).join('');
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;">
+        <div style="display:flex;align-items:center;gap:0;background:var(--input-bg);border:1.5px solid var(--border-soft);border-radius:var(--radius-md);overflow:hidden;height:34px;">
+          <button class="ucart-qty-btn" data-ucart-idx="${idx}" data-ucart-delta="-1"
+            style="border:none;background:none;width:34px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;transition:background .15s;">−</button>
+          <span style="min-width:28px;text-align:center;font-weight:900;font-size:.9rem;color:var(--navy);user-select:none;">${i.qty}</span>
+          <button class="ucart-qty-btn" data-ucart-idx="${idx}" data-ucart-delta="1"
+            style="border:none;background:none;width:34px;height:100%;cursor:pointer;font-size:1.1rem;font-weight:900;color:var(--navy);display:flex;align-items:center;justify-content:center;transition:background .15s;">+</button>
+        </div>
+        <b style="color:var(--teal);font-weight:800;font-size:.9rem;">${formatPrice(price * i.qty)}</b>
+      </div>
+    </div>`;
+  }).join('');
 
-  list.querySelectorAll('.delete-addon-btn').forEach(btn => {
+  // Bind delete buttons
+  list.querySelectorAll('.ucart-delete-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const id = btn.dataset.id;
-      const isSug = btn.dataset.sug === 'true';
-      if (isSug) {
-        const sug = customerState.get('suggestedCart') ?? {};
-        delete sug[id];
-        customerState.set('suggestedCart', { ...sug });
-      } else {
-        const c = customerState.get('cart') ?? [];
-        customerState.set('cart', c.filter(x => x.id !== id));
-      }
+      const idx = Number(btn.dataset.ucartIdx);
+      const c = customerState.get('cart') ?? [];
+      c.splice(idx, 1);
+      customerState.set('cart', [...c]);
       renderCart();
       updateCartBadge();
       updateUnifiedCart();
       updateInvoice();
-      showToast('🗑️ تم إزالة الإضافة بنجاح', 'success');
+      showToast('🗑️ تم إزالة المنتج', 'success');
     });
   });
 
-  const total = allItems.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
+  // Bind qty +/- buttons
+  list.querySelectorAll('.ucart-qty-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const idx = Number(btn.dataset.ucartIdx);
+      const delta = Number(btn.dataset.ucartDelta);
+      const c = customerState.get('cart') ?? [];
+      if (!c[idx]) return;
+      c[idx].qty = Math.max(0, (c[idx].qty ?? 1) + delta);
+      if (c[idx].qty <= 0) {
+        c.splice(idx, 1);
+        showToast('🗑️ تم إزالة المنتج', 'success');
+      }
+      if (c[idx] && c[idx].qty > (c[idx].stock ?? 999)) {
+        c[idx].qty = c[idx].stock ?? 999;
+        showToast(`⚠️ أقصى كمية متوفرة: ${c[idx].stock}`, 'warning');
+      }
+      customerState.set('cart', [...c]);
+      renderCart();
+      updateCartBadge();
+      updateUnifiedCart();
+      updateInvoice();
+    });
+  });
+
+  const total = cart.reduce((s, i) => s + (i.effective_price ?? i.price) * i.qty, 0);
   document.getElementById('ucart-subtotal').textContent = formatPrice(total);
   updateStep3Summary();
 }
@@ -2610,12 +2609,25 @@ async function loadSuggestedProducts() {
         const product = suggested.find(p => p.id === prodId);
         if (!product) return;
 
-        const sugCart = { ...(customerState.get('suggestedCart') ?? {}) };
-        sugCart[prodId] = (sugCart[prodId] ?? 0) + 1;
-        customerState.set('suggestedCart', sugCart);
-        btn.textContent = `✅ (${sugCart[prodId]})`;
+        // Merge into unified cart instead of suggestedCart
+        const cart = customerState.get('cart') ?? [];
+        const existing = cart.find(i => i.id === prodId && !i.selected_options);
+        if (existing) {
+          existing.qty = Math.min((existing.qty ?? 1) + 1, product.stock ?? 999);
+        } else {
+          const effectivePrice = (product.discount && product.discount > 0)
+            ? Math.max(0, product.price - product.discount)
+            : (product.effective_price ?? product.price);
+          cart.push({ ...product, qty: 1, effective_price: effectivePrice, is_suggested: true, selected_options: null });
+        }
+        customerState.set('cart', [...cart]);
+
+        const currentQty = cart.find(i => i.id === prodId)?.qty ?? 1;
+        btn.textContent = `✅ (${currentQty})`;
         btn.style.background = 'var(--green)';
         showToast(`✅ تمت الإضافة: ${product.name}`, 'success');
+        renderCart();
+        updateCartBadge();
         updateUnifiedCart();
         return;
       }
