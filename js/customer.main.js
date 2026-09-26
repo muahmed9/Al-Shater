@@ -2095,9 +2095,11 @@ function filterMktProducts() {
     return `
       <div class="product-card" data-pid="${esc(p.id)}">
         <div class="product-img">
-          ${primaryImg 
-            ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" loading="lazy">` 
-            : '📦'}
+          <div class="product-img-slider">
+            ${images.length > 0 
+              ? images.map(img => `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">`).join('')
+              : '<div class="empty-img">📦</div>'}
+          </div>
           ${multiBadge}
         </div>
         <b style="font-size:.92rem;display:block;margin-bottom:4px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.name)}">${esc(p.name)}</b>
