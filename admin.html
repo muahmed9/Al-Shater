@@ -11,7 +11,7 @@
   <link rel="stylesheet" href="css/variables.css">
   <link rel="stylesheet" href="css/base.css">
   <link rel="stylesheet" href="css/components.css">
-  <link rel="stylesheet" href="css/admin.css?v=20260926_mobile_fix">
+  <link rel="stylesheet" href="css/admin.css?v=20260926_s23_v1">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
@@ -45,22 +45,22 @@
 
     <div class="admin-content" id="admin-content">
       <header class="admin-topbar">
-        <div style="display:flex;align-items:center;gap:12px;">
-          <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة">☰</button>
-          <div>
-            <div style="font-weight:800;font-size:1.05rem;" id="page-title">الطلبات</div>
-            <div style="font-size:.75rem;opacity:.75;" id="role-badge-top"></div>
+        <div class="topbar-start">
+          <button id="mobile-menu-btn" class="mobile-menu-btn" aria-label="فتح القائمة الرئيسية" title="القائمة">
+            <span class="menu-icon">☰</span>
+            <span class="menu-text-mobile">القائمة</span>
+          </button>
+          <div class="topbar-title-group">
+            <div id="page-title" class="page-title-text">الطلبات</div>
+            <div id="role-badge-top" class="role-badge-text"></div>
           </div>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;">
-          <div
-            style="background:rgba(255,255,255,.15);padding:6px 14px;border-radius:var(--radius-full);font-size:.82rem;">
-            <span
-              style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#4eff4e;margin-left:6px;"></span>
+        <div class="topbar-end">
+          <div class="topbar-pending-badge">
+            <span class="live-dot"></span>
             <span id="pcnt">0</span> معلق
           </div>
-          <button id="dm-toggle-btn"
-            style="background:rgba(255,255,255,.12);border:1.5px solid rgba(255,255,255,.2);color:#fff;padding:7px 13px;border-radius:var(--radius-sm);cursor:pointer;font-size:.82rem;font-weight:700;display:flex;align-items:center;gap:6px;">
+          <button id="dm-toggle-btn" class="topbar-theme-btn" title="تبديل الوضع الليلي">
             <span id="dm-icon-adm">🌙</span><span id="dm-lbl-adm">ليلي</span>
           </button>
         </div>
@@ -305,6 +305,8 @@
         </div>
       </div>
     </div>
+    <!-- شريط التنقل السفلي للهواتف -->
+    <nav id="admin-bottom-nav" class="admin-bottom-nav" aria-label="التنقل السريع"></nav>
   </div>
 
   <!-- لوحة تفاصيل الطلب -->
