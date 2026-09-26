@@ -1800,10 +1800,8 @@ function showProductDetailPage(product) {
   };
   const catLabel = categoryLabels[product.category] || '📦 منتج';
 
-  // Check if item already in cart
-  const cart = customerState.get('cart') ?? [];
-  const inCartItem = cart.find(i => i.id === product.id);
-  let initialQty = inCartItem ? inCartItem.qty : 1;
+  // Default initial qty to 1 when opening PDP to avoid duplicating existing cart quantities
+  let initialQty = 1;
 
   // Render Scrollable Body Cards
   contentEl.innerHTML = `
@@ -2084,7 +2082,10 @@ function filterMktProducts() {
   }
 
   grid.innerHTML = filtered.map(p => {
-    const inCart = cart.find(i => i.id === p.id);
+    const cartItems = cart.filter(i => i.id === p.id);
+    const inCart = cartItems.length > 0;
+    const totalQty = cartItems.reduce((sum, i) => sum + (i.qty || 1), 0);
+    const multiVariants = cartItems.length > 1;
     const hasDiscount = p.discount && p.discount > 0;
     const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
     const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
@@ -2107,7 +2108,7 @@ function filterMktProducts() {
       } / ${esc(p.unit ?? 'قطعة')}
         </span>
         <button class="btn-add-cart${inCart ? ' in-cart' : ''}" data-add-cart="${esc(p.id)}">
-          ${inCart ? `✅ في السلة (${inCart.qty})` : '🛒 أضف للسلة'}
+          ${inCart ? `✅ في السلة (${totalQty}${multiVariants ? ' - متنوع' : ''})` : '🛒 أضف للسلة'}
         </button>
         ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:4px;">🎨 خيارات متوفرة</div>' : ''}
       </div>`;
@@ -2597,9 +2598,11 @@ function refreshSuggestedButtons() {
   if (!list) return;
   list.querySelectorAll('.sug-add-btn').forEach(btn => {
     const prodId = btn.dataset.sugAdd;
-    const totalInCart = cart.filter(i => i.id === prodId).reduce((s, i) => s + (i.qty ?? 1), 0);
+    const cartItems = cart.filter(i => i.id === prodId);
+    const totalInCart = cartItems.reduce((s, i) => s + (i.qty ?? 1), 0);
+    const multiVariants = cartItems.length > 1;
     if (totalInCart > 0) {
-      btn.textContent = `✅ (${totalInCart})`;
+      btn.textContent = `✅ (${totalInCart}${multiVariants ? ' - متنوع' : ''})`;
       btn.style.background = 'var(--green)';
     } else {
       btn.textContent = '➕ أضف';
@@ -2627,8 +2630,10 @@ async function loadSuggestedProducts() {
     list.innerHTML = suggested.map(p => {
       const hasDiscount = p.discount && p.discount > 0;
       const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
-      const totalInCart = cart.filter(i => i.id === p.id).reduce((s, i) => s + (i.qty ?? 1), 0);
-      const btnText = totalInCart > 0 ? `✅ (${totalInCart})` : '➕ أضف';
+      const cartItems = cart.filter(i => i.id === p.id);
+      const totalInCart = cartItems.reduce((s, i) => s + (i.qty ?? 1), 0);
+      const multiVariants = cartItems.length > 1;
+      const btnText = totalInCart > 0 ? `✅ (${totalInCart}${multiVariants ? ' - متنوع' : ''})` : '➕ أضف';
       const btnBg = totalInCart > 0 ? 'var(--green)' : 'var(--teal)';
 
       const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);

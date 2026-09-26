@@ -132,15 +132,24 @@ ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY orders_insert_owner ON public.orders
   FOR INSERT TO PUBLIC
-  WITH CHECK (user_id::text = (auth.jwt() ->> 'sub'));
+  WITH CHECK (
+    user_id::text = (auth.jwt() ->> 'sub')
+    OR user_id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY orders_select_owner ON public.orders
   FOR SELECT TO PUBLIC
-  USING (user_id::text = (auth.jwt() ->> 'sub'));
+  USING (
+    user_id::text = (auth.jwt() ->> 'sub')
+    OR user_id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY orders_update_owner ON public.orders
   FOR UPDATE TO PUBLIC
-  USING (user_id::text = (auth.jwt() ->> 'sub'));
+  USING (
+    user_id::text = (auth.jwt() ->> 'sub')
+    OR user_id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY orders_full_operator_admin ON public.orders
   FOR ALL TO PUBLIC
@@ -171,15 +180,24 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY users_self_select ON public.users
   FOR SELECT TO PUBLIC
-  USING (id::text = (auth.jwt() ->> 'sub'));
+  USING (
+    id::text = (auth.jwt() ->> 'sub')
+    OR id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY users_self_update ON public.users
   FOR UPDATE TO PUBLIC
-  USING (id::text = (auth.jwt() ->> 'sub'));
+  USING (
+    id::text = (auth.jwt() ->> 'sub')
+    OR id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY users_insert_self ON public.users
   FOR INSERT TO PUBLIC
-  WITH CHECK (id::text = (auth.jwt() ->> 'sub'));
+  WITH CHECK (
+    id::text = (auth.jwt() ->> 'sub')
+    OR id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY users_admin_select ON public.users
   FOR SELECT TO PUBLIC
@@ -218,11 +236,17 @@ ALTER TABLE public.research_requests ENABLE ROW LEVEL SECURITY;
 
 CREATE POLICY research_self_select ON public.research_requests
   FOR SELECT TO PUBLIC
-  USING (user_id::text = (auth.jwt() ->> 'sub'));
+  USING (
+    user_id::text = (auth.jwt() ->> 'sub')
+    OR user_id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY research_insert_self ON public.research_requests
   FOR INSERT TO PUBLIC
-  WITH CHECK (user_id::text = (auth.jwt() ->> 'sub'));
+  WITH CHECK (
+    user_id::text = (auth.jwt() ->> 'sub')
+    OR user_id::text = (auth.jwt() -> 'user_metadata' ->> 'telegram_user_id')
+  );
 
 CREATE POLICY research_admin_all ON public.research_requests
   FOR ALL TO PUBLIC
