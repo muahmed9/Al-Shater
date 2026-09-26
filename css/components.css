@@ -70,7 +70,7 @@
 .stock-low{background:#fef2f2;color:#991b1b;border-radius:var(--radius-sm);font-size:var(--font-size-xs);padding:2px 7px;font-weight:800;vertical-align:middle;border:1px solid #fecaca}
 .stock-ok{background:#dcfce7;color:#166534;border-radius:var(--radius-sm);font-size:var(--font-size-xs);padding:2px 7px;font-weight:800;vertical-align:middle}
 
-@media (min-width: 601px) {
+@media (min-width: 769px) {
   #conn-badge {
     right: calc(50% - 280px) !important;
   }

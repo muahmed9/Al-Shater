@@ -1805,24 +1805,31 @@ function showProductDetailPage(product) {
 
   // Render Scrollable Body Cards
   contentEl.innerHTML = `
-    <!-- 1. معرض الصور -->
-    <div style="background:#fff;border-radius:var(--radius-lg);padding:14px;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);text-align:center;">
-      <div style="position:relative;width:100%;height:210px;display:flex;align-items:center;justify-content:center;overflow:hidden;background:#f8fafc;border-radius:var(--radius-md);">
-        ${images.length > 0
-          ? `<img id="pdp-active-img" src="${esc(images[0])}" alt="${esc(product.name)}" style="max-width:100%;max-height:100%;object-fit:contain;transition:opacity 0.2s ease;">`
-          : `<span style="font-size:4rem;opacity:0.3;">📦</span>`
-        }
-        ${hasMultipleImages
-          ? `<span id="pdp-img-counter" style="position:absolute;bottom:8px;left:8px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:2px 8px;border-radius:var(--radius-full);font-size:0.72rem;font-weight:700;">📷 1/${images.length}</span>`
-          : ''
-        }
+    <!-- 1. معرض الصور التفاعلي (قابل للسحب والتمرير) -->
+    <div style="background:#fff;border-radius:var(--radius-lg);padding:14px;border:1.5px solid var(--border-soft);box-shadow:var(--shadow-sm);text-align:center;position:relative;">
+      <div style="position:relative;width:100%;height:230px;overflow:hidden;background:#f8fafc;border-radius:var(--radius-md);">
+        <div id="pdp-gallery-slider" style="display:flex;width:100%;height:100%;overflow-x:auto;scroll-snap-type:x mandatory;scroll-behavior:smooth;scrollbar-width:none;-ms-overflow-style:none;touch-action:pan-x;overscroll-behavior-x:contain;">
+          ${images.length > 0
+            ? images.map((img, idx) => `
+              <div class="pdp-slide" data-idx="${idx}" style="flex:0 0 100%;width:100%;height:100%;display:flex;align-items:center;justify-content:center;scroll-snap-align:center;user-select:none;-webkit-user-drag:none;">
+                <img src="${esc(img)}" alt="${esc(product.name)} - ${idx + 1}" style="max-width:100%;max-height:100%;object-fit:contain;padding:8px;pointer-events:none;-webkit-user-drag:none;user-select:none;" draggable="false">
+              </div>
+            `).join('')
+            : `<div style="flex:0 0 100%;width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:4rem;opacity:0.3;">📦</div>`
+          }
+        </div>
+        ${hasMultipleImages ? `
+          <button type="button" id="pdp-nav-prev" style="position:absolute;top:50%;left:8px;transform:translateY(-50%);background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);border:1px solid rgba(0,0,0,0.12);width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:900;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:5;">❮</button>
+          <button type="button" id="pdp-nav-next" style="position:absolute;top:50%;right:8px;transform:translateY(-50%);background:rgba(255,255,255,0.9);backdrop-filter:blur(4px);border:1px solid rgba(0,0,0,0.12);width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:1.15rem;font-weight:900;color:var(--navy);box-shadow:0 2px 8px rgba(0,0,0,0.15);z-index:5;">❯</button>
+          <span id="pdp-img-counter" style="position:absolute;bottom:8px;left:8px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;padding:3px 9px;border-radius:var(--radius-full);font-size:0.75rem;font-weight:800;z-index:5;pointer-events:none;">📷 1/${images.length}</span>
+        ` : ''}
       </div>
       ${hasMultipleImages ? `
         <div class="pdp-thumbnails" style="display:flex;gap:8px;margin-top:10px;overflow-x:auto;padding-bottom:2px;justify-content:center;">
           ${images.map((img, idx) => `
-            <div class="pdp-thumb ${idx === 0 ? 'active' : ''}" data-idx="${idx}" data-src="${esc(img)}"
+            <div class="pdp-thumb ${idx === 0 ? 'active' : ''}" data-idx="${idx}"
               style="width:52px;height:52px;border-radius:var(--radius-sm);background:#fff;border:2px solid ${idx === 0 ? 'var(--teal)' : 'var(--border-soft)'};overflow:hidden;cursor:pointer;flex-shrink:0;transition:all 0.2s;">
-              <img src="${esc(img)}" alt="صورة ${idx + 1}" style="width:100%;height:100%;object-fit:cover;">
+              <img src="${esc(img)}" alt="صورة ${idx + 1}" style="width:100%;height:100%;object-fit:cover;pointer-events:none;" draggable="false">
             </div>
           `).join('')}
         </div>
@@ -1906,28 +1913,64 @@ function showProductDetailPage(product) {
     `;
   }
 
-  // Bind thumbnails click
-  contentEl.querySelectorAll('.pdp-thumb').forEach(thumb => {
-    thumb.addEventListener('click', () => {
-      const src = thumb.dataset.src;
-      const idx = Number(thumb.dataset.idx) + 1;
-      const activeImg = document.getElementById('pdp-active-img');
-      if (activeImg) {
-        activeImg.style.opacity = '0';
-        setTimeout(() => {
-          activeImg.src = src;
-          activeImg.style.opacity = '1';
-        }, 150);
-      }
-      const counter = document.getElementById('pdp-img-counter');
-      if (counter) counter.textContent = `📷 ${idx}/${images.length}`;
+  // Handle PDP Gallery Swiping & Navigation
+  const pdpSlider = contentEl.querySelector('#pdp-gallery-slider');
+  const pdpCounter = contentEl.querySelector('#pdp-img-counter');
+  const pdpThumbs = contentEl.querySelectorAll('.pdp-thumb');
 
-      contentEl.querySelectorAll('.pdp-thumb').forEach(t => {
+  const updatePdpActiveSlide = (idx) => {
+    if (pdpCounter) pdpCounter.textContent = `📷 ${idx + 1}/${images.length}`;
+    pdpThumbs.forEach((t, i) => {
+      if (i === idx) {
+        t.style.borderColor = 'var(--teal)';
+        t.classList.add('active');
+        t.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+      } else {
         t.style.borderColor = 'var(--border-soft)';
         t.classList.remove('active');
+      }
+    });
+  };
+
+  if (pdpSlider && images.length > 1) {
+    let scrollDebounce;
+    pdpSlider.addEventListener('scroll', () => {
+      clearTimeout(scrollDebounce);
+      scrollDebounce = setTimeout(() => {
+        const slideWidth = pdpSlider.clientWidth || 1;
+        const currentIdx = Math.round(Math.abs(pdpSlider.scrollLeft) / slideWidth);
+        const clampedIdx = Math.max(0, Math.min(images.length - 1, currentIdx));
+        updatePdpActiveSlide(clampedIdx);
+      }, 40);
+    }, { passive: true });
+
+    const prevBtn = contentEl.querySelector('#pdp-nav-prev');
+    const nextBtn = contentEl.querySelector('#pdp-nav-next');
+    if (prevBtn) {
+      prevBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pdpSlider.scrollBy({ left: -pdpSlider.clientWidth, behavior: 'smooth' });
       });
-      thumb.style.borderColor = 'var(--teal)';
-      thumb.classList.add('active');
+    }
+    if (nextBtn) {
+      nextBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        pdpSlider.scrollBy({ left: pdpSlider.clientWidth, behavior: 'smooth' });
+      });
+    }
+  }
+
+  // Bind thumbnails click
+  pdpThumbs.forEach(thumb => {
+    thumb.addEventListener('click', () => {
+      const idx = Number(thumb.dataset.idx);
+      if (pdpSlider) {
+        const slides = pdpSlider.querySelectorAll('.pdp-slide');
+        if (slides[idx]) {
+          slides[idx].scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        }
+      }
+      updatePdpActiveSlide(idx);
     });
   });
 
@@ -2089,20 +2132,27 @@ function filterMktProducts() {
     const hasDiscount = p.discount && p.discount > 0;
     const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
     const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
-    const primaryImg = images.length > 0 ? images[0] : null;
-    const multiBadge = images.length > 1 ? `<span style="position:absolute;bottom:6px;left:6px;background:rgba(13,59,102,0.8);backdrop-filter:blur(4px);color:#fff;font-size:0.68rem;padding:2px 7px;border-radius:var(--radius-full);font-weight:700;">📷 +${images.length}</span>` : '';
+    const hasMultipleImages = images.length > 1;
+    const multiBadge = hasMultipleImages ? `<span class="prod-badge-count" style="position:absolute;bottom:6px;left:6px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;font-size:0.68rem;padding:2px 7px;border-radius:var(--radius-full);font-weight:700;pointer-events:none;z-index:4;">📷 1/${images.length}</span>` : '';
 
     return `
       <div class="product-card" data-pid="${esc(p.id)}">
         <div class="product-img">
           <div class="product-img-slider">
             ${images.length > 0 
-              ? images.map(img => `<img src="${esc(img)}" alt="${esc(p.name)}" loading="lazy">`).join('')
+              ? images.map((img, idx) => `
+                <div class="prod-img-slide">
+                  <img src="${esc(img)}" alt="${esc(p.name)} - ${idx + 1}" loading="lazy" draggable="false">
+                </div>`).join('')
               : '<div class="empty-img">📦</div>'}
           </div>
           ${multiBadge}
+          ${hasMultipleImages ? `
+            <button type="button" class="prod-slider-btn prev" data-dir="-1" title="السابق">‹</button>
+            <button type="button" class="prod-slider-btn next" data-dir="1" title="التالي">›</button>
+          ` : ''}
         </div>
-        <b style="font-size:.92rem;display:block;margin-bottom:4px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.name)}">${esc(p.name)}</b>
+        <b style="font-size:.9rem;display:block;margin-bottom:4px;color:var(--navy);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;" title="${esc(p.name)}">${esc(p.name)}</b>
         <span class="product-price">
           ${hasDiscount
         ? `<span style="text-decoration:line-through;opacity:.5;font-size:.78rem;">${formatPrice(p.price)}</span> <b style="color:var(--green);">${formatPrice(displayPrice)}</b>`
@@ -2110,7 +2160,7 @@ function filterMktProducts() {
       } / ${esc(p.unit ?? 'قطعة')}
         </span>
         <button class="btn-add-cart${inCart ? ' in-cart' : ''}" data-add-cart="${esc(p.id)}">
-          ${inCart ? `✅ في السلة (${totalQty}${multiVariants ? ' - متنوع' : ''})` : '🛒 أضف للسلة'}
+          ${inCart ? `✅ بالسلة (${totalQty}${multiVariants ? ' - متنوع' : ''})` : '🛒 أضف للسلة'}
         </button>
         ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:4px;">🎨 خيارات متوفرة</div>' : ''}
       </div>`;
@@ -2125,10 +2175,58 @@ function filterMktProducts() {
     });
   });
 
-  // Click on product card opens PDP
+  // Slider navigation arrows on product card
+  grid.querySelectorAll('.prod-slider-btn').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.stopPropagation();
+      const card = btn.closest('.product-card');
+      const slider = card?.querySelector('.product-img-slider');
+      if (!slider) return;
+      const dir = Number(btn.dataset.dir) || 1;
+      slider.scrollBy({ left: dir * slider.clientWidth, behavior: 'smooth' });
+    });
+  });
+
+  // Dynamic counter on product card slider scroll
+  grid.querySelectorAll('.product-img-slider').forEach(slider => {
+    slider.addEventListener('scroll', () => {
+      const card = slider.closest('.product-card');
+      const badge = card?.querySelector('.prod-badge-count');
+      const slides = slider.querySelectorAll('.prod-img-slide');
+      if (!badge || slides.length <= 1) return;
+      const currentIdx = Math.round(Math.abs(slider.scrollLeft) / (slider.clientWidth || 1));
+      const clamped = Math.max(0, Math.min(slides.length - 1, currentIdx));
+      badge.textContent = `📷 ${clamped + 1}/${slides.length}`;
+    }, { passive: true });
+  });
+
+  // Click on product card opens PDP (with touch swipe gesture suppression)
   grid.querySelectorAll('.product-card').forEach(card => {
+    let startX = 0;
+    let startY = 0;
+    let isSwiping = false;
+
+    card.addEventListener('touchstart', e => {
+      startX = e.touches[0].clientX;
+      startY = e.touches[0].clientY;
+      isSwiping = false;
+    }, { passive: true });
+
+    card.addEventListener('touchmove', e => {
+      const dx = Math.abs(e.touches[0].clientX - startX);
+      const dy = Math.abs(e.touches[0].clientY - startY);
+      if (dx > 8 && dx > dy) {
+        isSwiping = true;
+      }
+    }, { passive: true });
+
     card.addEventListener('click', e => {
       if (e.target.closest('[data-add-cart]')) return;
+      if (e.target.closest('.prod-slider-btn')) return;
+      if (isSwiping) {
+        isSwiping = false;
+        return;
+      }
       const pid = card.dataset.pid;
       const product = products.find(p => p.id === pid);
       if (product) showProductDetailPage(product);

@@ -6,10 +6,13 @@
 html {
   font-size: 16px;
   scroll-behavior: smooth;
+  overflow-x: hidden;
 }
 html.customer-html {
-  background-color: var(--html-bg);
+  background-color: var(--bg);
   transition: background-color var(--transition-base);
+  overflow-x: hidden;
+  width: 100%;
 }
 body {
   font-family: var(--font-main);
@@ -22,10 +25,20 @@ body {
   -webkit-tap-highlight-color: transparent;
   -webkit-font-smoothing: antialiased;
   position: relative;
+  overflow-x: hidden;
+  width: 100%;
+  margin: 0;
+  padding: 0;
 }
-@media (min-width: 601px) {
+@media (min-width: 769px) {
+  html.customer-html {
+    background-color: var(--html-bg);
+    display: flex;
+    justify-content: center;
+  }
   body.customer-body {
     max-width: 600px;
+    width: 100%;
     margin: 0 auto;
     box-shadow: 0 0 45px var(--shadow-md);
     border-left: 1px solid var(--border-soft);
