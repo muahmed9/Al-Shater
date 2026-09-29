@@ -7,7 +7,7 @@ import { Config } from './core/config.js';
 import { adminState } from './core/state.js';
 import { esc, debounce, formatPrice, formatDate, renderSkeletonResearch, renderSkeletonOrders, friendlyError } from './core/utils.js';
 import { adminLogin, checkExistingSession, adminLogout, canChangeStatus, isManager, hasPermission } from './services/auth.service.js';
-import { fetchAllOrders, changeOrderStatus, getFilteredOrders, subscribeToOrders } from './services/order-admin.service.js';
+import { fetchAllOrders, fetchOrderDetail, changeOrderStatus, getFilteredOrders, subscribeToOrders } from './services/order-admin.service.js';
 import { savePricing, loadPricing, fetchAllProducts, saveProduct, deleteProduct, adjustProductStock, fetchSupplies, saveSupply, adjustSupplyStock } from './services/market.service.js';
 import { uploadFile } from './services/upload.service.js';
 import { showToast } from './components/toast.js';
@@ -401,9 +401,20 @@ async function changeStatus(orderId, from, to) {
   }
 }
 
-function openOrderDetail(orderId) {
-  const orders = adminState.get('allOrders') ?? [];
-  const o = orders.find(x => x.id === orderId);
+async function openOrderDetail(orderId) {
+  // ⚡ Show loading state while fetching full details
+  document.getElementById('dettitle').textContent = `تفاصيل الطلب #${orderId}`;
+  document.getElementById('detbody').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">⏳ جاري تحميل التفاصيل...</div>';
+  document.getElementById('detov').classList.add('open');
+  document.getElementById('detpan').classList.add('open');
+
+  let o;
+  try {
+    o = await fetchOrderDetail(orderId);
+  } catch (err) {
+    document.getElementById('detbody').innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">❌ فشل تحميل التفاصيل: ${esc(err.message)}</div>`;
+    return;
+  }
   if (!o) return;
   adminState.set('openOrderId', orderId);
   adminState.set('openOrderTgId', o.user_id);

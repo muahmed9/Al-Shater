@@ -94,8 +94,9 @@ export async function submitOrder({ name, phone, region, notes, locationUrl }) {
 
 export async function fetchUserOrders(userId) {
   try {
+    // ⚡ Performance: select only list-view fields
     const { data, error } = await sb.from(T.ORDERS)
-      .select('id,status,total,created_at,cancel_reason,files_data,cart_items,order_metadata')
+      .select('id, status, total, created_at, cancel_reason, order_type, is_express')
       .eq('user_id', userId)
       .order('created_at', { ascending: false })
       .limit(50);
@@ -107,16 +108,18 @@ export async function fetchUserOrders(userId) {
       }
       throw new Error(`تعذر تحميل البيانات من قاعدة البيانات (كود: ${error.code})`);
     }
-    const orders = data ?? [];
-    return orders.map(o => ({
-      ...o,
-      rating: o.order_metadata?.rating ?? null,
-      rating_comment: o.order_metadata?.rating_comment ?? null
-    }));
+    return data ?? [];
   } catch (err) {
     console.error('[fetchUserOrders Exception]', err);
     throw err;
   }
+}
+
+// ⚡ Fetch full order details on demand (when opening detail view)
+export async function fetchOrderDetail(orderId) {
+  const { data, error } = await sb.from(T.ORDERS).select('*').eq('id', orderId).single();
+  if (error) throw error;
+  return data;
 }
 
 export async function fetchOrderById(orderId) {

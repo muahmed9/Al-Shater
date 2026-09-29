@@ -8,7 +8,7 @@ import { Config } from './core/config.js';
 import { customerState } from './core/state.js';
 import { esc, debounce, isValidIraqiPhone, isValidName, formatPrice, renderSkeletonOrders, renderSkeletonProducts, renderEmptyState, friendlyError } from './core/utils.js';
 import { authenticateTelegramUser } from './services/auth.service.js';
-import { submitOrder, fetchUserOrders, validateCoupon, calcOrderTotals } from './services/order.service.js';
+import { submitOrder, fetchUserOrders, fetchOrderDetail, validateCoupon, calcOrderTotals } from './services/order.service.js';
 import { uploadFile } from './services/upload.service.js';
 import { fetchActiveProducts, loadPricing } from './services/market.service.js';
 import { Stepper } from './customer/stepper.js';
@@ -309,7 +309,8 @@ async function init() {
 
   customerState.subscribe('user', refreshPtsUI);
   refreshPtsUI();
-  startRealtime(userId);
+  // ⚡ Defer Realtime WebSocket to avoid slowing initial load
+  setTimeout(() => startRealtime(userId), 3000);
 
   customerState.subscribe('files', updatePrintBadge);
   updatePrintBadge(customerState.get('files') ?? []);
@@ -319,7 +320,7 @@ async function init() {
 
   // Load suggested products for step 3
   loadSuggestedProducts();
-  loadOrders();
+  // ⚡ Orders are loaded lazily when the user navigates to the orders tab (see goTab)
 }
 
 window.loadMktProducts = loadMktProducts;
@@ -2101,18 +2102,30 @@ async function loadMktProducts() {
   }
 }
 
+// ⚡ Infinite Scroll: batch size for market products
+const MKT_BATCH_SIZE = 6;
+let _mktScrollObserver = null;
+
 function filterMktProducts() {
   const products = customerState.get('mktProducts') ?? [];
   const cat = customerState.get('marketFilter') ?? 'all';
   const search = document.getElementById('mkt-search').value.toLowerCase().trim();
-  const cart = customerState.get('cart') ?? [];
 
   const filtered = products.filter(p =>
     (cat === 'all' || p.category === cat) &&
     (!search || p.name.toLowerCase().includes(search))
   );
 
+  // Store filtered list and reset visible count
+  customerState.set('_mktFiltered', filtered);
+  customerState.set('_mktVisible', 0);
+
   const grid = document.getElementById('mkt-products-grid');
+  grid.innerHTML = '';
+
+  // Clean up previous observer
+  if (_mktScrollObserver) { _mktScrollObserver.disconnect(); _mktScrollObserver = null; }
+
   if (!filtered.length) {
     grid.innerHTML = renderEmptyState({
       icon: '🛒',
@@ -2124,25 +2137,29 @@ function filterMktProducts() {
     return;
   }
 
-  grid.innerHTML = filtered.map(p => {
-    const cartItems = cart.filter(i => i.id === p.id);
-    const inCart = cartItems.length > 0;
-    const totalQty = cartItems.reduce((sum, i) => sum + (i.qty || 1), 0);
-    const multiVariants = cartItems.length > 1;
-    const hasDiscount = p.discount && p.discount > 0;
-    const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
-    const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
-    const hasMultipleImages = images.length > 1;
-    const multiBadge = hasMultipleImages ? `<span class="prod-badge-count" style="position:absolute;bottom:6px;left:6px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;font-size:0.68rem;padding:2px 7px;border-radius:var(--radius-full);font-weight:700;pointer-events:none;z-index:4;">📷 1/${images.length}</span>` : '';
+  // Render first batch
+  _appendMktBatch(grid);
+}
 
-    return `
+function _renderProductCard(p, cart) {
+  const cartItems = cart.filter(i => i.id === p.id);
+  const inCart = cartItems.length > 0;
+  const totalQty = cartItems.reduce((sum, i) => sum + (i.qty || 1), 0);
+  const multiVariants = cartItems.length > 1;
+  const hasDiscount = p.discount && p.discount > 0;
+  const displayPrice = hasDiscount ? Math.max(0, p.price - p.discount) : p.price;
+  const images = (p.image_url || '').split(',').map(s => s.trim()).filter(Boolean);
+  const hasMultipleImages = images.length > 1;
+  const multiBadge = hasMultipleImages ? `<span class="prod-badge-count" style="position:absolute;bottom:6px;left:6px;background:rgba(13,59,102,0.85);backdrop-filter:blur(4px);color:#fff;font-size:0.68rem;padding:2px 7px;border-radius:var(--radius-full);font-weight:700;pointer-events:none;z-index:4;">📷 1/${images.length}</span>` : '';
+
+  return `
       <div class="product-card" data-pid="${esc(p.id)}">
         <div class="product-img">
           <div class="product-img-slider">
             ${images.length > 0 
               ? images.map((img, idx) => `
                 <div class="prod-img-slide">
-                  <img src="${esc(img)}" alt="${esc(p.name)} - ${idx + 1}" loading="lazy" draggable="false">
+                  <img src="${esc(img)}" alt="${esc(p.name)} - ${idx + 1}" loading="lazy" decoding="async" draggable="false">
                 </div>`).join('')
               : '<div class="empty-img">📦</div>'}
           </div>
@@ -2164,74 +2181,106 @@ function filterMktProducts() {
         </button>
         ${(p.variants?.length) ? '<div style="font-size:.68rem;text-align:center;color:#7c3aed;font-weight:700;margin-top:4px;">🎨 خيارات متوفرة</div>' : ''}
       </div>`;
-  }).join('');
+}
 
-  grid.querySelectorAll('[data-add-cart]').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const pid = btn.dataset.addCart;
-      const product = products.find(p => p.id === pid);
-      if (product) addToCart(product);
+function _appendMktBatch(grid) {
+  const filtered = customerState.get('_mktFiltered') ?? [];
+  const shown = customerState.get('_mktVisible') ?? 0;
+  const products = customerState.get('mktProducts') ?? [];
+  const cart = customerState.get('cart') ?? [];
+
+  const batch = filtered.slice(shown, shown + MKT_BATCH_SIZE);
+  if (!batch.length) return;
+
+  // Remove old sentinel
+  grid.querySelector('.mkt-scroll-sentinel')?.remove();
+
+  // Create batch HTML
+  const batchHTML = batch.map(p => _renderProductCard(p, cart)).join('');
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = batchHTML;
+
+  // Append each new card and bind its events
+  while (tempDiv.firstElementChild) {
+    const card = tempDiv.firstElementChild;
+    grid.appendChild(card);
+
+    // Bind add-to-cart
+    card.querySelectorAll('[data-add-cart]').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const pid = btn.dataset.addCart;
+        const product = products.find(p => p.id === pid);
+        if (product) addToCart(product);
+      });
     });
-  });
 
-  // Slider navigation arrows on product card
-  grid.querySelectorAll('.prod-slider-btn').forEach(btn => {
-    btn.addEventListener('click', e => {
-      e.stopPropagation();
-      const card = btn.closest('.product-card');
-      const slider = card?.querySelector('.product-img-slider');
-      if (!slider) return;
-      const dir = Number(btn.dataset.dir) || 1;
-      slider.scrollBy({ left: dir * slider.clientWidth, behavior: 'smooth' });
+    // Bind slider arrows
+    card.querySelectorAll('.prod-slider-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        const slider = card.querySelector('.product-img-slider');
+        if (!slider) return;
+        const dir = Number(btn.dataset.dir) || 1;
+        slider.scrollBy({ left: dir * slider.clientWidth, behavior: 'smooth' });
+      });
     });
-  });
 
-  // Dynamic counter on product card slider scroll
-  grid.querySelectorAll('.product-img-slider').forEach(slider => {
-    slider.addEventListener('scroll', () => {
-      const card = slider.closest('.product-card');
-      const badge = card?.querySelector('.prod-badge-count');
-      const slides = slider.querySelectorAll('.prod-img-slide');
-      if (!badge || slides.length <= 1) return;
-      const currentIdx = Math.round(Math.abs(slider.scrollLeft) / (slider.clientWidth || 1));
-      const clamped = Math.max(0, Math.min(slides.length - 1, currentIdx));
-      badge.textContent = `📷 ${clamped + 1}/${slides.length}`;
-    }, { passive: true });
-  });
+    // Bind slider scroll counter
+    const slider = card.querySelector('.product-img-slider');
+    const badge = card.querySelector('.prod-badge-count');
+    if (slider && badge) {
+      slider.addEventListener('scroll', () => {
+        const slides = slider.querySelectorAll('.prod-img-slide');
+        if (slides.length <= 1) return;
+        const currentIdx = Math.round(Math.abs(slider.scrollLeft) / (slider.clientWidth || 1));
+        const clamped = Math.max(0, Math.min(slides.length - 1, currentIdx));
+        badge.textContent = `📷 ${clamped + 1}/${slides.length}`;
+      }, { passive: true });
+    }
 
-  // Click on product card opens PDP (with touch swipe gesture suppression)
-  grid.querySelectorAll('.product-card').forEach(card => {
-    let startX = 0;
-    let startY = 0;
-    let isSwiping = false;
-
+    // Bind product detail click (with swipe suppression)
+    let startX = 0, startY = 0, isSwiping = false;
     card.addEventListener('touchstart', e => {
       startX = e.touches[0].clientX;
       startY = e.touches[0].clientY;
       isSwiping = false;
     }, { passive: true });
-
     card.addEventListener('touchmove', e => {
       const dx = Math.abs(e.touches[0].clientX - startX);
       const dy = Math.abs(e.touches[0].clientY - startY);
-      if (dx > 8 && dx > dy) {
-        isSwiping = true;
-      }
+      if (dx > 8 && dx > dy) isSwiping = true;
     }, { passive: true });
-
     card.addEventListener('click', e => {
       if (e.target.closest('[data-add-cart]')) return;
       if (e.target.closest('.prod-slider-btn')) return;
-      if (isSwiping) {
-        isSwiping = false;
-        return;
-      }
+      if (isSwiping) { isSwiping = false; return; }
       const pid = card.dataset.pid;
       const product = products.find(p => p.id === pid);
       if (product) showProductDetailPage(product);
     });
-  });
+  }
+
+  // Update visible count
+  const newCount = shown + batch.length;
+  customerState.set('_mktVisible', newCount);
+
+  // Add sentinel for next batch if more products remain
+  if (newCount < filtered.length) {
+    const sentinel = document.createElement('div');
+    sentinel.className = 'mkt-scroll-sentinel';
+    sentinel.style.cssText = 'height:1px;width:100%;grid-column:1/-1;';
+    grid.appendChild(sentinel);
+
+    _mktScrollObserver = new IntersectionObserver(entries => {
+      if (entries[0].isIntersecting) {
+        _mktScrollObserver.disconnect();
+        _mktScrollObserver = null;
+        _appendMktBatch(grid);
+      }
+    }, { rootMargin: '200px' });
+    _mktScrollObserver.observe(sentinel);
+  }
 }
 
 async function loadOrders(isBackground = false) {
@@ -2296,9 +2345,8 @@ function renderOrders() {
       if (o.isResearch) {
         if (typeFilter !== 'research') return false;
       } else {
-        const filesCount = o.files_data?.length ?? 0;
-        const cartCount = o.cart_items?.length ?? 0;
-        const type = filesCount && cartCount ? 'combined' : filesCount ? 'print' : 'market';
+        // ⚡ Use order_type field instead of heavy files_data/cart_items
+        const type = o.order_type || 'print';
         
         if (typeFilter === 'print' && type !== 'print' && type !== 'combined') return false;
         if (typeFilter === 'market' && type !== 'market' && type !== 'combined') return false;
@@ -2373,9 +2421,8 @@ function renderOrders() {
         </div>`;
     } else {
       const s = statusMap[o.status] ?? { label: o.status, css: 'sr', icon: '📦' };
-      const filesCount = o.files_data?.length ?? 0;
-      const cartCount = o.cart_items?.length ?? 0;
-      const typeLabel = filesCount && cartCount ? '🔀 مشترك' : filesCount ? '🖨️ استنساخ' : '📦 قرطاسية';
+      const typeLabels = { print: '🖨️ استنساخ', market: '📦 قرطاسية', combined: '🔀 مشترك' };
+      const typeLabel = typeLabels[o.order_type] || '🖨️ استنساخ';
       return `
         <div class="ocard" data-oid="${esc(o.id)}" data-is-research="false" style="animation-delay:${idx * 45}ms;">
           <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
@@ -2507,10 +2554,21 @@ async function redeemPts(pts, discount) {
   } catch { showToast('❌ فشل الاستبدال', 'error'); }
 }
 
-function showOrderDetail(orderId) {
+async function showOrderDetail(orderId) {
   customerState.set('activeDetailOrderId', orderId);
-  const orders = customerState.get('allUserOrders') ?? [];
-  const o = orders.find(x => x.id === orderId);
+
+  // ⚡ Show loading state immediately
+  document.getElementById('det-title').textContent = `طلب #${orderId.slice(0, 8)}`;
+  document.getElementById('det-body').innerHTML = '<div style="text-align:center;padding:40px;color:var(--text-muted);">⏳ جاري تحميل التفاصيل...</div>';
+  document.getElementById('det-ov').classList.add('open');
+
+  let o;
+  try {
+    o = await fetchOrderDetail(orderId);
+  } catch (err) {
+    document.getElementById('det-body').innerHTML = `<div style="text-align:center;padding:40px;color:var(--red);">❌ فشل تحميل التفاصيل: ${esc(err.message)}</div>`;
+    return;
+  }
   if (!o) return;
   const s = Config.ORDER_STATUSES[o.status] ?? { label: o.status, css: 'sr', icon: '📦' };
 
@@ -2742,7 +2800,7 @@ async function loadSuggestedProducts() {
       return `
       <div style="display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border-soft);cursor:pointer;" data-sug-id="${esc(p.id)}">
         <div style="width:48px;height:48px;border-radius:var(--radius-sm);background:#ffffff;border:1px solid var(--border-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.4rem;">
-          ${primaryImg ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" style="max-width:100%;max-height:100%;object-fit:contain;padding:2px;">` : '📦'}
+          ${primaryImg ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;padding:2px;">` : '📦'}
         </div>
         <div style="flex:1;min-width:0;">
           <b style="font-size:.85rem;color:var(--navy);">${esc(p.name)}</b>

@@ -8,12 +8,22 @@ const T = Config.TABLES;
 // Reuse a single Audio instance to prevent memory leaks
 let _notifAudio = null;
 
+// ⚡ Performance: select only the fields needed for the list view
+const LIST_FIELDS = 'id, user_id, customer_name, phone, region, status, order_type, total, created_at, updated_at, is_express, cancel_reason, express';
+
 export async function fetchAllOrders() {
-  const { data, error } = await sb.from(T.ORDERS).select('*').order('created_at', { ascending: false }).limit(300);
+  const { data, error } = await sb.from(T.ORDERS).select(LIST_FIELDS).order('created_at', { ascending: false }).limit(300);
   if (error) throw error;
   const orders = (data ?? []).filter(o => canSeeStatus(o.status));
   adminState.set('allOrders', orders);
   return orders;
+}
+
+// ⚡ Fetch full order details on demand (when opening detail panel)
+export async function fetchOrderDetail(orderId) {
+  const { data, error } = await sb.from(T.ORDERS).select('*').eq('id', orderId).single();
+  if (error) throw error;
+  return data;
 }
 
 export async function changeOrderStatus(orderId, fromStatus, toStatus, cancelReason = '') {
