@@ -152,8 +152,12 @@ export function subscribeToOrders(onNewOrder, onStatusChange) {
   const channel = sb.channel('admin-orders')
     .on('postgres_changes', { event: 'INSERT', schema: 'public', table: T.ORDERS }, payload => {
       const order = payload.new;
+      if (!canSeeStatus(order.status)) return;
       const orders = adminState.get('allOrders') ?? [];
-      adminState.set('allOrders', [order, ...orders]);
+      // Prevent duplicates
+      if (!orders.some(o => o.id === order.id)) {
+        adminState.set('allOrders', [order, ...orders]);
+      }
       
       // Play notification sound (reuse single instance to prevent memory leaks)
       try {
