@@ -8,7 +8,7 @@ import { adminState } from './core/state.js';
 import { esc, debounce, formatPrice, formatDate, renderSkeletonResearch, renderSkeletonOrders, friendlyError } from './core/utils.js';
 import { adminLogin, checkExistingSession, adminLogout, canChangeStatus, isManager, hasPermission } from './services/auth.service.js';
 import { fetchAllOrders, fetchOrderDetail, changeOrderStatus, getFilteredOrders, subscribeToOrders } from './services/order-admin.service.js';
-import { savePricing, loadPricing, fetchAllProducts, saveProduct, deleteProduct, adjustProductStock, fetchSupplies, saveSupply, adjustSupplyStock } from './services/market.service.js';
+import { savePricing, loadPricing, fetchAllProducts, saveProduct, deleteProduct, adjustProductStock } from './services/market.service.js';
 import { uploadFile } from './services/upload.service.js';
 import { showToast } from './components/toast.js';
 import { withLoading } from './components/loading-btn.js';
@@ -156,9 +156,6 @@ function enterDashboard() {
   );
   document.getElementById('close-cancel-modal')?.addEventListener('click', () => Modal.close('cancel-modal'));
 
-  document.getElementById('tx-cancel-btn')?.addEventListener('click', () => Modal.close('supply-tx-modal'));
-  document.getElementById('tx-confirm-btn')?.addEventListener('click', () => withLoading('tx-confirm-btn', confirmSupplyTx));
-
   // Product modal bindings
   document.getElementById('prod-cancel-btn')?.addEventListener('click', () => Modal.close('product-modal'));
   document.getElementById('prod-save-btn')?.addEventListener('click', () => withLoading('prod-save-btn', saveProductForm));
@@ -263,7 +260,6 @@ function navigateTo(page) {
     orders: 'الطلبات',
     research: 'طلبات البحوث',
     market: 'قرطاسية الشاطر',
-    supplies: 'المخزن',
     reports: 'إعداد التقارير',
     settings: 'الإعدادات',
   };
@@ -274,7 +270,6 @@ function navigateTo(page) {
   if (page === 'orders') { document.getElementById('olist').innerHTML = renderSkeletonOrders(4); fetchAllOrders().then(renderOrders); }
   if (page === 'research') { loadResearchPage(); }
   if (page === 'market') { loadMarketPage(); }
-  if (page === 'supplies') { loadSuppliesPage(); }
   if (page === 'reports') { loadReportsPage(); }
   if (page === 'settings') { loadSettingsPage(); }
 }
@@ -495,8 +490,11 @@ async function openOrderDetail(orderId) {
   if (zipBtn) {
     zipBtn.addEventListener('click', async () => {
       const orderId = zipBtn.getAttribute('data-order-id');
-      const order = (adminState.get('allOrders') ?? []).find(x => x.id === orderId);
-      if (!order || !order.files_data || !order.files_data.length) return;
+      const filesToDownload = o.files_data?.filter(f => f && f.url) || [];
+      if (!filesToDownload.length) {
+        showToast('⚠️ لا توجد روابط ملفات صالحة للتحميل', 'warning');
+        return;
+      }
 
       zipBtn.disabled = true;
       zipBtn.style.opacity = '0.7';
@@ -505,34 +503,36 @@ async function openOrderDetail(orderId) {
 
       try {
         if (!window.JSZip) {
-          throw new Error('مكتبة JSZip غير محملة بعد، يرجى المحاولة مرة أخرى');
+          throw new Error('مكتبة JSZip غير محملة بعد، يرجى إعادة تحديث الصفحة');
         }
         const zip = new JSZip();
-        for (let i = 0; i < order.files_data.length; i++) {
-          const file = order.files_data[i];
-          if (!file.url) continue;
-          
-          zipBtn.innerHTML = `⏳ جاري تحميل الملف (${i + 1}/${order.files_data.length}): ${esc(file.name)}...`;
+        for (let i = 0; i < filesToDownload.length; i++) {
+          const file = filesToDownload[i];
+          zipBtn.innerHTML = `⏳ جاري تحميل (${i + 1}/${filesToDownload.length}): ${esc(file.name || 'ملف')}...`;
           
           const res = await fetch(file.url);
-          if (!res.ok) throw new Error(`فشل تحميل الملف: ${file.name}`);
+          if (!res.ok) throw new Error(`فشل تحميل الملف: ${file.name || (i + 1)} (رمز الخطأ: ${res.status})`);
           const blob = await res.blob();
-          zip.file(file.name || `file_${i + 1}`, blob);
+          const cleanName = (file.name || `file_${i + 1}`).replace(/[\\/:*?"<>|]/g, '_');
+          zip.file(cleanName, blob);
         }
 
-        zipBtn.innerHTML = '⚡ جاري ضغط وتجهيز الملفات...';
+        zipBtn.innerHTML = '⚡ جاري ضغط الملفات...';
         const zipContent = await zip.generateAsync({ type: 'blob' });
         
-        const shortId = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
+        const shortId = orderId ? (orderId.length > 8 ? orderId.slice(0, 8) : orderId) : 'download';
         const filename = `order_${shortId}_files.zip`;
         
-        const a = Object.assign(document.createElement('a'), {
-          href: URL.createObjectURL(zipContent),
-          download: filename
-        });
+        const url = URL.createObjectURL(zipContent);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
         document.body.appendChild(a);
         a.click();
-        document.body.removeChild(a);
+        setTimeout(() => {
+          document.body.removeChild(a);
+          URL.revokeObjectURL(url);
+        }, 1000);
         
         showToast('✅ تم تحميل وضغط كافة الملفات بنجاح', 'success');
       } catch (err) {
@@ -954,7 +954,6 @@ function bindSettings() {
   document.getElementById('export-orders-csv')?.addEventListener('click', exportOrdersCSV);
   document.getElementById('export-orders-excel')?.addEventListener('click', exportOrdersExcel);
   document.getElementById('export-market-csv')?.addEventListener('click', exportMarketCSV);
-  document.getElementById('export-supplies-csv')?.addEventListener('click', exportSuppliesCSV);
 }
 
 async function loadSettingsPage() {
@@ -1035,7 +1034,7 @@ async function createStaffAccount() {
     return;
   }
 
-  const perms = ['perm-rp', 'perm-pd', 'perm-dd', 'perm-canc', 'perm-market', 'perm-supplies']
+  const perms = ['perm-rp', 'perm-pd', 'perm-dd', 'perm-canc', 'perm-market']
     .map(id => document.getElementById(id))
     .filter(el => el?.checked)
     .map(el => el.value);
@@ -1089,7 +1088,7 @@ async function createStaffAccount() {
     document.getElementById('new-staff-user').value = '';
     document.getElementById('new-staff-pass').value = '';
     document.getElementById('new-staff-emoji').value = '';
-    ['perm-rp', 'perm-pd', 'perm-dd', 'perm-canc', 'perm-market', 'perm-supplies'].forEach(id => {
+    ['perm-rp', 'perm-pd', 'perm-dd', 'perm-canc', 'perm-market'].forEach(id => {
       const el = document.getElementById(id); if (el) el.checked = false;
     });
     await loadStaffList();
@@ -1407,74 +1406,10 @@ async function confirmProductStockAdj() {
   } catch (e) { showToast('❌ ' + e.message, 'error'); }
 }
 
-async function loadSuppliesPage() {
-  if (!isManager() && !hasPermission('manage_supplies')) return;
-  const supplies = await fetchSupplies();
-  const low = supplies.filter(s => s.stock <= (s.min_stock ?? 0));
-  const page = document.getElementById('page-supplies');
-  page.innerHTML = `
-    <h2 style="color:var(--navy);margin:0 0 20px;">🗄️ مخزن المواد</h2>
-    ${low.length ? `<div class="alert-low"><p class="alert-low-title">⚠️ ${low.length} مواد تحت الحد الأدنى</p>${low.map(s => `<span style="font-size:.82rem;margin-left:8px;">• ${esc(s.name)} (${s.stock})</span>`).join('')}</div>` : ''}
-    <div class="stats-grid" style="margin-bottom:18px;">
-      <div class="stat-card"><div class="stat-num" style="color:var(--navy);">${supplies.length}</div><div class="stat-lbl">إجمالي المواد</div></div>
-      <div class="stat-card"><div class="stat-num" style="color:var(--orange);">${low.length}</div><div class="stat-lbl">منخفضة المخزون</div></div>
-    </div>
-    <div id="supplies-list-admin">${supplies.map(s => `
-      <div class="product-admin-card">
-        <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <b style="color:var(--navy);">${esc(s.name)}</b>
-            <div style="font-size:.78rem;color:var(--text-muted);">${s.stock} ${esc(s.unit ?? '')} | حد التنبيه: ${s.min_stock ?? 0}</div>
-          </div>
-          <div style="display:flex;gap:6px;">
-            <button class="order-action-btn btn-deliver" data-add-sup="${esc(s.id)}" data-sup-name="${esc(s.name)}">➕ إضافة</button>
-            <button class="order-action-btn btn-cancel"  data-sub-sup="${esc(s.id)}" data-sup-name="${esc(s.name)}">➖ خصم</button>
-          </div>
-        </div>
-      </div>`).join('')}</div>`;
-
-  adminState.set('_suppliesData', supplies);
-
-  const listEl = document.getElementById('supplies-list-admin');
-  if (listEl) {
-    listEl.addEventListener('click', e => {
-      const addBtn = e.target.closest('[data-add-sup]');
-      const subBtn = e.target.closest('[data-sub-sup]');
-      if (addBtn) openSupplyTx(addBtn.dataset.addSup, addBtn.dataset.supName, 'add');
-      if (subBtn) openSupplyTx(subBtn.dataset.subSup, subBtn.dataset.supName, 'sub');
-    });
-  }
-}
-
-function openSupplyTx(id, name, type) {
-  adminState.set('_txSupplyId', id);
-  adminState.set('_txSupplyType', type);
-  document.getElementById('tx-type-label').textContent = type === 'add' ? '➕ إضافة مخزون' : '➖ خصم من المخزون';
-  document.getElementById('tx-supply-name').textContent = name;
-  document.getElementById('tx-qty').value = '';
-  document.getElementById('tx-notes').value = '';
-  Modal.open('supply-tx-modal');
-}
-
-async function confirmSupplyTx() {
-  const id = adminState.get('_txSupplyId');
-  const type = adminState.get('_txSupplyType');
-  const qty = Number(document.getElementById('tx-qty').value);
-  const note = document.getElementById('tx-notes').value;
-  if (!qty || qty <= 0) { showToast('❌ أدخل كمية صحيحة', 'error'); return; }
-  try {
-    await adjustSupplyStock(id, type, qty, note);
-    Modal.close('supply-tx-modal');
-    showToast('✅ تم تحديث المخزون', 'success');
-    loadSuppliesPage();
-  } catch (e) { showToast('❌ ' + e.message, 'error'); }
-}
-
 function loadReportsPage() {
   // Load preview tables
   loadOrdersReportPreview();
   loadMarketReportPreview();
-  loadSuppliesReportPreview();
 }
 
 function loadOrdersReportPreview() {
@@ -1535,29 +1470,6 @@ async function loadMarketReportPreview() {
         </tbody>
       </table>`;
   } catch (e) { document.getElementById('market-report-preview').innerHTML = `<p style="color:var(--red);">❌ ${esc(e.message)}</p>`; }
-}
-
-async function loadSuppliesReportPreview() {
-  try {
-    const supplies = await fetchSupplies();
-    const preview = document.getElementById('supplies-report-preview');
-    if (!supplies.length) { preview.innerHTML = '<p style="text-align:center;color:var(--text-muted);padding:20px;">لا توجد مواد</p>'; return; }
-    preview.innerHTML = `
-      <table class="report-table">
-        <thead><tr style="background:var(--navy);">
-          <th>المادة</th><th>المخزون</th><th>الوحدة</th><th>حد التنبيه</th><th>الكلفة/وحدة</th>
-        </tr></thead>
-        <tbody>
-          ${supplies.map(s => `<tr>
-            <td><b>${esc(s.name)}</b></td>
-            <td style="color:${s.stock <= (s.min_stock ?? 0) ? 'var(--red)' : 'var(--green)'};font-weight:800;">${s.stock}</td>
-            <td>${esc(s.unit ?? '')}</td>
-            <td>${s.min_stock ?? 0}</td>
-            <td>${s.cost_per_unit ? formatPrice(s.cost_per_unit) : '—'}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>`;
-  } catch (e) { document.getElementById('supplies-report-preview').innerHTML = `<p style="color:var(--red);">❌ ${esc(e.message)}</p>`; }
 }
 
 function _filterOrdersByDate(orders, from, to) {
@@ -1622,18 +1534,6 @@ async function exportMarketCSV() {
   } catch (e) { showToast('❌ ' + e.message, 'error'); }
 }
 
-async function exportSuppliesCSV() {
-  try {
-    const supplies = await fetchSupplies();
-    const rows = [
-      ['المادة', 'المخزون', 'الوحدة', 'حد التنبيه', 'الكلفة/وحدة', 'التصنيف'],
-      ...supplies.map(s => [s.name, s.stock, s.unit, s.min_stock ?? 0, s.cost_per_unit ?? 0, s.category])
-    ];
-    _downloadCSV(`supplies_${Date.now()}.csv`, rows);
-    showToast('✅ تم تصدير تقرير المخزن', 'success');
-  } catch (e) { showToast('❌ ' + e.message, 'error'); }
-}
-
 async function loadStaffList() {
   const listEl = document.getElementById('staff-list');
   if (!listEl) return;
@@ -1681,7 +1581,7 @@ async function loadStaffList() {
       btn.addEventListener('click', () => {
         const profile = profiles.find(pr => pr.id === btn.dataset.editStaff);
         if (!profile) return;
-        const newPermsStr = prompt('أدخل الصلاحيات الجديدة مفصولة بفاصلة (مثال: received→printing, manage_market\\nالصلاحيات المتاحة: received→printing, printing→delivering, delivering→delivered, any→cancelled, manage_market, manage_supplies)', (profile.permissions ?? []).join(', '));
+        const newPermsStr = prompt('أدخل الصلاحيات الجديدة مفصولة بفاصلة (مثال: received→printing, manage_market\\nالصلاحيات المتاحة: received→printing, printing→delivering, delivering→delivered, any→cancelled, manage_market)', (profile.permissions ?? []).join(', '));
         if (newPermsStr === null) return;
         const newPerms = newPermsStr.split(',').map(s=>s.trim()).filter(Boolean);
         sb.from('profiles').update({ permissions: newPerms }).eq('id', profile.id).then(({error}) => {
