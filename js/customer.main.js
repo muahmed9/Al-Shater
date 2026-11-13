@@ -2848,12 +2848,18 @@ async function loadSuggestedProducts() {
     }).join('');
 
     // Bind scroll arrows
-    document.getElementById('sug-scroll-left')?.onclick = () => {
-      list.scrollBy({ left: -160, behavior: 'smooth' });
-    };
-    document.getElementById('sug-scroll-right')?.onclick = () => {
-      list.scrollBy({ left: 160, behavior: 'smooth' });
-    };
+    const btnLeft = document.getElementById('sug-scroll-left');
+    if (btnLeft) {
+      btnLeft.onclick = () => {
+        list.scrollBy({ left: -160, behavior: 'smooth' });
+      };
+    }
+    const btnRight = document.getElementById('sug-scroll-right');
+    if (btnRight) {
+      btnRight.onclick = () => {
+        list.scrollBy({ left: 160, behavior: 'smooth' });
+      };
+    }
 
     list.onclick = e => {
       const btn = e.target.closest('[data-sug-add]');
