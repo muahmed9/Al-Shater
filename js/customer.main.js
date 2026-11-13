@@ -3024,21 +3024,6 @@ function bindLaunchpad() {
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
   });
 
-  // 5.1 Clear / Cancel current print wizard order
-  document.getElementById('btn-clear-print-order')?.addEventListener('click', () => {
-    const files = customerState.get('files') ?? [];
-    const cart = customerState.get('cart') ?? [];
-    if (files.length === 0 && cart.length === 0) {
-      showToast('الطلب فارغ بالفعل', 'info');
-      return;
-    }
-    if (confirm('هل أنت متأكد من رغبتك في إلغاء الطلب الحالي وتفريغ جميع الملفات والمنتجات؟')) {
-      resetOrderForm({ showNotification: true });
-      document.getElementById('print-wizard-container').style.display = 'none';
-      document.getElementById('launchpad-dashboard').style.display = 'block';
-    }
-  });
-
   // 6. Back buttons to launchpad across tabs
   document.querySelectorAll('.btn-back-to-launchpad').forEach(btn => {
     btn.addEventListener('click', () => {
