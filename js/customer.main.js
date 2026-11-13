@@ -539,6 +539,7 @@ function bindHomeTrackingCard() {
 
   const newOrderBtn = document.getElementById('home-track-new-order');
   newOrderBtn?.addEventListener('click', () => {
+    resetOrderForm({ showNotification: false });
     customerState.set('hideHomeTracking', true);
     updateHomeOrderTrackingCard(null);
     const orders = customerState.get('allUserOrders') ?? [];
@@ -1302,16 +1303,7 @@ async function sendOrder() {
 
     customerState.set('hideHomeTracking', false);
     populateSuccessDetails();
-    customerState.set('files', []);
-    customerState.set('cart', []);
-    customerState.set('appliedCoupon', null);
-    customerState.set('locationUrl', '');
-    customerState.set('express', false);
-    customerState.set('packaging', 'none');
-    renderFileList();
-    updateCartBadge();
-    updateSummaryBar();
-    stepper.reset();
+    resetOrderForm({ showNotification: false });
 
     // Show Success Overlay
     const orderIdShort = orderId.length > 8 ? orderId.slice(0, 8) : orderId;
@@ -1353,6 +1345,44 @@ function areOptionsEqual(opt1, opt2) {
   const keys2 = Object.keys(o2).sort();
   if (keys1.length !== keys2.length) return false;
   return keys1.every(k => keys2.includes(k) && String(o1[k]).trim() === String(o2[k]).trim());
+}
+
+function resetOrderForm(options = { showNotification: false }) {
+  customerState.set('files', []);
+  customerState.set('cart', []);
+  customerState.set('appliedCoupon', null);
+  customerState.set('locationUrl', '');
+  customerState.set('express', false);
+  customerState.set('packaging', 'none');
+  customerState.set('printColor', 'c');
+  customerState.set('printSide', '1');
+
+  // Reset inputs
+  const uNotes = document.getElementById('uNotes');
+  if (uNotes) uNotes.value = '';
+  const couponInput = document.getElementById('couponInput');
+  if (couponInput) couponInput.value = '';
+  const couponMsg = document.getElementById('coupon-msg');
+  if (couponMsg) couponMsg.style.display = 'none';
+  const expressTog = document.getElementById('expressTog');
+  if (expressTog) expressTog.checked = false;
+
+  // Reset toggles UI in Step 2
+  document.querySelectorAll('.option-btn[data-color]').forEach(b => b.classList.toggle('active', b.dataset.color === 'c'));
+  document.querySelectorAll('.option-btn[data-side]').forEach(b => b.classList.toggle('active', b.dataset.side === '1'));
+  document.querySelectorAll('.pkg-btn').forEach(b => b.classList.toggle('active', b.dataset.pkg === 'none'));
+
+  renderFileList();
+  renderCart();
+  updateCartBadge();
+  updateUnifiedCart();
+  refreshSuggestedButtons();
+  updateSummaryBar();
+  stepper?.reset();
+
+  if (options.showNotification) {
+    showToast('🗑️ تم تفريغ وإلغاء الطلب بالكامل', 'info');
+  }
 }
 
 function bindCart() {
@@ -2976,6 +3006,21 @@ function bindLaunchpad() {
     document.getElementById('print-wizard-container').style.display = 'none';
     document.getElementById('launchpad-dashboard').style.display = 'block';
     window.Telegram?.WebApp?.HapticFeedback?.impactOccurred('light');
+  });
+
+  // 5.1 Clear / Cancel current print wizard order
+  document.getElementById('btn-clear-print-order')?.addEventListener('click', () => {
+    const files = customerState.get('files') ?? [];
+    const cart = customerState.get('cart') ?? [];
+    if (files.length === 0 && cart.length === 0) {
+      showToast('الطلب فارغ بالفعل', 'info');
+      return;
+    }
+    if (confirm('هل أنت متأكد من رغبتك في إلغاء الطلب الحالي وتفريغ جميع الملفات والمنتجات؟')) {
+      resetOrderForm({ showNotification: true });
+      document.getElementById('print-wizard-container').style.display = 'none';
+      document.getElementById('launchpad-dashboard').style.display = 'block';
+    }
   });
 
   // 6. Back buttons to launchpad across tabs
