@@ -2828,22 +2828,32 @@ async function loadSuggestedProducts() {
       const primaryImg = images.length > 0 ? images[0] : null;
 
       return `
-      <div style="display:flex;align-items:center;gap:10px;background:var(--card);border-radius:var(--radius-sm);padding:10px;border:1px solid var(--border-soft);cursor:pointer;" data-sug-id="${esc(p.id)}">
-        <div style="width:48px;height:48px;border-radius:var(--radius-sm);background:#ffffff;border:1px solid var(--border-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;flex-shrink:0;font-size:1.4rem;">
-          ${primaryImg ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;padding:2px;">` : '📦'}
+      <div class="suggested-item-card" style="flex:0 0 145px;width:145px;background:var(--card);border-radius:var(--radius-md);padding:10px;border:1.5px solid var(--border-soft);display:flex;flex-direction:column;justify-content:space-between;cursor:pointer;scroll-snap-align:start;box-shadow:0 2px 6px rgba(0,0,0,0.03);transition:transform 0.15s ease;" data-sug-id="${esc(p.id)}">
+        <div>
+          <div style="width:100%;height:80px;border-radius:var(--radius-sm);background:#ffffff;border:1px solid var(--border-soft);display:flex;align-items:center;justify-content:center;overflow:hidden;margin-bottom:8px;font-size:1.8rem;">
+            ${primaryImg ? `<img src="${esc(primaryImg)}" alt="${esc(p.name)}" loading="lazy" decoding="async" style="max-width:100%;max-height:100%;object-fit:contain;padding:4px;">` : '📦'}
+          </div>
+          <b style="font-size:.82rem;color:var(--navy);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;line-height:1.25;min-height:2.5em;margin-bottom:4px;">${esc(p.name)}</b>
         </div>
-        <div style="flex:1;min-width:0;">
-          <b style="font-size:.85rem;color:var(--navy);">${esc(p.name)}</b>
-          <div style="font-size:.75rem;color:var(--text-muted);">
+        <div>
+          <div style="font-size:.78rem;color:var(--text-muted);margin-bottom:8px;font-weight:700;">
             ${hasDiscount
-          ? `<span style="text-decoration:line-through;opacity:.6;">${formatPrice(p.price)}</span> <b style="color:var(--green);">${formatPrice(displayPrice)}</b>`
-          : formatPrice(p.price)
+          ? `<span style="text-decoration:line-through;opacity:.6;font-size:.7rem;">${formatPrice(p.price)}</span> <b style="color:var(--green);">${formatPrice(displayPrice)}</b>`
+          : `<b style="color:var(--teal);">${formatPrice(p.price)}</b>`
         }
           </div>
+          <button class="sug-add-btn" data-sug-add="${esc(p.id)}" style="border:none;background:${btnBg};color:#fff;padding:6px 10px;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);font-size:.76rem;width:100%;text-align:center;box-shadow:0 2px 4px rgba(0,0,0,0.1);transition:background 0.2s;">${btnText}</button>
         </div>
-        <button class="sug-add-btn" data-sug-add="${esc(p.id)}" style="border:none;background:${btnBg};color:#fff;padding:8px 14px;border-radius:var(--radius-sm);font-weight:800;cursor:pointer;font-family:var(--font-main);font-size:.8rem;white-space:nowrap;">${btnText}</button>
       </div>`;
     }).join('');
+
+    // Bind scroll arrows
+    document.getElementById('sug-scroll-left')?.onclick = () => {
+      list.scrollBy({ left: -160, behavior: 'smooth' });
+    };
+    document.getElementById('sug-scroll-right')?.onclick = () => {
+      list.scrollBy({ left: 160, behavior: 'smooth' });
+    };
 
     list.onclick = e => {
       const btn = e.target.closest('[data-sug-add]');

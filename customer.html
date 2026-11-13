@@ -441,17 +441,24 @@
           <b id="ucart-subtotal" style="color:var(--teal);font-size:1.1rem;">0 د.ع</b>
         </div>
       </div>
-      <div id="suggested-products-section" style="display:none;">
+      <div id="suggested-products-section" style="display:none;margin-bottom:15px;">
         <div class="card"
-          style="border:2px solid var(--teal);background:linear-gradient(135deg,rgba(90,179,196,.06),rgba(13,59,102,.04));">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;">
-            <div
-              style="background:var(--teal);width:36px;height:36px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">🛍️</div>
-            <div><b style="color:var(--navy);">أضف مستلزمات دراسية لطلبك!</b>
-              <p style="margin:2px 0 0;font-size:.78rem;color:var(--text-muted);font-weight:500;">تُوصَّل مع طلبك مباشرة</p>
+          style="border:2px solid var(--teal);background:linear-gradient(135deg,rgba(90,179,196,.06),rgba(13,59,102,.04));padding:14px 12px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+            <div style="display:flex;align-items:center;gap:8px;">
+              <div
+                style="background:var(--teal);width:32px;height:32px;border-radius:var(--radius-sm);display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;">🛍️</div>
+              <div>
+                <b style="color:var(--navy);font-size:0.92rem;">أضف مستلزمات دراسية لطلبك!</b>
+                <p style="margin:1px 0 0;font-size:.74rem;color:var(--text-muted);font-weight:500;">تُوصَّل مع طلبك مباشرة (اسحب للعرض ↔️)</p>
+              </div>
+            </div>
+            <div style="display:flex;gap:4px;" id="sug-scroll-arrows">
+              <button type="button" id="sug-scroll-right" style="border:1px solid var(--border-soft);background:var(--card);color:var(--navy);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;" title="السابق">▶</button>
+              <button type="button" id="sug-scroll-left" style="border:1px solid var(--border-soft);background:var(--card);color:var(--navy);width:26px;height:26px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:900;" title="التالي">◀</button>
             </div>
           </div>
-          <div id="suggested-products-list" style="display:flex;flex-direction:column;gap:9px;"></div>
+          <div id="suggested-products-list" class="suggested-products-carousel" style="display:flex;flex-direction:row;gap:10px;overflow-x:auto;padding-bottom:6px;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:thin;"></div>
         </div>
       </div>
       <div class="card" id="ptscard" style="display:none;border:2px solid var(--teal);background:var(--light-teal);">
